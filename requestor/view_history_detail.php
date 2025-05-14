@@ -10,38 +10,38 @@ if (!isset($_SESSION['requestor_id'])) {
 $requestorId = $_SESSION['requestor_id'];
 $username = $_SESSION['username'] ?? 'User';
 
-// Check if request ID is provided
+// Check if history ID is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    header("Location: my_requests.php");
+    header("Location: request_history.php");
     exit();
 }
 
-$requestId = intval($_GET['id']);
+$historyId = intval($_GET['id']);
 
-// Fetch the request details
+// Fetch the request history details
 try {
-    $query = "SELECT ar.*, e.employee_name as requestor_name 
-              FROM access_requests ar
-              LEFT JOIN employees e ON ar.employee_id = e.employee_id
-              WHERE ar.id = :request_id AND ar.employee_id = :employee_id";
+    $query = "SELECT ah.*, admin.username as admin_username 
+              FROM approval_history ah
+              LEFT JOIN admin_users admin ON ah.admin_id = admin.id
+              WHERE ah.history_id = :history_id AND ah.requestor_name = :requestor_name";
     
     $stmt = $pdo->prepare($query);
     $stmt->execute([
-        ':request_id' => $requestId,
-        ':employee_id' => $requestorId
+        ':history_id' => $historyId,
+        ':requestor_name' => $username
     ]);
     
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
     
     if (!$request) {
         // Request not found or doesn't belong to the user
-        header("Location: my_requests.php");
+        header("Location: request_history.php");
         exit();
     }
     
 } catch (PDOException $e) {
-    error_log("Error fetching request details: " . $e->getMessage());
-    header("Location: my_requests.php?error=db");
+    error_log("Error fetching request history details: " . $e->getMessage());
+    header("Location: request_history.php?error=db");
     exit();
 }
 ?>
@@ -51,7 +51,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View Request</title>
+    <title>View Request History</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
@@ -134,11 +134,17 @@ try {
                 </span>
                 <span class="font-medium">Create Request</span>
             </a>
-            <a href="my_requests.php" class="flex items-center p-3 text-primary-600 bg-primary-50 rounded-xl transition-all duration-200 group">
-                <span class="flex items-center justify-center w-10 h-10 bg-primary-100 text-primary-600 rounded-xl mr-3">
+            <a href="my_requests.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
+                <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
                     <i class='bx bx-list-ul text-xl'></i>
                 </span>
                 <span class="font-medium">My Requests</span>
+            </a>
+            <a href="request_history.php" class="flex items-center p-3 text-primary-600 bg-primary-50 rounded-xl transition-all duration-200 group">
+                <span class="flex items-center justify-center w-10 h-10 bg-primary-100 text-primary-600 rounded-xl mr-3">
+                    <i class='bx bx-history text-xl'></i>
+                </span>
+                <span class="font-medium">Request History</span>
             </a>
         </nav>
 
@@ -178,12 +184,12 @@ try {
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
             <div data-aos="fade-right" data-aos-duration="800">
-                <h2 class="text-2xl font-bold text-gray-800">View Request Details</h2>
+                <h2 class="text-2xl font-bold text-gray-800">Request History Details</h2>
                 <p class="text-gray-600 text-lg mt-1">Request #<?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></p>
             </div>
             <div data-aos="fade-left" data-aos-duration="800" class="flex space-x-2">
-                <a href="my_requests.php" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    <i class='bx bx-arrow-back mr-2'></i> Back to Requests
+                <a href="request_history.php" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <i class='bx bx-arrow-back mr-2'></i> Back to History
                 </a>
             </div>
         </div>
@@ -207,12 +213,9 @@ try {
                         <span class="text-gray-600">Status:</span>
                         <?php 
                         $statusClass = '';
-                        $status = strtolower($request['status'] ?? 'pending');
+                        $status = strtolower($request['action'] ?? '');
                         
-                        if ($status === 'pending') {
-                            $statusClass = 'status-pending';
-                            $bgClass = 'bg-yellow-100';
-                        } elseif ($status === 'approved') {
+                        if ($status === 'approved') {
                             $statusClass = 'status-approved';
                             $bgClass = 'bg-green-100';
                         } elseif ($status === 'rejected') {
@@ -227,10 +230,10 @@ try {
                         </div>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Submitted:</span>
+                        <span class="text-gray-600">Processed:</span>
                         <span class="font-medium text-gray-900">
                             <?php 
-                            $date = new DateTime($request['submission_date'] ?? 'now');
+                            $date = new DateTime($request['created_at'] ?? 'now');
                             echo $date->format('M d, Y h:i A'); 
                             ?>
                         </span>
@@ -264,6 +267,10 @@ try {
                         <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['requestor_name'] ?? 'N/A'); ?></span>
                     </div>
                     <div class="flex justify-between">
+                        <span class="text-gray-600">Email:</span>
+                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['email'] ?? 'N/A'); ?></span>
+                    </div>
+                    <div class="flex justify-between">
                         <span class="text-gray-600">Business Unit:</span>
                         <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
                     </div>
@@ -271,21 +278,52 @@ try {
                         <span class="text-gray-600">Department:</span>
                         <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['department'] ?? 'N/A'); ?></span>
                     </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Email:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['email'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Employee ID:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['employee_id'] ?? 'N/A'); ?></span>
-                    </div>
                 </div>
             </div>
             
-            <!-- Access Details -->
+            <!-- Admin Info -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                    <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
+                    <i class='bx bx-shield-quarter text-primary-500 text-xl mr-2'></i>
+                    Approval Information
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Reviewed By:</span>
+                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['admin_username'] ?? 'System'); ?></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Decision:</span>
+                        <span class="font-medium text-gray-900"><?php echo ucfirst($request['action'] ?? 'N/A'); ?></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Date:</span>
+                        <span class="font-medium text-gray-900">
+                            <?php 
+                            $date = new DateTime($request['created_at'] ?? 'now');
+                            echo $date->format('M d, Y'); 
+                            ?>
+                        </span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Time:</span>
+                        <span class="font-medium text-gray-900">
+                            <?php 
+                            $date = new DateTime($request['created_at'] ?? 'now');
+                            echo $date->format('h:i A'); 
+                            ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Access Request Details -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Access Type Details -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                    <i class='bx bx-key text-primary-500 text-xl mr-2'></i>
                     Access Details
                 </h3>
                 <div class="space-y-3">
@@ -302,94 +340,77 @@ try {
                     <?php if (!empty($request['other_system_type'])): ?>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Other System:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['other_system_type'] ?? 'N/A'); ?></span>
+                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['other_system_type']); ?></span>
                     </div>
                     <?php endif; ?>
                     <?php if (!empty($request['role_access_type'])): ?>
                     <div class="flex justify-between">
-                        <span class="text-gray-600">Role Access Type:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['role_access_type'] ?? 'N/A'); ?></span>
+                        <span class="text-gray-600">Role/Access:</span>
+                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['role_access_type']); ?></span>
                     </div>
                     <?php endif; ?>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Duration:</span>
+                        <span class="font-medium text-gray-900">
+                            <?php 
+                            if ($request['duration_type'] === 'permanent') {
+                                echo 'Permanent';
+                            } else {
+                                echo 'Temporary';
+                            }
+                            ?>
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
-        
-        <!-- Justification -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                <i class='bx bx-comment-detail text-primary-500 text-xl mr-2'></i>
-                Justification
-            </h3>
-            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                <?php echo nl2br(htmlspecialchars($request['justification'] ?? 'No justification provided.')); ?>
+            
+            <!-- Comments -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="400">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                    <i class='bx bx-message-detail text-primary-500 text-xl mr-2'></i>
+                    Additional Information
+                </h3>
+                
+                <div class="mb-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Justification:</h4>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-gray-800">
+                        <?php echo nl2br(htmlspecialchars($request['justification'] ?? 'No justification provided')); ?>
+                    </div>
+                </div>
+                
+                <?php if (!empty($request['comments'])): ?>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Reviewer Comments:</h4>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-gray-800">
+                        <?php echo nl2br(htmlspecialchars($request['comments'])); ?>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div>
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Reviewer Comments:</h4>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 text-gray-500 italic">
+                        No comments provided
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
         
-        <!-- Admin Feedback (if any) -->
-        <?php if (!empty($request['review_notes']) && ($request['status'] === 'approved' || $request['status'] === 'rejected')): ?>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="400">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                Administrator Feedback
-            </h3>
-            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
-            </div>
-            <div class="mt-3 text-sm text-gray-500">
-                Reviewed on: <?php 
-                $reviewDate = new DateTime($request['review_date']);
-                echo $reviewDate->format('M d, Y h:i A'); 
-                ?>
-            </div>
-        </div>
-        <?php endif; ?>
-        
-        <!-- Actions -->
-        <div class="flex justify-between items-center" data-aos="fade-up" data-aos-duration="800" data-aos-delay="500">
-            <div class="flex space-x-2">
-                <a href="my_requests.php" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    <i class='bx bx-arrow-back mr-2'></i> Back to Requests
-                </a>
-            </div>
-            <?php if ($request['status'] === 'pending'): ?>
-            <button id="cancelRequestBtn" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                <i class='bx bx-x mr-2'></i> Cancel Request
-            </button>
-            <?php endif; ?>
+        <!-- Action Buttons -->
+        <div class="flex justify-end space-x-4 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="500">
+            <a href="request_history.php" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                Back to History
+            </a>
+            <a href="tcpdf_print_record.php?id=<?php echo $historyId; ?>" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                <i class='bx bx-file-pdf mr-2'></i> Download PDF
+            </a>
         </div>
     </div>
 </div>
 
-<!-- SweetAlert2 CDN -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Initialize AOS animation library
         AOS.init();
-        
-        // Setup cancel request button
-        const cancelBtn = document.getElementById('cancelRequestBtn');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function() {
-                Swal.fire({
-                    title: 'Cancel Request',
-                    text: 'Are you sure you want to cancel this request?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, cancel it!',
-                    cancelButtonText: 'No, keep it'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Redirect to cancel_request.php with the request ID
-                        window.location.href = 'cancel_request.php?id=<?php echo $requestId; ?>';
-                    }
-                });
-            });
-        }
     });
 </script>
 </body>

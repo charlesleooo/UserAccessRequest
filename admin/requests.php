@@ -714,104 +714,121 @@ try {
                     // Update the request number in the header
                     document.getElementById('detail_request_number').textContent = data.access_request_number;
                     
-                    // Render the modal content with the same design as approval history
+                    // Render the modal content with the format from view_request.php
                     modalContainer.innerHTML = `
-                        <div class="grid grid-cols-3 gap-6">
-                            <!-- Left Column -->
-                            <div class="col-span-1 space-y-6">
-                                <!-- Requestor Information -->
-                                <div class="bg-white rounded-lg border border-gray-100 shadow-sm">
-                                    <div class="px-6 py-4 border-b border-gray-100">
-                                        <h4 class="text-lg font-semibold text-gray-800">Requestor Information</h4>
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                            <!-- Request Info -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-info-circle text-indigo-500 text-xl mr-2'></i>
+                                    Request Information
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Request No:</span>
+                                        <span class="font-medium text-gray-900">${data.access_request_number}</span>
                                     </div>
-                                    <div class="p-6 space-y-4">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-500 mb-1">Full Name</p>
-                                            <p class="text-gray-900">${data.requestor_name}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-500 mb-1">Email Address</p>
-                                            <p class="text-gray-900">${data.email}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-500 mb-1">Contact Number</p>
-                                            <p class="text-gray-900">${data.contact_number}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-500 mb-1">Business Unit</p>
-                                            <p class="text-gray-900">${data.business_unit}</p>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-500 mb-1">Department</p>
-                                            <p class="text-gray-900">${data.department}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Status Information -->
-                                <div class="bg-white rounded-lg border border-gray-100 shadow-sm">
-                                    <div class="px-6 py-4 border-b border-gray-100">
-                                        <h4 class="text-lg font-semibold text-gray-800">Status Information</h4>
-                                    </div>
-                                    <div class="p-6 space-y-4">
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-500 mb-1">Status</p>
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium 
-                                                ${data.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                                (data.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800')}">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Status:</span>
+                                        <div class="flex justify-center items-center ${
+                                            data.status === 'pending' ? 'bg-yellow-50' : 
+                                            (data.status === 'approved' ? 'bg-green-50' : 'bg-red-50')
+                                        } rounded-lg px-2 py-1">
+                                            <span class="px-3 py-1 text-xs font-medium rounded-full ${
+                                                data.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                                (data.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
+                                            }">
                                                 ${data.status.toUpperCase()}
                                             </span>
                                         </div>
-                                        <div>
-                                            <p class="text-sm font-medium text-gray-500 mb-1">Submission Date</p>
-                                            <p class="text-gray-900">${new Date(data.submission_date).toLocaleString()}</p>
-                                        </div>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Submitted:</span>
+                                        <span class="font-medium text-gray-900">
+                                            ${new Date(data.submission_date).toLocaleString()}
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Duration:</span>
+                                        <span class="font-medium text-gray-900">
+                                            ${data.duration_type === 'permanent' ? 'Permanent' : 
+                                            `${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}`}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Right Column -->
-                            <div class="col-span-2 space-y-6">
-                                <!-- Access Details -->
-                                <div class="bg-white rounded-lg border border-gray-100 shadow-sm">
-                                    <div class="px-6 py-4 border-b border-gray-100">
-                                        <h4 class="text-lg font-semibold text-gray-800">Access Details</h4>
+                            
+                            <!-- Requestor Info -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-user text-indigo-500 text-xl mr-2'></i>
+                                    Requestor Information
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Name:</span>
+                                        <span class="font-medium text-gray-900">${data.requestor_name}</span>
                                     </div>
-                                    <div class="p-6">
-                                        <div class="grid grid-cols-2 gap-6">
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-500 mb-1">Access Type</p>
-                                                <p class="text-gray-900">${data.access_type}</p>
-                                            </div>
-                                            ${data.system_type ? `
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-500 mb-1">System Type</p>
-                                                <p class="text-gray-900">${data.system_type}</p>
-                                            </div>
-                                            ` : ''}
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-500 mb-1">Duration Type</p>
-                                                <p class="text-gray-900">${data.duration_type ? data.duration_type.charAt(0).toUpperCase() + data.duration_type.slice(1) : 'Not specified'}</p>
-                                            </div>
-                                            ${data.duration_type === 'temporary' ? `
-                                            <div>
-                                                <p class="text-sm font-medium text-gray-500 mb-1">Duration Period</p>
-                                                <p class="text-gray-900">${new Date(data.start_date).toLocaleDateString()} to ${new Date(data.end_date).toLocaleDateString()}</p>
-                                            </div>
-                                            ` : ''}
-                                        </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Business Unit:</span>
+                                        <span class="font-medium text-gray-900">${data.business_unit}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Department:</span>
+                                        <span class="font-medium text-gray-900">${data.department}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Email:</span>
+                                        <span class="font-medium text-gray-900">${data.email}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Contact:</span>
+                                        <span class="font-medium text-gray-900">${data.contact_number || 'Not provided'}</span>
                                     </div>
                                 </div>
-
-                                <!-- Justification -->
-                                <div class="bg-white rounded-lg border border-gray-100 shadow-sm">
-                                    <div class="px-6 py-4 border-b border-gray-100">
-                                        <h4 class="text-lg font-semibold text-gray-800">Justification</h4>
+                            </div>
+                            
+                            <!-- Access Details -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-lock-open text-indigo-500 text-xl mr-2'></i>
+                                    Access Details
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Access Type:</span>
+                                        <span class="font-medium text-gray-900">${data.access_type}</span>
                                     </div>
-                                    <div class="p-6">
-                                        <p class="text-gray-900 bg-gray-50 p-4 rounded-lg min-h-[100px]">${data.justification || 'No justification provided'}</p>
+                                    ${data.system_type ? `
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">System Type:</span>
+                                        <span class="font-medium text-gray-900">${data.system_type}</span>
                                     </div>
+                                    ` : ''}
+                                    ${data.other_system_type ? `
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Other System:</span>
+                                        <span class="font-medium text-gray-900">${data.other_system_type}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${data.role_access_type ? `
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Role Access Type:</span>
+                                        <span class="font-medium text-gray-900">${data.role_access_type}</span>
+                                    </div>
+                                    ` : ''}
                                 </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Justification -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                <i class='bx bx-comment-detail text-indigo-500 text-xl mr-2'></i>
+                                Justification
+                            </h3>
+                            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                ${data.justification || 'No justification provided.'}
                             </div>
                         </div>
                     `;

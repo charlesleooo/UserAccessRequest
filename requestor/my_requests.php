@@ -25,8 +25,21 @@ $query = "SELECT ar.*, e.employee_name as requestor_name
 $params = [':employee_id' => $requestorId];
 
 if ($statusFilter !== 'all') {
-    $query .= " AND ar.status = :status";
-    $params[':status'] = $statusFilter;
+    // Check if status is an array (multiple statuses selected)
+    if (is_array($statusFilter)) {
+        $placeholders = [];
+        $i = 0;
+        foreach ($statusFilter as $status) {
+            $key = ":status".$i;
+            $placeholders[] = $key;
+            $params[$key] = $status;
+            $i++;
+        }
+        $query .= " AND ar.status IN (" . implode(',', $placeholders) . ")";
+    } else {
+        $query .= " AND ar.status = :status";
+        $params[':status'] = $statusFilter;
+    }
 }
 
 if ($dateFilter !== 'all') {
@@ -63,26 +76,9 @@ try {
     echo "<!-- SQL Query: $query -->";
     echo "<!-- Params: " . json_encode($params) . " -->";
     echo "<!-- Result Count: " . count($requests) . " -->";
-    
-    // Get counts for the dashboard
-    $countStmt = $pdo->prepare("SELECT 
-        COUNT(*) as total,
-        SUM(status = 'approved') as approved,
-        SUM(status = 'rejected') as rejected,
-        SUM(status = 'pending') as pending
-        FROM access_requests
-        WHERE employee_id = ?");
-    $countStmt->execute([$requestorId]);
-    $counts = $countStmt->fetch(PDO::FETCH_ASSOC);
-    
-    $total = $counts['total'] ?? 0;
-    $approved = $counts['approved'] ?? 0;
-    $rejected = $counts['rejected'] ?? 0;
-    $pending = $counts['pending'] ?? 0;
 } catch (PDOException $e) {
     error_log("Error fetching requests: " . $e->getMessage());
     $requests = [];
-    $total = $approved = $rejected = $pending = 0;
 }
 ?>
 
@@ -108,6 +104,8 @@ try {
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -234,6 +232,12 @@ try {
                 </span>
                 <span class="font-medium">My Requests</span>
             </a>
+            <a href="request_history.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
+                <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
+                    <i class='bx bx-history text-xl'></i>
+                </span>
+                <span class="font-medium">Request History</span>
+            </a>
         </nav>
 
         <div class="p-3 mt-auto">
@@ -272,8 +276,20 @@ try {
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
             <div data-aos="fade-right" data-aos-duration="800">
-                <h2 class="text-2xl font-bold text-gray-800">My Access Requests</h2>
-                <p class="text-gray-600 text-lg mt-1">Track and manage your submitted access requests</p>
+                <h2 class="text-2xl font-bold text-gray-800">
+                    <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
+                        Request History
+                    <?php else: ?>
+                        My Access Requests
+                    <?php endif; ?>
+                </h2>
+                <p class="text-gray-600 text-lg mt-1">
+                    <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
+                        View your previously approved and rejected requests
+                    <?php else: ?>
+                        Track and manage your submitted access requests
+                    <?php endif; ?>
+                </p>
             </div>
             <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
                 <div class="flex items-center space-x-2 text-sm bg-primary-50 text-primary-700 px-4 py-2 rounded-lg">
@@ -286,44 +302,7 @@ try {
 
     <div class="p-6">
         <!-- Stats -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" data-aos="fade-up" data-aos-duration="800">
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="bg-primary-50 p-3 rounded-xl">
-                    <i class='bx bx-folder text-2xl text-primary-600'></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm text-gray-500">Total Requests</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $total; ?></h4>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="bg-green-50 p-3 rounded-xl">
-                    <i class='bx bx-check-circle text-2xl text-green-600'></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm text-gray-500">Approved</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $approved; ?></h4>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="bg-yellow-50 p-3 rounded-xl">
-                    <i class='bx bx-time text-2xl text-yellow-600'></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm text-gray-500">Pending</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $pending; ?></h4>
-                </div>
-            </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center shadow-sm hover:shadow-md transition-all duration-300">
-                <div class="bg-red-50 p-3 rounded-xl">
-                    <i class='bx bx-x-circle text-2xl text-red-600'></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm text-gray-500">Rejected</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $rejected; ?></h4>
-                </div>
-            </div>
-        </div>
+        <!-- Stats section removed as requested -->
 
         <!-- Filters -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8" data-aos="fade-up" data-aos-duration="800">
@@ -333,8 +312,13 @@ try {
                     <select id="status" name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Statuses</option>
                         <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
-                        <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
-                        <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                        <option value="approved" <?php echo $statusFilter === 'approved' || (is_array($statusFilter) && in_array('approved', $statusFilter)) ? 'selected' : ''; ?>>Approved</option>
+                        <option value="rejected" <?php echo $statusFilter === 'rejected' || (is_array($statusFilter) && in_array('rejected', $statusFilter)) ? 'selected' : ''; ?>>Rejected</option>
+                        <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
+                        <option value="history" selected>History (Approved & Rejected)</option>
+                        <?php else: ?>
+                        <option value="history">History (Approved & Rejected)</option>
+                        <?php endif; ?>
                     </select>
                 </div>
                 <div>
@@ -465,8 +449,7 @@ try {
                                     <i class='bx bx-show'></i> View
                                 </a>
                                 <?php if ($status === 'pending'): ?>
-                                <a href="cancel_request.php?id=<?php echo $request['id']; ?>" class="text-red-600 hover:text-red-800" 
-                                   onclick="return confirm('Are you sure you want to cancel this request?');">
+                                <a href="#" class="text-red-600 hover:text-red-800 cancel-request" data-id="<?php echo $request['id']; ?>">
                                     <i class='bx bx-x'></i> Cancel
                                 </a>
                                 <?php endif; ?>
@@ -497,6 +480,29 @@ try {
         // Initialize AOS animation library
         AOS.init();
         
+        // Setup cancel request buttons
+        document.querySelectorAll('.cancel-request').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const requestId = this.getAttribute('data-id');
+                
+                Swal.fire({
+                    title: 'Cancel Request',
+                    text: 'Are you sure you want to cancel this request?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, cancel it!',
+                    cancelButtonText: 'No, keep it'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = 'cancel_request.php?id=' + requestId;
+                    }
+                });
+            });
+        });
+        
         // Setup DataTable if there's data
         if (document.getElementById('requestsTable')) {
             $('#requestsTable').DataTable({
@@ -526,6 +532,21 @@ try {
                 }
             });
         }
+
+        // Handle the status filter dropdown 
+        document.getElementById('status').addEventListener('change', function() {
+            if (this.value === 'history') {
+                // Create a new URL with both approved and rejected status parameters
+                const currentUrl = new URL(window.location.href);
+                currentUrl.searchParams.delete('status');
+                currentUrl.searchParams.append('status', 'approved');
+                currentUrl.searchParams.append('status', 'rejected');
+                
+                // Redirect to the new URL
+                window.location.href = currentUrl.toString();
+                return false;
+            }
+        });
 
         // Progress bar handler
         window.onscroll = function() {

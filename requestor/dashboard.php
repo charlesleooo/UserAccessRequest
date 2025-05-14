@@ -95,6 +95,12 @@ try {
                 </span>
                 <span class="ml-3">My Requests</span>
             </a>
+            <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                    <i class='bx bx-history text-xl'></i>
+                </span>
+                <span class="ml-3">Request History</span>
+            </a>
         </nav>
 
         <div class="p-4 border-t border-gray-100">

@@ -265,6 +265,12 @@ try {
                 </span>
                 <span class="font-medium">My Requests</span>
             </a>
+            <a href="request_history.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
+                <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
+                    <i class='bx bx-history text-xl'></i>
+                </span>
+                <span class="font-medium">Request History</span>
+            </a>
         </nav>
 
         <div class="p-3 mt-auto">
@@ -318,10 +324,6 @@ try {
     <div class="p-6">
         <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-card overflow-hidden" data-aos="fade-up" data-aos-duration="1000">
             <div class="bg-gradient-to-r from-primary-600 to-primary-500 text-white py-6 px-8 border-b relative overflow-hidden">
-                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <img src="../logo.png" alt="Logo" class="logo bg-white p-3 rounded-xl shadow-lg">
-                    <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-center md:text-right">USER ACCESS REQUEST FORM</h1>
-                </div>
                 <!-- Animated background shapes -->
                 <div class="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10"></div>
                 <div class="absolute bottom-0 left-0 w-24 h-24 bg-white opacity-10 rounded-full -ml-12 -mb-12"></div>
