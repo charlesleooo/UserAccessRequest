@@ -420,16 +420,6 @@ try {
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                                    <div class="flex flex-col items-center justify-center py-6">
-                                        <i class='bx bx-folder-open text-5xl text-gray-300 mb-2'></i>
-                                        <p>No request history found</p>
-                                        <p class="text-sm mt-1">Try adjusting your filters or create new access requests</p>
-                                    </div>
-                                </td>
-                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -449,7 +439,8 @@ $(document).ready(function() {
         buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
         language: {
             search: "_INPUT_",
-            searchPlaceholder: "Search..."
+            searchPlaceholder: "Search...",
+            emptyTable: '<div class="flex flex-col items-center justify-center py-6"><i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i><p>No request history found</p><p class="text-sm mt-1">Try adjusting your filters or create new access requests</p></div>'
         }
     });
     
