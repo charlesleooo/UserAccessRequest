@@ -82,7 +82,8 @@ try {
         access_request_number,
         department,
         email,
-        contact_number,
+        employee_id,
+        request_date,
         access_type,
         system_type,
         other_system_type,
@@ -99,7 +100,8 @@ try {
         :access_request_number,
         :department,
         :email,
-        :contact_number,
+        :employee_id,
+        :request_date,
         :access_type,
         :system_type,
         :other_system_type,
@@ -127,7 +129,8 @@ try {
         'access_request_number' => $access_request_number,
         'department' => $_POST['department'],
         'email' => $_POST['email'],
-        'contact_number' => $_POST['contact_number'],
+        'employee_id' => $_POST['employee_id'],
+        'request_date' => $_POST['request_date'],
         'access_type' => $_POST['access_type'],
         'system_type' => $system_type,
         'other_system_type' => $_POST['other_system_type'] ?? null,
@@ -208,13 +211,13 @@ try {
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>Department:</strong></td>
                             <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['department']}</td>
                         </tr>
-                        <tr>
+                        <tr style='background-color: #f8f9fa;'>
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>Email:</strong></td>
                             <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['email']}</td>
                         </tr>
-                        <tr style='background-color: #f8f9fa;'>
-                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Contact Number:</strong></td>
-                            <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['contact_number']}</td>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Employee ID:</strong></td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['employee_id']}</td>
                         </tr>
                     </table>
 

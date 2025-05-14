@@ -66,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $user = $_SESSION['temp_user'];
 
                 // Set necessary session variables
-                $_SESSION['requestor_id'] = $user['employee_id']; // Use 'id' if exists
+                $_SESSION['requestor_id'] = $user['employee_id']; // This is already correct
                 $_SESSION['employee_email'] = $user['employee_email'];
                 $_SESSION['username'] = $user['employee_name'];
                 $_SESSION['role'] = 'employee';

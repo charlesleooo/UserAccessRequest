@@ -103,6 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 )";
 
         $stmt = $pdo->prepare($sql);
+        
+        // If contact_number is null or empty string, set a default value
+        $contactNumber = $request['contact_number'];
+        if (empty($contactNumber)) {
+            $contactNumber = 'Not provided';
+        }
+        
         $result = $stmt->execute([
             'access_request_number' => $request['access_request_number'],
             'action' => ($action === 'approve') ? 'approved' : 'rejected',
@@ -118,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             'end_date' => $request['end_date'],
             'justification' => $request['justification'],
             'email' => $request['email'],
-            'contact_number' => $request['contact_number']
+            'contact_number' => $contactNumber
         ]);
 
         if (!$result) {
@@ -216,7 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                             </tr>
                             <tr style='background-color: #f8f9fa;'>
                                 <td style='padding: 12px; border: 1px solid #ddd;'><strong>Contact Number:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['contact_number']}</td>
+                                <td style='padding: 12px; border: 1px solid #ddd;'>{$contactNumber}</td>
                             </tr>
                         </table>
 
@@ -295,6 +302,39 @@ try {
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Custom Styles -->
+    <style>
+        /* SweetAlert2 Customizations */
+        .swal2-title {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            font-weight: 600 !important;
+            color: #1F2937 !important;
+        }
+        
+        .swal2-html-container {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .swal2-popup {
+            border-radius: 0.75rem !important;
+            padding: 1.5rem !important;
+        }
+        
+        .swal2-styled.swal2-confirm {
+            border-radius: 0.5rem !important;
+            font-weight: 500 !important;
+            padding: 0.5rem 1.25rem !important;
+        }
+        
+        .swal2-styled.swal2-cancel {
+            border-radius: 0.5rem !important;
+            font-weight: 500 !important;
+            padding: 0.5rem 1.25rem !important;
+        }
+    </style>
     
     <!-- Tailwind Configuration -->
     <script>
@@ -443,24 +483,6 @@ try {
 
             <!-- Content Area -->
             <div class="p-8">
-                <?php if (isset($_SESSION['success_message'])): ?>
-                    <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg mb-6" role="alert">
-                        <?php 
-                        echo $_SESSION['success_message'];
-                        unset($_SESSION['success_message']);
-                        ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if (isset($_SESSION['error_message'])): ?>
-                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-6" role="alert">
-                        <?php 
-                        echo $_SESSION['error_message'];
-                        unset($_SESSION['error_message']);
-                        ?>
-                    </div>
-                <?php endif; ?>
-
                 <div class="bg-white rounded-xl shadow-sm">
                     <div class="border-b border-gray-100 px-6 py-4">
                         <div class="flex justify-between items-center">
@@ -547,34 +569,6 @@ try {
         </div>
     </div>
 
-    <!-- Action Modal -->
-    <div id="actionModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
-        <div class="flex items-center justify-center min-h-screen">
-            <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4">
-                <h3 id="modalTitle" class="text-xl font-semibold text-gray-800 mb-4"></h3>
-                <form id="actionForm" method="POST">
-                    <input type="hidden" name="request_id" id="request_id">
-                    <input type="hidden" name="action" id="action">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-                    
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
-                        <textarea name="review_notes" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"></textarea>
-                    </div>
-
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" onclick="hideActionModal()" class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
-                            Cancel
-                        </button>
-                        <button type="submit" class="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary-dark">
-                            Confirm
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <!-- Details Modal -->
     <div id="detailsModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
         <div class="flex items-center justify-center min-h-screen p-4">
@@ -603,17 +597,92 @@ try {
     </div>
 
     <script>
-        // Existing functions
+        // Modified functions for SweetAlert2
         function showActionModal(requestId, action) {
-            document.getElementById('request_id').value = requestId;
-            document.getElementById('action').value = action;
-            document.getElementById('modalTitle').textContent = 
-                action === 'approve' ? 'Approve Access Request' : 'Decline Access Request';
-            document.getElementById('actionModal').classList.remove('hidden');
+            const title = action === 'approve' ? 'Approve Access Request' : 'Decline Access Request';
+            const confirmButtonText = action === 'approve' ? 'Approve' : 'Decline';
+            const confirmButtonColor = action === 'approve' ? '#10B981' : '#EF4444';
+            const icon = action === 'approve' ? 'success' : 'warning';
+            
+            Swal.fire({
+                title: title,
+                icon: icon,
+                html: `
+                    <form id="swalForm" class="mt-4">
+                        <div class="mb-4 text-left">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
+                            <textarea id="swal-review-notes" 
+                                      class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                      rows="3" 
+                                      placeholder="${action === 'approve' ? 'Add any approval notes here...' : 'Please specify the reason for declining...'}"></textarea>
+                        </div>
+                    </form>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: confirmButtonColor,
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: confirmButtonText,
+                cancelButtonText: 'Cancel',
+                focusConfirm: false,
+                customClass: {
+                    container: 'swal-wide',
+                    popup: 'rounded-xl shadow-xl',
+                    title: 'text-xl font-semibold text-gray-800',
+                    htmlContainer: 'text-left',
+                },
+                preConfirm: () => {
+                    const reviewNotes = document.getElementById('swal-review-notes').value;
+                    
+                    // Simple validation for decline reason
+                    if (action === 'decline' && !reviewNotes.trim()) {
+                        Swal.showValidationMessage('Please provide a reason for declining');
+                        return false;
+                    }
+                    
+                    return { reviewNotes: reviewNotes };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a form to submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.style.display = 'none';
+                    
+                    // Add the necessary fields
+                    const fields = {
+                        'request_id': requestId,
+                        'action': action,
+                        'review_notes': result.value.reviewNotes
+                    };
+                    
+                    for (const [key, value] of Object.entries(fields)) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        form.appendChild(input);
+                    }
+                    
+                    // Add to body, submit, then remove
+                    document.body.appendChild(form);
+                    
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Processing...',
+                        html: `${action === 'approve' ? 'Approving' : 'Declining'} the request...`,
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    form.submit();
+                }
+            });
         }
 
         function hideActionModal() {
-            document.getElementById('actionModal').classList.add('hidden');
+            // No longer needed with SweetAlert2, keeping for compatibility
         }
 
         function showDetailsModal(requestId) {
@@ -806,17 +875,30 @@ try {
         });
 
         // Close modals when clicking outside
-        document.getElementById('actionModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                hideActionModal();
-            }
-        });
-
         document.getElementById('detailsModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 hideDetailsModal();
             }
         });
+
+        // Show success/error message with SweetAlert2 if set in session
+        <?php if (isset($_SESSION['success_message'])): ?>
+        Swal.fire({
+            title: 'Success!',
+            text: '<?php echo addslashes($_SESSION['success_message']); ?>',
+            icon: 'success',
+            confirmButtonColor: '#4F46E5'
+        });
+        <?php unset($_SESSION['success_message']); endif; ?>
+
+        <?php if (isset($_SESSION['error_message'])): ?>
+        Swal.fire({
+            title: 'Error!',
+            text: '<?php echo addslashes($_SESSION['error_message']); ?>',
+            icon: 'error',
+            confirmButtonColor: '#4F46E5'
+        });
+        <?php unset($_SESSION['error_message']); endif; ?>
     </script>
 </body>
 </html>
