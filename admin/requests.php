@@ -342,9 +342,27 @@ try {
             theme: {
                 extend: {
                     colors: {
-                        primary: '#4F46E5',
-                        secondary: '#1F2937',
-                    }
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        },
+                        danger: {
+                            DEFAULT: '#dc3545',
+                            dark: '#c82333',
+                        }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
                 }
             }
         }
@@ -367,29 +385,29 @@ try {
                         Main Menu
                     </p>
                     
-                    <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-gray-200">
+                    <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bxs-dashboard text-xl'></i>
                         </span>
                         <span class="ml-3">Dashboard</span>
                     </a>
                     
-                    <a href="analytics.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-gray-200">
+                    <a href="analytics.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-line-chart text-xl'></i>
                         </span>
                         <span class="ml-3">Analytics</span>
                     </a>
                     
-                    <a href="#" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition-all hover:bg-indigo-100 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-200">
+                    <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl transition-all hover:bg-primary-100 group">
+                        <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg group-hover:bg-primary-200">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
                         <span class="ml-3 font-medium">Requests</span>
                     </a>
                     
-                    <a href="approval_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-gray-200">
+                    <a href="approval_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-history text-xl'></i>
                         </span>
                         <span class="ml-3">Approval History</span>
@@ -402,15 +420,15 @@ try {
                         Account
                     </p>
                     
-                    <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-gray-200">
+                    <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-user text-xl'></i>
                         </span>
                         <span class="ml-3">Employee Management</span>
                     </a>
                     
-                    <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-gray-200">
+                    <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-cog text-xl'></i>
                         </span>
                         <span class="ml-3">Settings</span>
@@ -431,7 +449,7 @@ try {
                 <div class="px-4 py-4 border-t border-gray-100">
                     <div class="flex items-center space-x-3">
                         <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
                                 <i class='bx bxs-user text-xl'></i>
                             </div>
                         </div>
@@ -450,7 +468,7 @@ try {
 
         <!-- Mobile menu button (for responsive design) -->
         <div class="lg:hidden fixed bottom-6 right-6 z-50">
-            <button type="button" class="flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            <button type="button" class="flex items-center justify-center w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                 <i class='bx bx-menu text-2xl'></i>
             </button>
         </div>
@@ -720,7 +738,7 @@ try {
                             <!-- Request Info -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-info-circle text-indigo-500 text-xl mr-2'></i>
+                                    <i class='bx bx-info-circle text-primary-600 text-xl mr-2'></i>
                                     Request Information
                                 </h3>
                                 <div class="space-y-3">
@@ -761,7 +779,7 @@ try {
                             <!-- Requestor Info -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-user text-indigo-500 text-xl mr-2'></i>
+                                    <i class='bx bx-user text-primary-600 text-xl mr-2'></i>
                                     Requestor Information
                                 </h3>
                                 <div class="space-y-3">
@@ -791,7 +809,7 @@ try {
                             <!-- Access Details -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-lock-open text-indigo-500 text-xl mr-2'></i>
+                                    <i class='bx bx-lock-open text-primary-600 text-xl mr-2'></i>
                                     Access Details
                                 </h3>
                                 <div class="space-y-3">
@@ -824,7 +842,7 @@ try {
                         <!-- Justification -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                <i class='bx bx-comment-detail text-indigo-500 text-xl mr-2'></i>
+                                <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
                                 Justification
                             </h3>
                             <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
@@ -904,7 +922,7 @@ try {
             title: 'Success!',
             text: '<?php echo addslashes($_SESSION['success_message']); ?>',
             icon: 'success',
-            confirmButtonColor: '#4F46E5'
+            confirmButtonColor: '#0284c7'
         });
         <?php unset($_SESSION['success_message']); endif; ?>
 
@@ -913,7 +931,7 @@ try {
             title: 'Error!',
             text: '<?php echo addslashes($_SESSION['error_message']); ?>',
             icon: 'error',
-            confirmButtonColor: '#4F46E5'
+            confirmButtonColor: '#0284c7'
         });
         <?php unset($_SESSION['error_message']); endif; ?>
     </script>

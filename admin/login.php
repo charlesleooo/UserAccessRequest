@@ -13,10 +13,23 @@
             theme: {
                 extend: {
                     colors: {
-                        primary: '#0084FF',
-                        secondary: '#006ACC',
-                        accent: '#4797FF',
-                        dark: '#001A33'
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                            950: '#082f49',
+                        },
+                        danger: {
+                            DEFAULT: '#dc3545',
+                            dark: '#c82333',
+                        }
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.5s ease-out',
@@ -31,7 +44,10 @@
                             '0%': { transform: 'translateY(20px)', opacity: '0' },
                             '100%': { transform: 'translateY(0)', opacity: '1' }
                         }
-                    }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'sans-serif'],
+                    },
                 }
             }
         }
@@ -113,7 +129,7 @@
                             </svg>
                         </div>
                         <input type="text" id="username" name="username" required autofocus
-                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition duration-200"
+                            class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200"
                             placeholder="Enter your username">
                     </div>
                 </div>
@@ -127,7 +143,7 @@
                             </svg>
                         </div>
                         <input :type="passwordVisible ? 'text' : 'password'" id="password" name="password" required
-                            class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition duration-200"
+                            class="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200"
                             placeholder="Enter your password">
                         <button type="button" @click="passwordVisible = !passwordVisible" class="absolute inset-y-0 right-0 pr-3 flex items-center">
                             <svg x-show="!passwordVisible" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -146,7 +162,7 @@
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center">
                             <input id="remember-me" name="remember-me" type="checkbox" 
-                                class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                                class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
                             <label for="remember-me" class="ml-2 block text-sm text-gray-700">
                                 Remember me
                             </label>
@@ -154,7 +170,7 @@
                     </div>
                     
                     <button type="submit"
-                        class="w-full flex items-center justify-center bg-primary hover:bg-secondary text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
+                        class="w-full flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
                         :class="{ 'opacity-75 cursor-not-allowed': loading }"
                         :disabled="loading">
                         <span x-show="!loading">Sign In</span>
