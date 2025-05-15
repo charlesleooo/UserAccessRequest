@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 14, 2025 at 04:07 AM
+-- Generation Time: May 15, 2025 at 06:03 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -44,7 +44,9 @@ CREATE TABLE `access_requests` (
   `duration_type` varchar(20) DEFAULT NULL,
   `start_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
-  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `status` enum('pending','approved','rejected','pending_testing') NOT NULL DEFAULT 'pending',
+  `testing_status` enum('not_required','pending','success','failed') DEFAULT 'not_required',
+  `testing_notes` text DEFAULT NULL,
   `submission_date` datetime NOT NULL,
   `reviewed_by` int(11) DEFAULT NULL,
   `review_date` datetime DEFAULT NULL,
@@ -55,10 +57,9 @@ CREATE TABLE `access_requests` (
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `status`, `submission_date`, `reviewed_by`, `review_date`, `review_notes`) VALUES
-(34, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-004', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'PC Access - Network', 'charles palomares', NULL, NULL, '', 'permanent', NULL, NULL, 'pending', '2025-05-14 09:41:30', NULL, NULL, NULL),
-(35, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-005', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'PC Access - Network', 'qwe', NULL, NULL, '', 'permanent', NULL, NULL, 'pending', '2025-05-14 09:43:54', NULL, NULL, NULL),
-(36, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-006', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'im newly hired and i want to have access to legacy vouchering', 'Legacy Vouchering', NULL, '', 'permanent', NULL, NULL, 'pending', '2025-05-14 09:58:05', NULL, NULL, NULL);
+INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `status`, `testing_status`, `testing_notes`, `submission_date`, `reviewed_by`, `review_date`, `review_notes`) VALUES
+(34, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-004', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'PC Access - Network', 'charles palomares', NULL, NULL, '', 'permanent', NULL, NULL, 'pending', 'not_required', NULL, '2025-05-14 09:41:30', NULL, NULL, NULL),
+(37, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-007', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'im newly hired i need access', 'Legacy Vouchering', NULL, '', 'permanent', NULL, NULL, 'pending_testing', 'pending', 'bruh nigga', '2025-05-15 10:17:03', 3, '2025-05-15 10:17:31', 'hahaahaha');
 
 --
 -- Triggers `access_requests`
@@ -83,7 +84,8 @@ CREATE TRIGGER `after_request_status_change` AFTER UPDATE ON `access_requests` F
             email, 
             employee_id,
             request_date,
-            access_request_number
+            access_request_number,
+            testing_status
         )
         VALUES (
             NEW.id,
@@ -102,7 +104,8 @@ CREATE TRIGGER `after_request_status_change` AFTER UPDATE ON `access_requests` F
             NEW.email,
             NEW.employee_id,
             NEW.request_date,
-            NEW.access_request_number
+            NEW.access_request_number,
+            NEW.testing_status
         );
         
         DELETE FROM access_requests WHERE id = NEW.id;
@@ -156,6 +159,7 @@ CREATE TABLE `approval_history` (
   `justification` text NOT NULL,
   `email` varchar(255) NOT NULL,
   `contact_number` varchar(20) NOT NULL,
+  `testing_status` enum('not_required','success','failed') DEFAULT 'not_required',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -163,10 +167,13 @@ CREATE TABLE `approval_history` (
 -- Dumping data for table `approval_history`
 --
 
-INSERT INTO `approval_history` (`history_id`, `access_request_number`, `action`, `requestor_name`, `business_unit`, `department`, `access_type`, `admin_id`, `comments`, `system_type`, `duration_type`, `start_date`, `end_date`, `justification`, `email`, `contact_number`, `created_at`) VALUES
-(10, 'UAR-REQ2025-001', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'Server Access', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', '09606072661', '2025-05-13 06:02:15'),
-(11, 'UAR-REQ2025-003', 'rejected', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', '09606072661', '2025-05-13 06:06:26'),
-(12, 'UAR-REQ2025-002', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, 'Email: clpalomares@saranganibay.com.ph\r\n\r\nPassword: clpalomares', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', '09606072661', '2025-05-14 01:29:07');
+INSERT INTO `approval_history` (`history_id`, `access_request_number`, `action`, `requestor_name`, `business_unit`, `department`, `access_type`, `admin_id`, `comments`, `system_type`, `duration_type`, `start_date`, `end_date`, `justification`, `email`, `contact_number`, `testing_status`, `created_at`) VALUES
+(10, 'UAR-REQ2025-001', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'Server Access', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', '09606072661', 'not_required', '2025-05-13 06:02:15'),
+(11, 'UAR-REQ2025-003', 'rejected', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', '09606072661', 'not_required', '2025-05-13 06:06:26'),
+(12, 'UAR-REQ2025-002', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, 'Email: clpalomares@saranganibay.com.ph\r\n\r\nPassword: clpalomares', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', '09606072661', 'not_required', '2025-05-14 01:29:07'),
+(13, 'UAR-REQ2025-005', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', 'Not provided', 'not_required', '2025-05-15 01:48:59'),
+(14, 'UAR-REQ2025-006', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', 3, 'haha', 'Legacy Vouchering', 'permanent', NULL, NULL, 'im newly hired and i want to have access to legacy vouchering', 'charlesleohermano@gmail.com', 'Not provided', 'success', '2025-05-15 02:09:44'),
+(15, 'UAR-REQ2025-008', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', 3, 'wow nice!', 'Quickbooks', 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', 'Not provided', 'success', '2025-05-15 04:02:19');
 
 -- --------------------------------------------------------
 
@@ -1185,7 +1192,7 @@ ALTER TABLE `requests`
 -- AUTO_INCREMENT for table `access_requests`
 --
 ALTER TABLE `access_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- AUTO_INCREMENT for table `admin_users`
@@ -1197,7 +1204,7 @@ ALTER TABLE `admin_users`
 -- AUTO_INCREMENT for table `approval_history`
 --
 ALTER TABLE `approval_history`
-  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `employees_archive`

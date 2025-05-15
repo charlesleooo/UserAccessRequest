@@ -220,9 +220,12 @@ try {
                             $bgClass = 'bg-red-100';
                         }
                         ?>
-                        <div class="flex justify-center items-center <?php echo $bgClass; ?> rounded-lg px-2 py-1">
-                            <span class="status-badge <?php echo $statusClass; ?>">
-                                <?php echo ucfirst($status); ?>
+                        <div class="flex justify-center items-center w-full">
+                            <span class="inline-block px-4 py-1 rounded-full bg-blue-100 text-blue-900 font-semibold text-base text-center">
+                                <?php 
+                                $displayStatus = ucwords(str_replace('_', ' ', $status));
+                                echo htmlspecialchars($displayStatus);
+                                ?>
                             </span>
                         </div>
                     </div>
@@ -326,21 +329,14 @@ try {
             </div>
         </div>
         
-        <!-- Admin Feedback (if any) -->
-        <?php if (!empty($request['review_notes']) && ($request['status'] === 'approved' || $request['status'] === 'rejected')): ?>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="400">
+        <?php if (!empty($request['review_notes'])): ?>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
             <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                 <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
                 Administrator Feedback
             </h3>
             <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
                 <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
-            </div>
-            <div class="mt-3 text-sm text-gray-500">
-                Reviewed on: <?php 
-                $reviewDate = new DateTime($request['review_date']);
-                echo $reviewDate->format('M d, Y h:i A'); 
-                ?>
             </div>
         </div>
         <?php endif; ?>

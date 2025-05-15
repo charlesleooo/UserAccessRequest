@@ -195,6 +195,9 @@ try {
         .status-rejected {
             @apply bg-red-600 text-white border-2 border-red-700;
         }
+        .status-testing {
+            @apply bg-blue-500 text-white border-2 border-blue-600;
+        }
         
         [x-cloak] {
             display: none !important;
@@ -312,6 +315,7 @@ try {
                     <select id="status" name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Statuses</option>
                         <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                        <option value="pending_testing" <?php echo $statusFilter === 'pending_testing' ? 'selected' : ''; ?>>Pending Testing</option>
                         <option value="approved" <?php echo $statusFilter === 'approved' || (is_array($statusFilter) && in_array('approved', $statusFilter)) ? 'selected' : ''; ?>>Approved</option>
                         <option value="rejected" <?php echo $statusFilter === 'rejected' || (is_array($statusFilter) && in_array('rejected', $statusFilter)) ? 'selected' : ''; ?>>Rejected</option>
                         <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
@@ -430,11 +434,14 @@ try {
                                 } elseif ($status === 'rejected') {
                                     $statusClass = 'status-rejected';
                                     $bgClass = 'bg-red-100';
+                                } elseif ($status === 'pending_testing') {
+                                    $statusClass = 'status-testing';
+                                    $bgClass = 'bg-blue-100';
                                 }
                                 ?>
                                 <div class="flex justify-center items-center <?php echo $bgClass; ?> rounded-lg px-2 py-1">
                                     <span class="status-badge <?php echo $statusClass; ?>">
-                                        <?php echo ucfirst($status); ?>
+                                        <?php echo $status === 'pending_testing' ? 'Pending Testing' : ucfirst($status); ?>
                                     </span>
                                 </div>
                             </td>
@@ -448,6 +455,11 @@ try {
                                 <a href="view_request.php?id=<?php echo $request['id']; ?>" class="text-primary-600 hover:text-primary-800 mr-3">
                                     <i class='bx bx-show'></i> View
                                 </a>
+                                <?php if ($status === 'pending_testing' && $request['testing_status'] === 'pending'): ?>
+                                <a href="testing_status.php?id=<?php echo $request['id']; ?>" class="text-blue-600 hover:text-blue-800 mr-3">
+                                    <i class='bx bx-test-tube'></i> Test
+                                </a>
+                                <?php endif; ?>
                                 <?php if ($status === 'pending'): ?>
                                 <a href="#" class="text-red-600 hover:text-red-800 cancel-request" data-id="<?php echo $request['id']; ?>">
                                     <i class='bx bx-x'></i> Cancel

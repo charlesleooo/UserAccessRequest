@@ -67,200 +67,764 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             throw new Exception('Request not found');
         }
 
-        // 2. Insert into approval_history table first
-        $sql = "INSERT INTO approval_history (
-                    access_request_number,
-                    action,
-                    requestor_name,
-                    business_unit,
-                    department,
-                    access_type,
-                    admin_id,
-                    comments,
-                    system_type,
-                    duration_type,
-                    start_date,
-                    end_date,
-                    justification,
-                    email,
-                    contact_number
-                ) VALUES (
-                    :access_request_number,
-                    :action,
-                    :requestor_name,
-                    :business_unit,
-                    :department,
-                    :access_type,
-                    :admin_id,
-                    :comments,
-                    :system_type,
-                    :duration_type,
-                    :start_date,
-                    :end_date,
-                    :justification,
-                    :email,
-                    :contact_number
-                )";
+        // Special handling for System Application access type
+        if ($action === 'approve' && $request['access_type'] === 'System Application') {
+            // For System Application, set status to pending_testing instead of approved
+            $sql = "UPDATE access_requests SET 
+                status = 'pending_testing', 
+                testing_status = 'pending',
+                reviewed_by = :admin_id, 
+                review_date = NOW(), 
+                review_notes = :review_notes 
+                WHERE id = :request_id";
+                
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                'admin_id' => $admin_id,
+                'review_notes' => $review_notes,
+                'request_id' => $request_id
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to update request status');
+            }
+            
+            // Send email notification for testing phase
+            // Create PHPMailer instance
+            $mail = new PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'charlesondota@gmail.com';
+                $mail->Password   = 'crpf bbcb vodv xbjk';
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
 
-        $stmt = $pdo->prepare($sql);
-        
-        // If contact_number is null or empty string, set a default value
-        $contactNumber = $request['contact_number'];
-        if (empty($contactNumber)) {
-            $contactNumber = 'Not provided';
-        }
-        
-        $result = $stmt->execute([
-            'access_request_number' => $request['access_request_number'],
-            'action' => ($action === 'approve') ? 'approved' : 'rejected',
-            'requestor_name' => $request['requestor_name'],
-            'business_unit' => $request['business_unit'],
-            'department' => $request['department'],
-            'access_type' => $request['access_type'],
-            'admin_id' => $admin_id,
-            'comments' => $review_notes,
-            'system_type' => $request['system_type'],
-            'duration_type' => $request['duration_type'],
-            'start_date' => $request['start_date'],
-            'end_date' => $request['end_date'],
-            'justification' => $request['justification'],
-            'email' => $request['email'],
-            'contact_number' => $contactNumber
-        ]);
+                // Recipients
+                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                $mail->addAddress($request['email'], $request['requestor_name']);
 
-        if (!$result) {
-            throw new Exception('Failed to insert into approval history');
-        }
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = "System Application Access Provisionally Approved - Testing Required - " . $request['access_request_number'];
 
-        // 3. Delete from access_requests table
-        $sql = "DELETE FROM access_requests WHERE id = :request_id";  // Changed from access_request_number
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute(['request_id' => $request_id]);  // Changed parameter name to match
+                // Format system types if present
+                $system_types_display = $request['system_type'] ?? 'N/A';
 
-        // After successful database operations, before commit, add email notification
-        // Create PHPMailer instance
-        $mail = new PHPMailer(true);
-        
-        try {
-            // Server settings
-            $mail->isSMTP();
-            $mail->Host       = 'smtp.gmail.com';
-            $mail->SMTPAuth   = true;
-            $mail->Username   = 'charlesondota@gmail.com';
-            $mail->Password   = 'crpf bbcb vodv xbjk';
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port       = 587;
+                // Format duration details
+                $duration_details = $request['duration_type'] === 'permanent' ? 
+                    'Permanent' : 
+                    "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
 
-            // Recipients
-            $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
-            $mail->addAddress($request['email'], $request['requestor_name']);
-
-            // Content
-            $mail->isHTML(true);
-            $mail->Subject = "Access Request " . ($action === 'approve' ? 'Approved' : 'Declined') . " - " . $request['access_request_number'];
-
-            // Format system types if present
-            $system_types_display = $request['system_type'] ?? 'N/A';
-
-            // Format duration details
-            $duration_details = $request['duration_type'] === 'permanent' ? 
-                'Permanent' : 
-                "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
-
-            $mail->Body = "
-                <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
-                    <div style='background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
-                        <h2 style='margin: 0;'>Official Admin Response</h2>
-                        <p style='margin: 5px 0 0;'>Access Request " . ($action === 'approve' ? 'Approved' : 'Declined') . "</p>
-                    </div>
-
-                    <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
-                        <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
-                        <p style='color: #1F2937;'>This is an official notification from the System Administrator regarding your access request. Your request has been <strong>" . ($action === 'approve' ? 'APPROVED' : 'DECLINED') . "</strong>.</p>
-                        
-                        " . (!empty($review_notes) ? "
-                        <div style='background-color: white; padding: 15px; border-left: 4px solid " . ($action === 'approve' ? '#10B981' : '#EF4444') . "; margin: 20px 0;'>
-                            <strong>Admin Review Notes:</strong><br>
-                            {$review_notes}
-                        </div>" : "") . "
-                    </div>
-
-                    <div style='margin-top: 30px;'>
-                        <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
-                        
-                        <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                            <tr style='background-color: #f8f9fa;'>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>
-                                    <span style='color: " . ($action === 'approve' ? '#059669' : '#DC2626') . "; font-weight: bold;'>
-                                        " . ($action === 'approve' ? 'APPROVED' : 'DECLINED') . "
-                                    </span>
-                                </td>
-                            </tr>
-                        </table>
-
-                        <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Requestor Information</h3>
-                        <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                            <tr style='background-color: #f8f9fa;'>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Full Name:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['requestor_name']}</td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Business Unit:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['business_unit']}</td>
-                            </tr>
-                            <tr style='background-color: #f8f9fa;'>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Department:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['department']}</td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Email:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['email']}</td>
-                            </tr>
-                            <tr style='background-color: #f8f9fa;'>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Contact Number:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$contactNumber}</td>
-                            </tr>
-                        </table>
-
-                        <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Access Details</h3>
-                        <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                            <tr style='background-color: #f8f9fa;'>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
-                            </tr>
-                            <tr style='background-color: #f8f9fa;'>
-                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Duration:</strong></td>
-                                <td style='padding: 12px; border: 1px solid #ddd;'>{$duration_details}</td>
-                            </tr>
-                        </table>
-
-                        <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Justification</h3>
-                        <div style='padding: 12px; border: 1px solid #ddd; margin-bottom: 20px; background-color: #f8f9fa;'>
-                            {$request['justification']}
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                        <div style='background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
+                            <h2 style='margin: 0;'>System Access - Testing Required</h2>
+                            <p style='margin: 5px 0 0;'>Your application access request has been provisionally approved</p>
                         </div>
 
-                        <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
-                            <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
-                            <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
+                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
+                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
+                            <p style='color: #1F2937;'>Your request for system application access has been <strong>provisionally approved</strong>. Before final approval, you need to test the application access to confirm it works correctly.</p>
+                            
+                            <div style='background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;'>
+                                <strong>Important:</strong> Please test the application access using the credentials provided below. After testing, you must return to the system and confirm whether the testing was successful or failed.
+                            </div>
+                            
+                            " . (!empty($review_notes) ? "
+                            <div style='background-color: white; padding: 15px; border-left: 4px solid #10B981; margin: 20px 0;'>
+                                <strong>Access Details & Testing Instructions:</strong><br>
+                                {$review_notes}
+                            </div>" : "") . "
+                            
+                            <p style='color: #1F2937;'>After testing the application, please log in to the Access Request Portal and update the request status to either:</p>
+                            <ul style='color: #1F2937;'>
+                                <li>Testing Successful - if you were able to access the system correctly</li>
+                                <li>Testing Failed - if you encountered any issues accessing the system</li>
+                            </ul>
+                        </div>
+
+                        <div style='margin-top: 30px;'>
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
+                            
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>
+                                        <span style='color: #f59e0b; font-weight: bold;'>
+                                            PENDING TESTING
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>System/Application Details</h3>
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
+                                </tr>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Duration:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$duration_details}</td>
+                                </tr>
+                            </table>
+
+                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
+                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
+                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
+                            </div>
+                        </div>
+                    </div>";
+
+                $mail->AltBody = strip_tags($mail->Body);
+                $mail->send();
+
+            } catch (PHPMailerException $e) {
+                // Log email error but don't prevent successful update
+                error_log("Email sending failed: {$mail->ErrorInfo}");
+            }
+            
+            // Commit transaction
+            $pdo->commit();
+            $_SESSION['success_message'] = "Request has been provisionally approved. The user will test the application and confirm the result.";
+            header('Location: requests.php');
+            exit();
+        }
+
+        // Handle finalize_approval action (after successful testing)
+        if ($action === 'finalize_approval') {
+            // Verify the request is in pending_testing status with success
+            if ($request['status'] !== 'pending_testing' || $request['testing_status'] !== 'success') {
+                throw new Exception('Invalid request state for finalizing approval');
+            }
+            
+            // Move to approval_history with approved status
+            $sql = "INSERT INTO approval_history (
+                        access_request_number,
+                        action,
+                        requestor_name,
+                        business_unit,
+                        department,
+                        access_type,
+                        admin_id,
+                        comments,
+                        system_type,
+                        duration_type,
+                        start_date,
+                        end_date,
+                        justification,
+                        email,
+                        contact_number,
+                        testing_status
+                    ) VALUES (
+                        :access_request_number,
+                        'approved',
+                        :requestor_name,
+                        :business_unit,
+                        :department,
+                        :access_type,
+                        :admin_id,
+                        :comments,
+                        :system_type,
+                        :duration_type,
+                        :start_date,
+                        :end_date,
+                        :justification,
+                        :email,
+                        :contact_number,
+                        'success'
+                    )";
+                    
+            $stmt = $pdo->prepare($sql);
+            
+            // If contact_number is null or empty string, set a default value
+            $contactNumber = $request['contact_number'];
+            if (empty($contactNumber)) {
+                $contactNumber = 'Not provided';
+            }
+            
+            $result = $stmt->execute([
+                'access_request_number' => $request['access_request_number'],
+                'requestor_name' => $request['requestor_name'],
+                'business_unit' => $request['business_unit'],
+                'department' => $request['department'],
+                'access_type' => $request['access_type'],
+                'admin_id' => $admin_id,
+                'comments' => $review_notes,
+                'system_type' => $request['system_type'],
+                'duration_type' => $request['duration_type'],
+                'start_date' => $request['start_date'],
+                'end_date' => $request['end_date'],
+                'justification' => $request['justification'],
+                'email' => $request['email'],
+                'contact_number' => $contactNumber
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to insert into approval history');
+            }
+            
+            // Delete the request
+            $sql = "DELETE FROM access_requests WHERE id = :request_id";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['request_id' => $request_id]);
+            
+            // Send notification email
+            $mail = new PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'charlesondota@gmail.com';
+                $mail->Password   = 'crpf bbcb vodv xbjk';
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
+
+                // Recipients
+                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                $mail->addAddress($request['email'], $request['requestor_name']);
+
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = "Access Request Fully Approved After Testing - " . $request['access_request_number'];
+
+                // Format system types if present
+                $system_types_display = $request['system_type'] ?? 'N/A';
+
+                // Format duration details
+                $duration_details = $request['duration_type'] === 'permanent' ? 
+                    'Permanent' : 
+                    "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
+
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                        <div style='background-color: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
+                            <h2 style='margin: 0;'>Access Request Fully Approved</h2>
+                            <p style='margin: 5px 0 0;'>Your application access testing was successful</p>
+                        </div>
+
+                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
+                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
+                            <p style='color: #1F2937;'>We are pleased to inform you that your access request has been <strong>FULLY APPROVED</strong> after successful testing.</p>
+                            
+                            " . (!empty($review_notes) ? "
+                            <div style='background-color: white; padding: 15px; border-left: 4px solid #10B981; margin: 20px 0;'>
+                                <strong>Admin Notes:</strong><br>
+                                {$review_notes}
+                            </div>" : "") . "
+                        </div>
+
+                        <div style='margin-top: 30px;'>
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
+                            
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>
+                                        <span style='color: #059669; font-weight: bold;'>APPROVED</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>System/Application Details</h3>
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
+                                </tr>
+                            </table>
+
+                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
+                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
+                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
+                            </div>
+                        </div>
+                    </div>";
+
+                $mail->AltBody = strip_tags($mail->Body);
+                $mail->send();
+            } catch (PHPMailerException $e) {
+                // Log email error but don't prevent approval
+                error_log("Email sending failed: {$mail->ErrorInfo}");
+            }
+            
+            $pdo->commit();
+            $_SESSION['success_message'] = "Request has been fully approved after successful testing.";
+            header('Location: requests.php');
+            exit();
+        }
+        
+        // Handle reject_after_testing action
+        if ($action === 'reject_after_testing') {
+            // Verify the request is in pending_testing status with failed testing
+            if ($request['status'] !== 'pending_testing' || $request['testing_status'] !== 'failed') {
+                throw new Exception('Invalid request state for rejection after failed testing');
+            }
+            
+            // Move to approval_history with rejected status
+            $sql = "INSERT INTO approval_history (
+                        access_request_number,
+                        action,
+                        requestor_name,
+                        business_unit,
+                        department,
+                        access_type,
+                        admin_id,
+                        comments,
+                        system_type,
+                        duration_type,
+                        start_date,
+                        end_date,
+                        justification,
+                        email,
+                        contact_number,
+                        testing_status
+                    ) VALUES (
+                        :access_request_number,
+                        'rejected',
+                        :requestor_name,
+                        :business_unit,
+                        :department,
+                        :access_type,
+                        :admin_id,
+                        :comments,
+                        :system_type,
+                        :duration_type,
+                        :start_date,
+                        :end_date,
+                        :justification,
+                        :email,
+                        :contact_number,
+                        'failed'
+                    )";
+                    
+            $stmt = $pdo->prepare($sql);
+            
+            // If contact_number is null or empty string, set a default value
+            $contactNumber = $request['contact_number'];
+            if (empty($contactNumber)) {
+                $contactNumber = 'Not provided';
+            }
+            
+            $result = $stmt->execute([
+                'access_request_number' => $request['access_request_number'],
+                'requestor_name' => $request['requestor_name'],
+                'business_unit' => $request['business_unit'],
+                'department' => $request['department'],
+                'access_type' => $request['access_type'],
+                'admin_id' => $admin_id,
+                'comments' => $review_notes,
+                'system_type' => $request['system_type'],
+                'duration_type' => $request['duration_type'],
+                'start_date' => $request['start_date'],
+                'end_date' => $request['end_date'],
+                'justification' => $request['justification'],
+                'email' => $request['email'],
+                'contact_number' => $contactNumber
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to insert into approval history');
+            }
+            
+            // Delete the request
+            $sql = "DELETE FROM access_requests WHERE id = :request_id";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['request_id' => $request_id]);
+            
+            // Send notification email
+            $mail = new PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'charlesondota@gmail.com';
+                $mail->Password   = 'crpf bbcb vodv xbjk';
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
+
+                // Recipients
+                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                $mail->addAddress($request['email'], $request['requestor_name']);
+
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = "Access Request Rejected After Failed Testing - " . $request['access_request_number'];
+
+                // Format system types if present
+                $system_types_display = $request['system_type'] ?? 'N/A';
+
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                        <div style='background-color: #EF4444; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
+                            <h2 style='margin: 0;'>Access Request Rejected</h2>
+                            <p style='margin: 5px 0 0;'>Application testing failed</p>
+                        </div>
+
+                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
+                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
+                            <p style='color: #1F2937;'>We regret to inform you that your access request has been <strong>REJECTED</strong> following the failed testing process.</p>
+                            
+                            " . (!empty($review_notes) ? "
+                            <div style='background-color: white; padding: 15px; border-left: 4px solid #EF4444; margin: 20px 0;'>
+                                <strong>Rejection Reason:</strong><br>
+                                {$review_notes}
+                            </div>" : "") . "
+                            
+                            <p style='color: #1F2937;'>If you believe this was an error or if you need assistance, please contact the IT support team.</p>
+                        </div>
+
+                        <div style='margin-top: 30px;'>
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
+                            
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>
+                                        <span style='color: #DC2626; font-weight: bold;'>REJECTED</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>System/Application Details</h3>
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
+                                </tr>
+                            </table>
+
+                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
+                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
+                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
+                            </div>
+                        </div>
+                    </div>";
+
+                $mail->AltBody = strip_tags($mail->Body);
+                $mail->send();
+            } catch (PHPMailerException $e) {
+                // Log email error but don't prevent rejection
+                error_log("Email sending failed: {$mail->ErrorInfo}");
+            }
+            
+            $pdo->commit();
+            $_SESSION['success_message'] = "Request has been rejected after failed testing.";
+            header('Location: requests.php');
+            exit();
+        }
+
+        // Handle retry_testing action
+        if ($action === 'retry_testing') {
+            // Verify the request is in pending_testing status with failed testing
+            if ($request['status'] !== 'pending_testing' || $request['testing_status'] !== 'failed') {
+                throw new Exception('Invalid request state for retrying testing');
+            }
+            
+            // Reset the testing status to pending
+            $sql = "UPDATE access_requests 
+                    SET testing_status = 'pending',
+                        review_notes = :review_notes 
+                    WHERE id = :request_id";
+                    
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                'review_notes' => $review_notes,
+                'request_id' => $request_id
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to update testing status');
+            }
+            
+            // Send notification email
+            $mail = new PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'charlesondota@gmail.com';
+                $mail->Password   = 'crpf bbcb vodv xbjk';
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
+
+                // Recipients
+                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                $mail->addAddress($request['email'], $request['requestor_name']);
+
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = "New Testing Required - " . $request['access_request_number'];
+
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                        <div style='background-color: #EAB308; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
+                            <h2 style='margin: 0;'>New Testing Required</h2>
+                            <p style='margin: 5px 0 0;'>Your access has been updated for retesting</p>
+                        </div>
+
+                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
+                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
+                            <p style='color: #1F2937;'>The administrator has updated your access and requested you to test it again.</p>
+                            
+                            " . (!empty($review_notes) ? "
+                            <div style='background-color: white; padding: 15px; border-left: 4px solid #EAB308; margin: 20px 0;'>
+                                <strong>Updated Access Details & Testing Instructions:</strong><br>
+                                {$review_notes}
+                            </div>" : "") . "
+                            
+                            <p style='color: #1F2937;'>Please log in to the Access Request Portal and test your access again. After testing, update the request status to either:</p>
+                            <ul style='color: #1F2937;'>
+                                <li>Testing Successful - if you were able to access the system correctly</li>
+                                <li>Testing Failed - if you still encounter issues accessing the system</li>
+                            </ul>
                         </div>
                     </div>
-                </div>";
+                ";
 
-            $mail->AltBody = strip_tags($mail->Body);
-            $mail->send();
+                $mail->send();
+            } catch (PHPMailerException $e) {
+                // Log email error but don't prevent successful update
+                error_log("Email sending failed: {$mail->ErrorInfo}");
+            }
+            
+            $pdo->commit();
+            $_SESSION['success_message'] = "Request has been reset for retesting. The user will be notified to test again.";
+            header('Location: requests.php');
+            exit();
+        }
 
-        } catch (PHPMailerException $e) {
-            // Log email error but don't prevent successful approval/decline
-            error_log("Email sending failed: {$mail->ErrorInfo}");
+        // Standard handling for other access types or rejection actions
+        // 2. Insert into approval_history table first for approved/rejected status
+        if ($action === 'approve' || $action === 'decline') {
+            $sql = "INSERT INTO approval_history (
+                        access_request_number,
+                        action,
+                        requestor_name,
+                        business_unit,
+                        department,
+                        access_type,
+                        admin_id,
+                        comments,
+                        system_type,
+                        duration_type,
+                        start_date,
+                        end_date,
+                        justification,
+                        email,
+                        contact_number
+                    ) VALUES (
+                        :access_request_number,
+                        :action,
+                        :requestor_name,
+                        :business_unit,
+                        :department,
+                        :access_type,
+                        :admin_id,
+                        :comments,
+                        :system_type,
+                        :duration_type,
+                        :start_date,
+                        :end_date,
+                        :justification,
+                        :email,
+                        :contact_number
+                    )";
+
+            $stmt = $pdo->prepare($sql);
+            
+            // If contact_number is null or empty string, set a default value
+            $contactNumber = $request['contact_number'];
+            if (empty($contactNumber)) {
+                $contactNumber = 'Not provided';
+            }
+            
+            $result = $stmt->execute([
+                'access_request_number' => $request['access_request_number'],
+                'action' => ($action === 'approve') ? 'approved' : 'rejected',
+                'requestor_name' => $request['requestor_name'],
+                'business_unit' => $request['business_unit'],
+                'department' => $request['department'],
+                'access_type' => $request['access_type'],
+                'admin_id' => $admin_id,
+                'comments' => $review_notes,
+                'system_type' => $request['system_type'],
+                'duration_type' => $request['duration_type'],
+                'start_date' => $request['start_date'],
+                'end_date' => $request['end_date'],
+                'justification' => $request['justification'],
+                'email' => $request['email'],
+                'contact_number' => $contactNumber
+            ]);
+
+            if (!$result) {
+                throw new Exception('Failed to insert into approval history');
+            }
+
+            // 3. Delete from access_requests table
+            $sql = "DELETE FROM access_requests WHERE id = :request_id";  // Changed from access_request_number
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['request_id' => $request_id]);  // Changed parameter name to match
+
+            // After successful database operations, before commit, add email notification
+            // Create PHPMailer instance
+            $mail = new PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'charlesondota@gmail.com';
+                $mail->Password   = 'crpf bbcb vodv xbjk';
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
+
+                // Recipients
+                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                $mail->addAddress($request['email'], $request['requestor_name']);
+
+                // Content
+                $mail->isHTML(true);
+                $mail->Subject = "Access Request " . ($action === 'approve' ? 'Approved' : 'Declined') . " - " . $request['access_request_number'];
+
+                // Format system types if present
+                $system_types_display = $request['system_type'] ?? 'N/A';
+
+                // Format duration details
+                $duration_details = $request['duration_type'] === 'permanent' ? 
+                    'Permanent' : 
+                    "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
+
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                        <div style='background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
+                            <h2 style='margin: 0;'>Official Admin Response</h2>
+                            <p style='margin: 5px 0 0;'>Access Request " . ($action === 'approve' ? 'Approved' : 'Declined') . "</p>
+                        </div>
+
+                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
+                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
+                            <p style='color: #1F2937;'>This is an official notification from the System Administrator regarding your access request. Your request has been <strong>" . ($action === 'approve' ? 'APPROVED' : 'DECLINED') . "</strong>.</p>
+                            
+                            " . (!empty($review_notes) ? "
+                            <div style='background-color: white; padding: 15px; border-left: 4px solid " . ($action === 'approve' ? '#10B981' : '#EF4444') . "; margin: 20px 0;'>
+                                <strong>Admin Review Notes:</strong><br>
+                                {$review_notes}
+                            </div>" : "") . "
+                        </div>
+
+                        <div style='margin-top: 30px;'>
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
+                            
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>
+                                        <span style='color: " . ($action === 'approve' ? '#059669' : '#DC2626') . "; font-weight: bold;'>
+                                            " . ($action === 'approve' ? 'APPROVED' : 'DECLINED') . "
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Requestor Information</h3>
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Full Name:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['requestor_name']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Business Unit:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['business_unit']}</td>
+                                </tr>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Department:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['department']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Email:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['email']}</td>
+                                </tr>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Contact Number:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$contactNumber}</td>
+                                </tr>
+                            </table>
+
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Access Details</h3>
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
+                                </tr>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Duration:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$duration_details}</td>
+                                </tr>
+                            </table>
+
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Justification</h3>
+                            <div style='padding: 12px; border: 1px solid #ddd; margin-bottom: 20px; background-color: #f8f9fa;'>
+                                {$request['justification']}
+                            </div>
+
+                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
+                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
+                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
+                            </div>
+                        </div>
+                    </div>";
+
+                $mail->AltBody = strip_tags($mail->Body);
+                $mail->send();
+
+            } catch (PHPMailerException $e) {
+                // Log email error but don't prevent successful approval/decline
+                error_log("Email sending failed: {$mail->ErrorInfo}");
+            }
         }
 
         // Commit transaction
@@ -549,9 +1113,21 @@ try {
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                             <?php echo $request['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                                ($request['status'] === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'); ?>">
-                                            <?php echo ucfirst($request['status']); ?>
+                                                ($request['status'] === 'approved' ? 'bg-green-100 text-green-800' : 
+                                                ($request['status'] === 'pending_testing' ? 'bg-blue-100 text-blue-800' :
+                                                'bg-red-100 text-red-800')); ?>">
+                                            <?php echo $request['status'] === 'pending_testing' ? 'Pending Testing' : ucfirst($request['status']); ?>
                                         </span>
+                                        <?php if ($request['status'] === 'pending_testing'): ?>
+                                        <div class="mt-1">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                                <?php echo $request['testing_status'] === 'pending' ? 'bg-yellow-50 text-yellow-600' : 
+                                                    ($request['testing_status'] === 'success' ? 'bg-green-50 text-green-600' : 
+                                                    'bg-red-50 text-red-600'); ?>">
+                                                <?php echo ucfirst($request['testing_status']); ?>
+                                            </span>
+                                        </div>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
@@ -574,6 +1150,29 @@ try {
                                                 <i class='bx bx-x'></i>
                                                 <span class="ml-1">Decline</span>
                                             </button>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($request['status'] === 'pending_testing' && $request['testing_status'] === 'success'): ?>
+                                            <button onclick="showActionModal(<?php echo $request['id']; ?>, 'finalize_approval')" 
+                                                    class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
+                                                <i class='bx bx-check-double'></i>
+                                                <span class="ml-1">Finalize Approval</span>
+                                            </button>
+                                            <?php endif; ?>
+                                            
+                                            <?php if ($request['status'] === 'pending_testing' && $request['testing_status'] === 'failed'): ?>
+                                            <div class="space-x-2">
+                                                <button onclick="showActionModal(<?php echo $request['id']; ?>, 'retry_testing')" 
+                                                        class="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100">
+                                                    <i class='bx bx-refresh'></i>
+                                                    <span class="ml-1">Retry Testing</span>
+                                                </button>
+                                                <button onclick="showActionModal(<?php echo $request['id']; ?>, 'reject_after_testing')" 
+                                                        class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
+                                                    <i class='bx bx-x-circle'></i>
+                                                    <span class="ml-1">Reject</span>
+                                                </button>
+                                            </div>
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -617,10 +1216,45 @@ try {
     <script>
         // Modified functions for SweetAlert2
         function showActionModal(requestId, action) {
-            const title = action === 'approve' ? 'Approve Access Request' : 'Decline Access Request';
-            const confirmButtonText = action === 'approve' ? 'Approve' : 'Decline';
-            const confirmButtonColor = action === 'approve' ? '#10B981' : '#EF4444';
-            const icon = action === 'approve' ? 'success' : 'warning';
+            let title, confirmButtonText, confirmButtonColor, icon;
+            
+            switch(action) {
+                case 'approve':
+                    title = 'Approve Access Request';
+                    confirmButtonText = 'Approve';
+                    confirmButtonColor = '#10B981';
+                    icon = 'success';
+                    break;
+                case 'decline':
+                    title = 'Decline Access Request';
+                    confirmButtonText = 'Decline';
+                    confirmButtonColor = '#EF4444';
+                    icon = 'warning';
+                    break;
+                case 'finalize_approval':
+                    title = 'Finalize Approval After Successful Testing';
+                    confirmButtonText = 'Finalize Approval';
+                    confirmButtonColor = '#10B981';
+                    icon = 'success';
+                    break;
+                case 'reject_after_testing':
+                    title = 'Reject Request After Failed Testing';
+                    confirmButtonText = 'Reject';
+                    confirmButtonColor = '#EF4444';
+                    icon = 'error';
+                    break;
+                case 'retry_testing':
+                    title = 'Request Retest';
+                    confirmButtonText = 'Request Retest';
+                    confirmButtonColor = '#EAB308';
+                    icon = 'info';
+                    break;
+                default:
+                    title = 'Process Request';
+                    confirmButtonText = 'Submit';
+                    confirmButtonColor = '#0ea5e9';
+                    icon = 'question';
+            }
             
             Swal.fire({
                 title: title,
@@ -632,7 +1266,9 @@ try {
                             <textarea id="swal-review-notes" 
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
                                       rows="3" 
-                                      placeholder="${action === 'approve' ? 'Add any approval notes here...' : 'Please specify the reason for declining...'}"></textarea>
+                                      placeholder="${action === 'retry_testing' ? 'Add updated access details and testing instructions...' : 
+                                                  (action.includes('approve') ? 'Add any approval notes here...' : 
+                                                  'Please specify the reason...')}"></textarea>
                         </div>
                     </form>
                 `,
@@ -652,7 +1288,7 @@ try {
                     const reviewNotes = document.getElementById('swal-review-notes').value;
                     
                     // Simple validation for decline reason
-                    if (action === 'decline' && !reviewNotes.trim()) {
+                    if ((action === 'decline' || action === 'reject_after_testing') && !reviewNotes.trim()) {
                         Swal.showValidationMessage('Please provide a reason for declining');
                         return false;
                     }
@@ -687,7 +1323,7 @@ try {
                     // Show loading state
                     Swal.fire({
                         title: 'Processing...',
-                        html: `${action === 'approve' ? 'Approving' : 'Declining'} the request...`,
+                        html: `${action.includes('approve') ? 'Approving' : 'Declining'} the request...`,
                         allowOutsideClick: false,
                         didOpen: () => {
                             Swal.showLoading();
@@ -849,6 +1485,18 @@ try {
                                 ${data.justification || 'No justification provided.'}
                             </div>
                         </div>
+                        
+                        ${data.testing_notes ? `
+                        <div class=\"bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6\">
+                            <h3 class=\"text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center\">
+                                <i class='bx bx-flask text-primary-600 text-xl mr-2'></i>
+                                Testing Notes / User Feedback
+                            </h3>
+                            <div class=\"bg-gray-50 p-4 rounded-lg text-gray-700\">
+                                ${data.testing_notes.replace(/\n/g, '<br>')}
+                            </div>
+                        </div>
+                        ` : ''}
                     `;
                 })
                 .catch(error => {

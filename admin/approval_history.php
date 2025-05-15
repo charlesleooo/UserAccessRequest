@@ -218,7 +218,8 @@ try {
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Testing</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewed By</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Date</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -249,6 +250,19 @@ try {
                                             <?php echo $entry['action'] === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
                                             <?php echo ucfirst($entry['action']); ?>
                                         </span>
+                                    </td>
+                                    <td class="px-4 py-4 whitespace-nowrap">
+                                        <?php if (!empty($entry['testing_status'])): ?>
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                <?php echo $entry['testing_status'] === 'success' ? 'bg-blue-100 text-blue-800' : 
+                                                    ($entry['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
+                                                <?php echo $entry['testing_status'] === 'success' ? 'Successful' : 
+                                                    ($entry['testing_status'] === 'failed' ? 'Failed' : 
+                                                    ($entry['testing_status'] === 'not_required' ? 'Not Required' : ucfirst($entry['testing_status']))); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-sm text-gray-500">-</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['admin_username']); ?></div>
