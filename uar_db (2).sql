@@ -77,7 +77,7 @@ INSERT INTO `access_requests` VALUES (34, 'PALOMARES, CHARLES LEO H.', 'AAC', 'U
 --
 DELIMITER $$
 CREATE TRIGGER `after_request_status_change` AFTER UPDATE ON `access_requests` FOR EACH ROW BEGIN
-    IF NEW.status IN ('approved', 'rejected') THEN
+    IF NEW.status IN ('approved', 'rejected') AND OLD.status != NEW.status THEN
         INSERT INTO approval_history (
             request_id, 
             admin_id, 
@@ -120,6 +120,18 @@ CREATE TRIGGER `after_request_status_change` AFTER UPDATE ON `access_requests` F
         );
         
         DELETE FROM access_requests WHERE id = NEW.id;
+    END IF;
+END
+$$
+DELIMITER ;
+
+DELIMITER $$
+CREATE TRIGGER `after_testing_status_change` BEFORE UPDATE ON `access_requests`
+FOR EACH ROW
+BEGIN
+    IF NEW.testing_status = 'success' AND OLD.testing_status != 'success' AND NEW.status = OLD.status THEN
+        SET NEW.status = 'approved';
+        SET NEW.review_notes = 'Automatically approved after successful testing';
     END IF;
 END
 $$

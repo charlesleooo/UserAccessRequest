@@ -2,6 +2,15 @@
 session_start();
 require_once '../config.php';
 
+// Debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// Debug POST data
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    error_log("POST Data: " . print_r($_POST, true));
+}
+
 // Check if user is logged in
 if (!isset($_SESSION['requestor_id'])) {
     header('Location: login.php');
@@ -17,27 +26,24 @@ $user_email = $_SESSION['employee_email'] ?? '';
 
 // Process form submission for updating testing status
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isset($_POST['testing_status'])) {
+    error_log("Processing form submission");
+    error_log("Request ID: " . $_POST['request_id']);
+    error_log("Testing Status: " . $_POST['testing_status']);
+    
     $request_id = (int)$_POST['request_id'];
     $testing_status = $_POST['testing_status'];
     $testing_notes = $_POST['testing_notes'] ?? '';
     
-    // Validate the testing status
-    if (!in_array($testing_status, ['success', 'failed'])) {
-        $_SESSION['error_message'] = "Invalid testing status.";
-        header('Location: dashboard.php');
-        exit();
-    }
-    
     try {
         // Start a transaction
         $pdo->beginTransaction();
+        error_log("Started transaction");
         
         // Verify this request belongs to the current user and is in pending_testing status
         $sql = "SELECT * FROM access_requests 
                 WHERE id = :request_id 
                 AND employee_id = :employee_id 
-                AND (status = 'pending_testing' OR status = 'pending_testing_setup')
-                AND testing_status = 'pending'";
+                AND (status = 'pending_testing' OR status = 'pending_testing_setup')";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
@@ -46,34 +52,117 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         ]);
         
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
+        error_log("Request data: " . print_r($request, true));
         
         if (!$request) {
             throw new Exception('Invalid request or you do not have permission to update this request.');
         }
         
-        // Update the testing status and change status to pending_testing_review for technical support
-        $sql = "UPDATE access_requests 
-                SET testing_status = :testing_status, 
+        if ($testing_status === 'success') {
+            error_log("Processing successful test");
+            // Update the request status and testing status
+            $sql = "UPDATE access_requests SET 
+                    status = 'approved',
+                    testing_status = 'success',
                     testing_notes = :testing_notes,
-                    status = 'pending_testing_review'
-                WHERE id = :request_id";
-        
-        $stmt = $pdo->prepare($sql);
-        $result = $stmt->execute([
-            'testing_status' => $testing_status,
-            'testing_notes' => $testing_notes,
-            'request_id' => $request_id
-        ]);
-        
-        if (!$result) {
-            throw new Exception('Failed to update testing status.');
+                    review_notes = 'Automatically approved after successful testing'
+                    WHERE id = :request_id";
+            
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                'testing_notes' => $testing_notes,
+                'request_id' => $request_id
+            ]);
+            
+            if (!$result) {
+                error_log("Database error: " . print_r($stmt->errorInfo(), true));
+                throw new Exception('Failed to update request status.');
+            }
+            
+            // After successful update, move to approval history
+            error_log("Moving request to approval history");
+            
+            // Get the full request details
+            $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE id = ?");
+            $stmt->execute([$request_id]);
+            $requestData = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$requestData) {
+                throw new Exception('Failed to retrieve request data for approval history.');
+            }
+            
+            // Insert into approval history
+            $sql = "INSERT INTO approval_history (
+                    access_request_number, action, requestor_name, business_unit, department,
+                    access_type, admin_id, comments, system_type, duration_type,
+                    start_date, end_date, justification, email, contact_number,
+                    testing_status, employee_id
+                ) VALUES (
+                    :access_request_number, 'approved', :requestor_name, :business_unit, :department,
+                    :access_type, :admin_id, :comments, :system_type, :duration_type,
+                    :start_date, :end_date, :justification, :email, 'Not provided',
+                    'success', :employee_id
+                )";
+            
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                'access_request_number' => $requestData['access_request_number'],
+                'requestor_name' => $requestData['requestor_name'],
+                'business_unit' => $requestData['business_unit'],
+                'department' => $requestData['department'],
+                'access_type' => $requestData['access_type'],
+                'admin_id' => $requestData['admin_id'],
+                'comments' => 'Automatically approved after successful testing',
+                'system_type' => $requestData['system_type'],
+                'duration_type' => $requestData['duration_type'],
+                'start_date' => $requestData['start_date'],
+                'end_date' => $requestData['end_date'],
+                'justification' => $requestData['justification'],
+                'email' => $requestData['email'],
+                'employee_id' => $requestData['employee_id']
+            ]);
+            
+            if (!$result) {
+                error_log("Database error when inserting to history: " . print_r($stmt->errorInfo(), true));
+                throw new Exception('Failed to insert into approval history.');
+            }
+            
+            // Delete from access_requests after successful move to history
+            $stmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
+            $result = $stmt->execute([$request_id]);
+            
+            if (!$result) {
+                error_log("Database error when deleting: " . print_r($stmt->errorInfo(), true));
+                throw new Exception('Failed to remove request after approval.');
+            }
+            
+            error_log("Successfully moved approved request to history");
+            $_SESSION['success_message'] = "Testing successful! Your access request has been automatically approved.";
+        } else {
+            // If testing failed, update status for technical support review
+            $sql = "UPDATE access_requests 
+                    SET testing_status = :testing_status, 
+                        testing_notes = :testing_notes,
+                        status = 'pending_testing_review'
+                    WHERE id = :request_id";
+            
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                'testing_status' => $testing_status,
+                'testing_notes' => $testing_notes,
+                'request_id' => $request_id
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to update testing status.');
+            }
+            
+            $_SESSION['success_message'] = "Testing status has been updated. The technical support team will review your testing results.";
         }
         
         // Commit the transaction
         $pdo->commit();
-        
-        // Set success message
-        $_SESSION['success_message'] = "Testing status has been updated successfully. The technical support team will review your testing results.";
+        error_log("Transaction committed");
         
         // Redirect back to dashboard
         header('Location: dashboard.php');
@@ -82,6 +171,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
     } catch (Exception $e) {
         // Rollback the transaction on error
         $pdo->rollBack();
+        error_log("Error occurred: " . $e->getMessage());
+        error_log("Stack trace: " . $e->getTraceAsString());
         
         $_SESSION['error_message'] = "Error: " . $e->getMessage();
         header('Location: dashboard.php');
@@ -92,12 +183,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
 // Get the request_id from the URL
 $request_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
+// Check if testing has already been submitted
+$stmt = $pdo->prepare("SELECT testing_status FROM access_requests WHERE id = ? AND employee_id = ?");
+$stmt->execute([$request_id, $requestor_id]);
+$current_status = $stmt->fetchColumn();
+
+if ($current_status && $current_status !== 'pending') {
+    $_SESSION['info_message'] = "Testing results have already been submitted for this request.";
+    header('Location: dashboard.php');
+    exit();
+}
+
 // Get the request details
 try {
     $sql = "SELECT * FROM access_requests 
             WHERE id = :request_id 
             AND employee_id = :employee_id 
-            AND status = 'pending_testing'";
+            AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+            AND testing_status = 'pending'";
     
     // Debug SQL
     // echo "SQL: $sql<br>";
@@ -227,8 +330,8 @@ try {
                         </div>
                         
                         <!-- Testing Status Form -->
-                        <form id="testingForm" method="POST" action="">
-                            <input type="hidden" name="request_id" value="<?php echo $request['id']; ?>">
+                        <form id="testingForm" method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']) . '?id=' . $request_id; ?>">
+                            <input type="hidden" name="request_id" value="<?php echo htmlspecialchars($request['id']); ?>">
                             
                             <div class="mb-6">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">Testing Status</label>
@@ -280,7 +383,7 @@ try {
     
     <script>
         // Show any success or error messages from session
-        <?php if (isset($_SESSION['success_message'])): ?>
+        <?php if (isset($_SESSION['success_message']) && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
         Swal.fire({
             title: 'Success!',
             text: '<?php echo addslashes($_SESSION['success_message']); ?>',
@@ -289,7 +392,7 @@ try {
         });
         <?php unset($_SESSION['success_message']); endif; ?>
         
-        <?php if (isset($_SESSION['error_message'])): ?>
+        <?php if (isset($_SESSION['error_message']) && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
         Swal.fire({
             title: 'Error!',
             text: '<?php echo addslashes($_SESSION['error_message']); ?>',
@@ -297,6 +400,15 @@ try {
             confirmButtonColor: '#3085d6'
         });
         <?php unset($_SESSION['error_message']); endif; ?>
+
+        <?php if (isset($_SESSION['info_message'])): ?>
+        Swal.fire({
+            title: 'Information',
+            text: '<?php echo addslashes($_SESSION['info_message']); ?>',
+            icon: 'info',
+            confirmButtonColor: '#3085d6'
+        });
+        <?php unset($_SESSION['info_message']); endif; ?>
         
         // Form validation
         document.getElementById('testingForm').addEventListener('submit', function(e) {

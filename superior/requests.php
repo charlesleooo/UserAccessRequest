@@ -98,11 +98,11 @@ try {
                         <span class="ml-3 font-medium">Requests</span>
                     </a>
                     
-                    <a href="approval_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bx-history text-xl'></i>
                         </span>
-                        <span class="ml-3">Approval History</span>
+                        <span class="ml-3">Review History</span>
                     </a>
                 </nav>
                 

@@ -49,9 +49,7 @@ try {
             throw new Exception('Request not found');
         }
         
-        if ($request['status'] !== 'pending_testing' || !in_array($request['testing_status'], ['success', 'failed'])) {
-            throw new Exception('Request is not in the correct state for this action');
-        }
+                if ($request['status'] !== 'pending_testing_review') {            throw new Exception('Request is not in the correct state for this action');        }
         
         // Process based on the action
         switch ($action) {
@@ -246,20 +244,147 @@ try {
                         testing_status = 'pending'
                         WHERE id = :request_id";
             } else if ($current_status === 'pending_testing_review') {
-                if ($action === 'approve') {
-                    // If test was successful, move to final approval
-                    if ($request['testing_status'] === 'success') {
-                        $new_status = 'approved';
-                    } else {
-                        // If test failed, send back for retesting
-                        $new_status = 'pending_testing_setup';
+                if ($request['testing_status'] === 'success') {
+                    // If test was successful, move directly to approval history
+                    $sql = "INSERT INTO approval_history (
+                        access_request_number, action, requestor_name, business_unit, department,
+                        access_type, technical_id, comments, system_type, duration_type,
+                        start_date, end_date, justification, email, contact_number,
+                        testing_status, superior_id, superior_notes, technical_id, technical_notes,
+                        process_owner_id, process_owner_notes, testing_instructions
+                    ) VALUES (
+                        :access_request_number, 'approved', :requestor_name, :business_unit, :department,
+                        :access_type, :technical_id, :comments, :system_type, :duration_type,
+                        :start_date, :end_date, :justification, :email, :contact_number,
+                        :testing_status, :superior_id, :superior_notes, :technical_id, :technical_notes,
+                        :process_owner_id, :process_owner_notes, :testing_instructions
+                    )";
+                    
+                    $stmt = $pdo->prepare($sql);
+                    $result = $stmt->execute([
+                        'access_request_number' => $request['access_request_number'],
+                        'requestor_name' => $request['requestor_name'],
+                        'business_unit' => $request['business_unit'],
+                        'department' => $request['department'],
+                        'access_type' => $request['access_type'],
+                        'technical_id' => $admin_id,
+                        'comments' => 'Testing successful - Access approved',
+                        'system_type' => $request['system_type'],
+                        'duration_type' => $request['duration_type'],
+                        'start_date' => $request['start_date'],
+                        'end_date' => $request['end_date'],
+                        'justification' => $request['justification'],
+                        'email' => $request['email'],
+                        'contact_number' => $request['contact_number'] ?? 'Not provided',
+                        'testing_status' => $request['testing_status'],
+                        'superior_id' => $request['superior_id'],
+                        'superior_notes' => $request['superior_notes'],
+                        'technical_id' => $request['technical_id'],
+                        'technical_notes' => $request['technical_notes'],
+                        'process_owner_id' => $request['process_owner_id'],
+                        'process_owner_notes' => $request['process_owner_notes'],
+                        'testing_instructions' => $request['testing_instructions'] ?? ''
+                    ]);
+                    
+                    if (!$result) {
+                        throw new Exception('Failed to move request to approval history');
                     }
+                    
+                    // Delete from access_requests
+                    $stmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
+                    $stmt->execute([$request_id]);
+                    
+                    $response['message'] = 'Testing successful - Access has been approved';
+                    $pdo->commit();
+                    echo json_encode($response);
+                    exit();
+                } else if ($action === 'approve') {
+                    // If test failed and approving, send back for retesting
+                    $new_status = 'pending_testing_setup';
+                    $testing_status = 'pending';
+                    
+                    // Update testing status and send back for retesting
+                    $sql = "UPDATE access_requests SET 
+                            status = :new_status,
+                            testing_status = :testing_status,
+                            technical_id = :admin_id,
+                            technical_notes = :review_notes,
+                            technical_review_date = NOW()
+                            WHERE id = :request_id";
+                            
+                    $stmt = $pdo->prepare($sql);
+                    $result = $stmt->execute([
+                        ':new_status' => $new_status,
+                        ':testing_status' => $testing_status,
+                        ':admin_id' => $admin_id,
+                        ':review_notes' => $review_notes,
+                        ':request_id' => $request_id
+                    ]);
+                    
+                    if (!$result) {
+                        throw new Exception('Failed to update request for retesting');
+                    }
+                    
+                    $response['message'] = 'Request has been sent back for retesting';
                 } else {
+                    // If rejecting, move to rejected status
                     $new_status = 'rejected';
+                    
+                    // Move to approval history
+                    $sql = "INSERT INTO approval_history (
+                        access_request_number, action, requestor_name, business_unit, department,
+                        access_type, technical_id, comments, system_type, duration_type,
+                        start_date, end_date, justification, email, contact_number,
+                        testing_status, superior_id, superior_notes, technical_id, technical_notes,
+                        process_owner_id, process_owner_notes, testing_instructions
+                    ) VALUES (
+                        :access_request_number, 'rejected', :requestor_name, :business_unit, :department,
+                        :access_type, :technical_id, :comments, :system_type, :duration_type,
+                        :start_date, :end_date, :justification, :email, :contact_number,
+                        :testing_status, :superior_id, :superior_notes, :technical_id, :technical_notes,
+                        :process_owner_id, :process_owner_notes, :testing_instructions
+                    )";
+                    
+                    $stmt = $pdo->prepare($sql);
+                    $result = $stmt->execute([
+                        'access_request_number' => $request['access_request_number'],
+                        'requestor_name' => $request['requestor_name'],
+                        'business_unit' => $request['business_unit'],
+                        'department' => $request['department'],
+                        'access_type' => $request['access_type'],
+                        'technical_id' => $admin_id,
+                        'comments' => $review_notes,
+                        'system_type' => $request['system_type'],
+                        'duration_type' => $request['duration_type'],
+                        'start_date' => $request['start_date'],
+                        'end_date' => $request['end_date'],
+                        'justification' => $request['justification'],
+                        'email' => $request['email'],
+                        'contact_number' => $request['contact_number'] ?? 'Not provided',
+                        'testing_status' => $request['testing_status'],
+                        'superior_id' => $request['superior_id'],
+                        'superior_notes' => $request['superior_notes'],
+                        'technical_id' => $request['technical_id'],
+                        'technical_notes' => $review_notes,
+                        'process_owner_id' => $request['process_owner_id'],
+                        'process_owner_notes' => $request['process_owner_notes'],
+                        'testing_instructions' => $request['testing_instructions'] ?? ''
+                    ]);
+                    
+                    if (!$result) {
+                        throw new Exception('Failed to move request to approval history');
+                    }
+                    
+                    // Delete from access_requests
+                    $stmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
+                    $stmt->execute([$request_id]);
+                    
+                    $response['message'] = 'Request has been rejected';
                 }
-                $id_field = 'technical_id';
-                $notes_field = 'technical_notes';
-                $date_field = 'technical_review_date';
+                
+                $pdo->commit();
+                echo json_encode($response);
+                exit();
             } else {
                 throw new Exception('This request is not pending technical review, testing setup, or testing review');
             }

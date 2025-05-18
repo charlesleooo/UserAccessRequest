@@ -29,6 +29,30 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Check if any approved requests with successful testing should be removed from access_requests
+    foreach ($requests as $index => $request) {
+        if ($request['status'] === 'approved' && $request['testing_status'] === 'success') {
+            // Check if this request has already been moved to approval history
+            $checkSql = "SELECT COUNT(*) FROM approval_history WHERE access_request_number = ?";
+            $checkStmt = $pdo->prepare($checkSql);
+            $checkStmt->execute([$request['access_request_number']]);
+            $exists = $checkStmt->fetchColumn();
+            
+            if ($exists > 0) {
+                // Remove from the results array as it's already in approval history
+                unset($requests[$index]);
+                
+                // Also remove from access_requests table to ensure consistency
+                $deleteSql = "DELETE FROM access_requests WHERE id = ?";
+                $deleteStmt = $pdo->prepare($deleteSql);
+                $deleteStmt->execute([$request['id']]);
+            }
+        }
+    }
+    
+    // Re-index the array after removing elements
+    $requests = array_values($requests);
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching requests: " . $e->getMessage();
     $requests = [];
@@ -615,6 +639,70 @@ try {
                         title: 'Success!',
                         text: result.value.message,
                         icon: 'success'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
+        }
+
+        function showActionModal(requestId, action) {
+            const title = action === 'approve' ? 'Send for Retest?' : 'Reject Access Request?';
+            const buttonText = action === 'approve' ? 'Send for Retest' : 'Reject Access';
+            const buttonColor = action === 'approve' ? '#EAB308' : '#EF4444';
+            const placeholder = action === 'approve' ? 
+                'Enter instructions for retesting...' : 
+                'Enter reason for rejection...';
+
+            Swal.fire({
+                title: title,
+                input: 'textarea',
+                inputLabel: 'Technical Review Notes',
+                inputPlaceholder: placeholder,
+                inputAttributes: {
+                    'aria-label': 'Technical review notes',
+                    'rows': '4'
+                },
+                showCancelButton: true,
+                confirmButtonText: buttonText,
+                confirmButtonColor: buttonColor,
+                cancelButtonText: 'Cancel',
+                showLoaderOnConfirm: true,
+                preConfirm: (notes) => {
+                    if (!notes || notes.trim() === '') {
+                        Swal.showValidationMessage('Please enter review notes');
+                        return false;
+                    }
+                    
+                    return fetch('../admin/process_request.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.message || 'Error processing request');
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(error.message);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: action === 'approve' ? 'Request Sent for Retesting!' : 'Request Rejected',
+                        text: action === 'approve' ? 
+                            'The request has been sent back to the user for retesting.' : 
+                            'The request has been rejected.',
+                        confirmButtonColor: '#3085d6',
+                        confirmButtonText: 'OK'
                     }).then(() => {
                         window.location.reload();
                     });

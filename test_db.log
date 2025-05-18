@@ -1,0 +1,49 @@
+[2025-05-18 11:00:29] Testing database connection...
+[2025-05-18 11:00:30] Database connection successful!
+[2025-05-18 11:00:30] Checking access_requests table...
+[2025-05-18 11:00:30] Table access_requests exists
+[2025-05-18 11:00:30] Checking existing triggers...
+[2025-05-18 11:00:30] No triggers found
+[2025-05-18 11:00:30] Checking access_requests table structure...
+[2025-05-18 11:00:30] Column: id - Type: int(11)
+[2025-05-18 11:00:30] Column: requestor_name - Type: varchar(255)
+[2025-05-18 11:00:30] Column: business_unit - Type: varchar(50)
+[2025-05-18 11:00:30] Column: access_request_number - Type: varchar(20)
+[2025-05-18 11:00:30] Column: department - Type: varchar(100)
+[2025-05-18 11:00:30] Column: email - Type: varchar(255)
+[2025-05-18 11:00:30] Column: employee_id - Type: varchar(20)
+[2025-05-18 11:00:30] Column: request_date - Type: date
+[2025-05-18 11:00:30] Column: access_type - Type: varchar(50)
+[2025-05-18 11:00:30] Column: justification - Type: text
+[2025-05-18 11:00:30] Column: system_type - Type: varchar(255)
+[2025-05-18 11:00:30] Column: other_system_type - Type: varchar(255)
+[2025-05-18 11:00:30] Column: role_access_type - Type: varchar(50)
+[2025-05-18 11:00:30] Column: duration_type - Type: varchar(20)
+[2025-05-18 11:00:30] Column: start_date - Type: date
+[2025-05-18 11:00:30] Column: end_date - Type: date
+[2025-05-18 11:00:30] Column: status - Type: enum('pending_superior','pending_technical','pending_process_owner','pending_admin','approved','rejected','pending_testing','pending_testing_setup','pending_testing_review')
+[2025-05-18 11:00:30] Column: testing_status - Type: enum('not_required','pending','success','failed')
+[2025-05-18 11:00:30] Column: testing_notes - Type: text
+[2025-05-18 11:00:30] Column: testing_instructions - Type: text
+[2025-05-18 11:00:30] Column: submission_date - Type: datetime
+[2025-05-18 11:00:30] Column: superior_id - Type: int(11)
+[2025-05-18 11:00:30] Column: superior_review_date - Type: datetime
+[2025-05-18 11:00:30] Column: superior_notes - Type: text
+[2025-05-18 11:00:30] Column: technical_id - Type: int(11)
+[2025-05-18 11:00:30] Column: technical_review_date - Type: datetime
+[2025-05-18 11:00:30] Column: technical_notes - Type: text
+[2025-05-18 11:00:30] Column: process_owner_id - Type: int(11)
+[2025-05-18 11:00:30] Column: process_owner_review_date - Type: datetime
+[2025-05-18 11:00:30] Column: process_owner_notes - Type: text
+[2025-05-18 11:00:30] Column: admin_id - Type: int(11)
+[2025-05-18 11:00:30] Column: admin_review_date - Type: datetime
+[2025-05-18 11:00:30] Column: admin_notes - Type: text
+[2025-05-18 11:00:30] Column: reviewed_by - Type: int(11)
+[2025-05-18 11:00:30] Column: review_date - Type: datetime
+[2025-05-18 11:00:30] Column: review_notes - Type: text
+[2025-05-18 11:00:30] Testing update query for testing_status...
+[2025-05-18 11:00:30] Found test record with ID: 45
+[2025-05-18 11:00:30] Update query executed. Result: Success, Rows affected: 1
+[2025-05-18 11:00:30] After update (within transaction), status is: {"status":"approved","testing_status":"success"}
+[2025-05-18 11:00:30] Test transaction rolled back
+[2025-05-18 11:00:30] Database tests completed!

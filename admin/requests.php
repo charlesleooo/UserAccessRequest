@@ -457,15 +457,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     }
 }
 
-// Get all requests
+// Get all pending requests (excluding those that have been moved to approval history)
 try {
     $sql = "SELECT r.*, a.username as reviewed_by_name 
             FROM access_requests r 
             LEFT JOIN admin_users a ON r.reviewed_by = a.id 
+            WHERE r.status != 'approved' 
             ORDER BY r.submission_date DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Also check for any approved requests with testing_status 'success' that should be in approval_history
+    $checkSql = "SELECT r.*, a.username as reviewed_by_name 
+                FROM access_requests r 
+                LEFT JOIN admin_users a ON r.reviewed_by = a.id 
+                WHERE r.status = 'approved' AND r.testing_status = 'success'";
+    $checkStmt = $pdo->prepare($checkSql);
+    $checkStmt->execute();
+    $approvedRequests = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Process any found requests to ensure they are moved to approval_history
+    foreach ($approvedRequests as $request) {
+        // Check if this request already exists in approval_history
+        $historySql = "SELECT COUNT(*) FROM approval_history 
+                      WHERE access_request_number = :access_request_number";
+        $historyStmt = $pdo->prepare($historySql);
+        $historyStmt->execute(['access_request_number' => $request['access_request_number']]);
+        $exists = $historyStmt->fetchColumn();
+        
+        if ($exists > 0) {
+            // This request is already in approval_history, remove it from access_requests
+            $deleteSql = "DELETE FROM access_requests WHERE id = :request_id";
+            $deleteStmt = $pdo->prepare($deleteSql);
+            $deleteStmt->execute(['request_id' => $request['id']]);
+        } else {
+            // Need to move this to approval_history
+            try {
+                $pdo->beginTransaction();
+                
+                // Insert into approval history
+                $sql = "INSERT INTO approval_history (
+                        access_request_number, action, requestor_name, business_unit, department,
+                        access_type, admin_id, comments, system_type, duration_type,
+                        start_date, end_date, justification, email, contact_number,
+                        testing_status, employee_id
+                    ) VALUES (
+                        :access_request_number, 'approved', :requestor_name, :business_unit, :department,
+                        :access_type, :admin_id, :comments, :system_type, :duration_type,
+                        :start_date, :end_date, :justification, :email, :contact_number,
+                        'success', :employee_id
+                    )";
+                
+                $stmt = $pdo->prepare($sql);
+                $result = $stmt->execute([
+                    'access_request_number' => $request['access_request_number'],
+                    'requestor_name' => $request['requestor_name'],
+                    'business_unit' => $request['business_unit'],
+                    'department' => $request['department'],
+                    'access_type' => $request['access_type'],
+                    'admin_id' => $request['admin_id'],
+                    'comments' => $request['review_notes'] ?? 'Automatically approved after successful testing',
+                    'system_type' => $request['system_type'],
+                    'duration_type' => $request['duration_type'],
+                    'start_date' => $request['start_date'],
+                    'end_date' => $request['end_date'],
+                    'justification' => $request['justification'],
+                    'email' => $request['email'],
+                    'contact_number' => $request['contact_number'] ?? 'Not provided',
+                    'employee_id' => $request['employee_id']
+                ]);
+                
+                if ($result) {
+                    // Delete from access_requests
+                    $deleteSql = "DELETE FROM access_requests WHERE id = :request_id";
+                    $deleteStmt = $pdo->prepare($deleteSql);
+                    $deleteStmt->execute(['request_id' => $request['id']]);
+                    
+                    $pdo->commit();
+                } else {
+                    $pdo->rollBack();
+                }
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                error_log("Error processing approved request: " . $e->getMessage());
+            }
+        }
+    }
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching requests: " . $e->getMessage();
     $requests = [];

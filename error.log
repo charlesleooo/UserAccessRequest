@@ -1,0 +1,359 @@
+[18-May-2025 10:54:42 Europe/Berlin] POST Data: Array
+(
+    [request_id] => 45
+    [testing_status] => success
+    [testing_notes] => qweqwe
+)
+
+[18-May-2025 10:54:42 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'request_id' in 'field list'
+)
+
+[18-May-2025 10:54:42 Europe/Berlin] Processing form submission
+[18-May-2025 10:54:42 Europe/Berlin] Request ID: 45
+[18-May-2025 10:54:42 Europe/Berlin] Testing Status: success
+[18-May-2025 10:54:42 Europe/Berlin] Testing Notes: qweqwe
+[18-May-2025 10:54:42 Europe/Berlin] Started transaction
+[18-May-2025 10:54:42 Europe/Berlin] Executing SQL: SELECT * FROM access_requests 
+                WHERE id = :request_id 
+                AND employee_id = :employee_id 
+                AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+[18-May-2025 10:54:42 Europe/Berlin] Parameters: request_id=45, employee_id=AAC052003
+[18-May-2025 10:54:42 Europe/Berlin] Request data: Array
+(
+    [id] => 45
+    [requestor_name] => PALOMARES, CHARLES LEO H.
+    [business_unit] => AAC
+    [access_request_number] => UAR-REQ2025-012
+    [department] => INFORMATION TECHNOLOGY (IT)
+    [email] => charlesleohermano@gmail.com
+    [employee_id] => AAC052003
+    [request_date] => 0000-00-00
+    [access_type] => System Application
+    [justification] => qwe
+    [system_type] => Quickbooks
+    [other_system_type] => 
+    [role_access_type] => 
+    [duration_type] => permanent
+    [start_date] => 
+    [end_date] => 
+    [status] => pending_testing
+    [testing_status] => pending
+    [testing_notes] => 
+    [testing_instructions] => qweqwewqewqe
+    [submission_date] => 2025-05-18 16:28:09
+    [superior_id] => 6
+    [superior_review_date] => 2025-05-18 16:28:28
+    [superior_notes] => qwe
+    [technical_id] => 9
+    [technical_review_date] => 2025-05-18 16:29:46
+    [technical_notes] => qwe
+    [process_owner_id] => 10
+    [process_owner_review_date] => 2025-05-18 16:29:02
+    [process_owner_notes] => qwe
+    [admin_id] => 3
+    [admin_review_date] => 2025-05-18 16:29:19
+    [admin_notes] => qwe
+    [reviewed_by] => 
+    [review_date] => 
+    [review_notes] => 
+)
+
+[18-May-2025 10:54:42 Europe/Berlin] Processing successful test
+[18-May-2025 10:54:42 Europe/Berlin] Executing SQL: UPDATE access_requests SET 
+                    status = 'approved',
+                    testing_status = 'success',
+                    testing_notes = :testing_notes,
+                    review_notes = 'Automatically approved after successful testing'
+                    WHERE id = :request_id
+[18-May-2025 10:54:42 Europe/Berlin] Parameters: testing_notes=qweqwe, request_id=45
+[18-May-2025 10:54:42 Europe/Berlin] Error occurred: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'request_id' in 'field list'
+[18-May-2025 10:54:42 Europe/Berlin] Stack trace: #0 D:\xampp\htdocs\uar\requestor\testing_status.php(84): PDOStatement->execute(Array)
+#1 {main}
+[18-May-2025 10:54:47 Europe/Berlin] POST Data: Array
+(
+    [request_id] => 45
+    [testing_status] => success
+    [testing_notes] => qwewqe
+)
+
+[18-May-2025 10:54:47 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'request_id' in 'field list'
+)
+
+[18-May-2025 10:54:47 Europe/Berlin] Processing form submission
+[18-May-2025 10:54:47 Europe/Berlin] Request ID: 45
+[18-May-2025 10:54:47 Europe/Berlin] Testing Status: success
+[18-May-2025 10:54:47 Europe/Berlin] Testing Notes: qwewqe
+[18-May-2025 10:54:47 Europe/Berlin] Started transaction
+[18-May-2025 10:54:47 Europe/Berlin] Executing SQL: SELECT * FROM access_requests 
+                WHERE id = :request_id 
+                AND employee_id = :employee_id 
+                AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+[18-May-2025 10:54:47 Europe/Berlin] Parameters: request_id=45, employee_id=AAC052003
+[18-May-2025 10:54:47 Europe/Berlin] Request data: Array
+(
+    [id] => 45
+    [requestor_name] => PALOMARES, CHARLES LEO H.
+    [business_unit] => AAC
+    [access_request_number] => UAR-REQ2025-012
+    [department] => INFORMATION TECHNOLOGY (IT)
+    [email] => charlesleohermano@gmail.com
+    [employee_id] => AAC052003
+    [request_date] => 0000-00-00
+    [access_type] => System Application
+    [justification] => qwe
+    [system_type] => Quickbooks
+    [other_system_type] => 
+    [role_access_type] => 
+    [duration_type] => permanent
+    [start_date] => 
+    [end_date] => 
+    [status] => pending_testing
+    [testing_status] => pending
+    [testing_notes] => 
+    [testing_instructions] => qweqwewqewqe
+    [submission_date] => 2025-05-18 16:28:09
+    [superior_id] => 6
+    [superior_review_date] => 2025-05-18 16:28:28
+    [superior_notes] => qwe
+    [technical_id] => 9
+    [technical_review_date] => 2025-05-18 16:29:46
+    [technical_notes] => qwe
+    [process_owner_id] => 10
+    [process_owner_review_date] => 2025-05-18 16:29:02
+    [process_owner_notes] => qwe
+    [admin_id] => 3
+    [admin_review_date] => 2025-05-18 16:29:19
+    [admin_notes] => qwe
+    [reviewed_by] => 
+    [review_date] => 
+    [review_notes] => 
+)
+
+[18-May-2025 10:54:47 Europe/Berlin] Processing successful test
+[18-May-2025 10:54:47 Europe/Berlin] Executing SQL: UPDATE access_requests SET 
+                    status = 'approved',
+                    testing_status = 'success',
+                    testing_notes = :testing_notes,
+                    review_notes = 'Automatically approved after successful testing'
+                    WHERE id = :request_id
+[18-May-2025 10:54:47 Europe/Berlin] Parameters: testing_notes=qwewqe, request_id=45
+[18-May-2025 10:54:47 Europe/Berlin] Error occurred: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'request_id' in 'field list'
+[18-May-2025 10:54:47 Europe/Berlin] Stack trace: #0 D:\xampp\htdocs\uar\requestor\testing_status.php(84): PDOStatement->execute(Array)
+#1 {main}
+[18-May-2025 10:57:06 Europe/Berlin] POST Data: Array
+(
+    [request_id] => 45
+    [testing_status] => success
+    [testing_notes] => qweqwe
+)
+
+[18-May-2025 10:57:06 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'request_id' in 'field list'
+)
+
+[18-May-2025 10:57:06 Europe/Berlin] Processing form submission
+[18-May-2025 10:57:06 Europe/Berlin] Request ID: 45
+[18-May-2025 10:57:06 Europe/Berlin] Testing Status: success
+[18-May-2025 10:57:06 Europe/Berlin] Testing Notes: qweqwe
+[18-May-2025 10:57:06 Europe/Berlin] Started transaction
+[18-May-2025 10:57:06 Europe/Berlin] Executing SELECT FOR UPDATE: SELECT * FROM access_requests 
+                WHERE id = :request_id 
+                AND employee_id = :employee_id 
+                AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+                FOR UPDATE
+[18-May-2025 10:57:06 Europe/Berlin] Request data: Array
+(
+    [id] => 45
+    [requestor_name] => PALOMARES, CHARLES LEO H.
+    [business_unit] => AAC
+    [access_request_number] => UAR-REQ2025-012
+    [department] => INFORMATION TECHNOLOGY (IT)
+    [email] => charlesleohermano@gmail.com
+    [employee_id] => AAC052003
+    [request_date] => 0000-00-00
+    [access_type] => System Application
+    [justification] => qwe
+    [system_type] => Quickbooks
+    [other_system_type] => 
+    [role_access_type] => 
+    [duration_type] => permanent
+    [start_date] => 
+    [end_date] => 
+    [status] => pending_testing
+    [testing_status] => pending
+    [testing_notes] => 
+    [testing_instructions] => qweqwewqewqe
+    [submission_date] => 2025-05-18 16:28:09
+    [superior_id] => 6
+    [superior_review_date] => 2025-05-18 16:28:28
+    [superior_notes] => qwe
+    [technical_id] => 9
+    [technical_review_date] => 2025-05-18 16:29:46
+    [technical_notes] => qwe
+    [process_owner_id] => 10
+    [process_owner_review_date] => 2025-05-18 16:29:02
+    [process_owner_notes] => qwe
+    [admin_id] => 3
+    [admin_review_date] => 2025-05-18 16:29:19
+    [admin_notes] => qwe
+    [reviewed_by] => 
+    [review_date] => 
+    [review_notes] => 
+)
+
+[18-May-2025 10:57:06 Europe/Berlin] Processing successful test
+[18-May-2025 10:57:06 Europe/Berlin] Executing UPDATE SQL: UPDATE access_requests 
+                    SET status = 'approved',
+                        testing_status = 'success',
+                        testing_notes = :testing_notes,
+                        review_notes = 'Automatically approved after successful testing',
+                        review_date = NOW()
+                    WHERE id = :request_id 
+                    AND employee_id = :employee_id
+                    AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+[18-May-2025 10:57:06 Europe/Berlin] Error occurred: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+[18-May-2025 10:57:06 Europe/Berlin] Stack trace: #0 D:\xampp\htdocs\uar\requestor\testing_status.php(111): PDOStatement->execute(Array)
+#1 {main}
+[18-May-2025 10:57:29 Europe/Berlin] POST Data: Array
+(
+    [request_id] => 45
+    [testing_status] => success
+    [testing_notes] => qweqweqwe
+)
+
+[18-May-2025 10:57:29 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+)
+
+[18-May-2025 10:57:29 Europe/Berlin] Processing form submission
+[18-May-2025 10:57:29 Europe/Berlin] Request ID: 45
+[18-May-2025 10:57:29 Europe/Berlin] Testing Status: success
+[18-May-2025 10:57:29 Europe/Berlin] Testing Notes: qweqweqwe
+[18-May-2025 10:57:29 Europe/Berlin] Started transaction
+[18-May-2025 10:57:29 Europe/Berlin] Executing SELECT FOR UPDATE: SELECT * FROM access_requests 
+                WHERE id = :request_id 
+                AND employee_id = :employee_id 
+                AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+                FOR UPDATE
+[18-May-2025 10:57:29 Europe/Berlin] Request data: Array
+(
+    [id] => 45
+    [requestor_name] => PALOMARES, CHARLES LEO H.
+    [business_unit] => AAC
+    [access_request_number] => UAR-REQ2025-012
+    [department] => INFORMATION TECHNOLOGY (IT)
+    [email] => charlesleohermano@gmail.com
+    [employee_id] => AAC052003
+    [request_date] => 0000-00-00
+    [access_type] => System Application
+    [justification] => qwe
+    [system_type] => Quickbooks
+    [other_system_type] => 
+    [role_access_type] => 
+    [duration_type] => permanent
+    [start_date] => 
+    [end_date] => 
+    [status] => pending_testing
+    [testing_status] => pending
+    [testing_notes] => 
+    [testing_instructions] => qweqwewqewqe
+    [submission_date] => 2025-05-18 16:28:09
+    [superior_id] => 6
+    [superior_review_date] => 2025-05-18 16:28:28
+    [superior_notes] => qwe
+    [technical_id] => 9
+    [technical_review_date] => 2025-05-18 16:29:46
+    [technical_notes] => qwe
+    [process_owner_id] => 10
+    [process_owner_review_date] => 2025-05-18 16:29:02
+    [process_owner_notes] => qwe
+    [admin_id] => 3
+    [admin_review_date] => 2025-05-18 16:29:19
+    [admin_notes] => qwe
+    [reviewed_by] => 
+    [review_date] => 
+    [review_notes] => 
+)
+
+[18-May-2025 10:57:29 Europe/Berlin] Processing successful test
+[18-May-2025 10:57:29 Europe/Berlin] Executing UPDATE SQL: UPDATE access_requests 
+                    SET status = 'approved',
+                        testing_status = 'success',
+                        testing_notes = :testing_notes,
+                        review_notes = 'Automatically approved after successful testing',
+                        review_date = NOW()
+                    WHERE id = :request_id 
+                    AND employee_id = :employee_id
+                    AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+[18-May-2025 10:57:29 Europe/Berlin] Error occurred: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+[18-May-2025 10:57:29 Europe/Berlin] Stack trace: #0 D:\xampp\htdocs\uar\requestor\testing_status.php(111): PDOStatement->execute(Array)
+#1 {main}
+[18-May-2025 10:59:28 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+)
+
+[18-May-2025 10:59:28 Europe/Berlin] Error occurred: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+[18-May-2025 10:59:28 Europe/Berlin] Stack trace: #0 D:\xampp\htdocs\uar\requestor\testing_status.php(129): PDOStatement->execute(Array)
+#1 {main}
+[18-May-2025 10:59:51 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+)
+
+[18-May-2025 11:00:04 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+)
+
+[18-May-2025 11:01:28 Europe/Berlin] Session Data: Array
+(
+    [requestor_id] => AAC052003
+    [employee_email] => charlesleohermano@gmail.com
+    [username] => PALOMARES, CHARLES LEO H.
+    [role] => employee
+    [success_message] => Testing status has been updated. The technical support team will review your testing results.
+    [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
+)
+
