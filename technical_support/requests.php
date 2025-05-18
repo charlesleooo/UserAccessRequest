@@ -15,6 +15,7 @@ try {
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
                 WHEN ar.status = 'pending_technical' THEN 'Pending Your Review'
                 WHEN ar.status = 'pending_testing_setup' THEN 'Pending Testing Setup'
+                WHEN ar.status = 'pending_testing_review' THEN 'Pending Testing Review'
                 WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
                 WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'
                 WHEN ar.status = 'approved' THEN 'Approved'
@@ -22,7 +23,7 @@ try {
                 ELSE ar.status
             END as status_display
             FROM access_requests ar 
-            WHERE ar.status = 'pending_technical' OR ar.status = 'pending_testing_setup'
+            WHERE ar.status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
             
     $stmt = $pdo->prepare($sql);
@@ -207,6 +208,17 @@ try {
                                                     <i class='bx bx-test-tube align-middle'></i>
                                                     <span class="ml-1.5">Send Testing Instructions</span>
                                                 </button>
+                                                <?php elseif ($request['status'] === 'pending_testing_review' && $request['testing_status'] === 'failed'): ?>
+                                                    <button onclick="showActionModal(<?php echo $request['id']; ?>, 'approve')" 
+                                                            class="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100">
+                                                        <i class='bx bx-refresh'></i>
+                                                        <span class="ml-1">Send for Retest</span>
+                                                    </button>
+                                                    <button onclick="showActionModal(<?php echo $request['id']; ?>, 'decline')" 
+                                                            class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
+                                                        <i class='bx bx-x'></i>
+                                                        <span class="ml-1">Reject Access</span>
+                                                    </button>
                                                 <?php endif; ?>
                                             </td>
                                         </tr>

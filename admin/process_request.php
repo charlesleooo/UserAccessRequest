@@ -245,8 +245,23 @@ try {
                         $date_field = NOW(),
                         testing_status = 'pending'
                         WHERE id = :request_id";
+            } else if ($current_status === 'pending_testing_review') {
+                if ($action === 'approve') {
+                    // If test was successful, move to final approval
+                    if ($request['testing_status'] === 'success') {
+                        $new_status = 'approved';
+                    } else {
+                        // If test failed, send back for retesting
+                        $new_status = 'pending_testing_setup';
+                    }
+                } else {
+                    $new_status = 'rejected';
+                }
+                $id_field = 'technical_id';
+                $notes_field = 'technical_notes';
+                $date_field = 'technical_review_date';
             } else {
-                throw new Exception('This request is not pending technical review or testing setup');
+                throw new Exception('This request is not pending technical review, testing setup, or testing review');
             }
             break;
 
