@@ -39,7 +39,7 @@ try {
     $role = $_SESSION['role'];
 
     // Handle special actions for testing phase first
-    if ($role === 'admin' && in_array($action, ['finalize_approval', 'reject_after_testing', 'retry_testing'])) {
+    if ($role === 'technical_support' && in_array($action, ['finalize_approval', 'reject_after_testing', 'retry_testing'])) {
         // Get request details
         $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE id = ?");
         $stmt->execute([$request_id]);
@@ -63,13 +63,13 @@ try {
                 // Move to approval history with "approved" status
                 $sql = "INSERT INTO approval_history (
                     access_request_number, action, requestor_name, business_unit, department,
-                    access_type, admin_id, comments, system_type, duration_type,
+                    access_type, technical_id, comments, system_type, duration_type,
                     start_date, end_date, justification, email, contact_number,
                     testing_status, superior_id, superior_notes, technical_id, technical_notes,
                     process_owner_id, process_owner_notes, testing_instructions
                 ) VALUES (
                     :access_request_number, 'approved', :requestor_name, :business_unit, :department,
-                    :access_type, :admin_id, :comments, :system_type, :duration_type,
+                    :access_type, :technical_id, :comments, :system_type, :duration_type,
                     :start_date, :end_date, :justification, :email, :contact_number,
                     :testing_status, :superior_id, :superior_notes, :technical_id, :technical_notes,
                     :process_owner_id, :process_owner_notes, :testing_instructions
@@ -82,7 +82,7 @@ try {
                     'business_unit' => $request['business_unit'],
                     'department' => $request['department'],
                     'access_type' => $request['access_type'],
-                    'admin_id' => $admin_id,
+                    'technical_id' => $request['technical_id'],
                     'comments' => $review_notes,
                     'system_type' => $request['system_type'],
                     'duration_type' => $request['duration_type'],
@@ -116,13 +116,13 @@ try {
                 // Move to approval history with "rejected" status
                 $sql = "INSERT INTO approval_history (
                     access_request_number, action, requestor_name, business_unit, department,
-                    access_type, admin_id, comments, system_type, duration_type,
+                    access_type, technical_id, comments, system_type, duration_type,
                     start_date, end_date, justification, email, contact_number,
                     testing_status, superior_id, superior_notes, technical_id, technical_notes,
                     process_owner_id, process_owner_notes, testing_instructions
                 ) VALUES (
                     :access_request_number, 'rejected', :requestor_name, :business_unit, :department,
-                    :access_type, :admin_id, :comments, :system_type, :duration_type,
+                    :access_type, :technical_id, :comments, :system_type, :duration_type,
                     :start_date, :end_date, :justification, :email, :contact_number,
                     :testing_status, :superior_id, :superior_notes, :technical_id, :technical_notes,
                     :process_owner_id, :process_owner_notes, :testing_instructions
@@ -135,7 +135,7 @@ try {
                     'business_unit' => $request['business_unit'],
                     'department' => $request['department'],
                     'access_type' => $request['access_type'],
-                    'admin_id' => $admin_id,
+                    'technical_id' => $request['technical_id'],
                     'comments' => $review_notes,
                     'system_type' => $request['system_type'],
                     'duration_type' => $request['duration_type'],
@@ -235,7 +235,16 @@ try {
                 $new_status = 'pending_testing';
                 $id_field = 'technical_id';
                 $notes_field = 'testing_instructions';
-                $date_field = 'testing_setup_date';
+                $date_field = 'technical_review_date';
+                
+                // Update testing status to pending when sending instructions
+                $sql = "UPDATE access_requests SET 
+                        status = :new_status,
+                        $id_field = :admin_id,
+                        $notes_field = :review_notes,
+                        $date_field = NOW(),
+                        testing_status = 'pending'
+                        WHERE id = :request_id";
             } else {
                 throw new Exception('This request is not pending technical review or testing setup');
             }

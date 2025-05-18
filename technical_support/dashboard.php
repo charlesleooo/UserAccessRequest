@@ -12,7 +12,7 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') 
 // Get quick stats for the dashboard
 try {
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status = 'pending'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')");
     $pendingRequests = $stmt->fetchColumn();
     
     // Get today's technical reviews count
@@ -22,7 +22,7 @@ try {
     $technicalReviewsToday = $stmt->fetchColumn();
     
     // Get recent requests
-    $stmt = $pdo->query("SELECT * FROM access_requests ORDER BY submission_date DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT * FROM access_requests WHERE status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review') ORDER BY submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {

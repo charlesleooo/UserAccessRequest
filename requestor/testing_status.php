@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         $sql = "SELECT * FROM access_requests 
                 WHERE id = :request_id 
                 AND employee_id = :employee_id 
-                AND status = 'pending_testing' 
+                AND (status = 'pending_testing' OR status = 'pending_testing_setup')
                 AND testing_status = 'pending'";
         
         $stmt = $pdo->prepare($sql);
@@ -51,10 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
             throw new Exception('Invalid request or you do not have permission to update this request.');
         }
         
-        // Update the testing status
+        // Update the testing status and change status to pending_testing_review for technical support
         $sql = "UPDATE access_requests 
                 SET testing_status = :testing_status, 
-                    testing_notes = :testing_notes 
+                    testing_notes = :testing_notes,
+                    status = 'pending_testing_review'
                 WHERE id = :request_id";
         
         $stmt = $pdo->prepare($sql);
@@ -72,7 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         $pdo->commit();
         
         // Set success message
-        $_SESSION['success_message'] = "Testing status has been updated successfully. The administrator will review and finalize your request.";
+        $_SESSION['success_message'] = "Testing status has been updated successfully. The technical support team will review your testing results.";
         
         // Redirect back to dashboard
         header('Location: dashboard.php');

@@ -44,9 +44,10 @@ CREATE TABLE `access_requests` (
   `duration_type` varchar(20) DEFAULT NULL,
   `start_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
-  `status` enum('pending_superior','pending_technical','pending_process_owner','pending_admin','approved','rejected','pending_testing') NOT NULL DEFAULT 'pending_superior',
+  `status` enum('pending_superior','pending_technical','pending_process_owner','pending_admin','approved','rejected','pending_testing','pending_testing_setup','pending_testing_review') NOT NULL DEFAULT 'pending_superior',
   `testing_status` enum('not_required','pending','success','failed') DEFAULT 'not_required',
   `testing_notes` text DEFAULT NULL,
+  `testing_instructions` text DEFAULT NULL,
   `submission_date` datetime NOT NULL,
   `superior_id` int(11) DEFAULT NULL,
   `superior_review_date` datetime DEFAULT NULL,
@@ -69,12 +70,7 @@ CREATE TABLE `access_requests` (
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `status`, `testing_status`, `testing_notes`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
-(34, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-004', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'PC Access - Network', 'charles palomares', NULL, NULL, '', 'permanent', NULL, NULL, '', 'not_required', NULL, '2025-05-14 09:41:30', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(37, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-007', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'im newly hired i need access', 'Legacy Vouchering', NULL, '', 'permanent', NULL, NULL, 'pending_testing', 'pending', 'bruh nigga', '2025-05-15 10:17:03', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 3, '2025-05-15 10:17:31', 'hahaahaha'),
-(39, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-009', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'Wi-Fi/Access Point Access', 'qweqwe', NULL, NULL, '', 'permanent', NULL, NULL, '', 'not_required', NULL, '2025-05-18 12:39:53', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(40, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-010', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'Internet Access', 'qweqwe', NULL, NULL, '', 'permanent', NULL, NULL, '', 'not_required', NULL, '2025-05-18 12:45:57', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(41, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-011', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'PC Access - Network', 'qweqwe', NULL, NULL, '', 'permanent', NULL, NULL, 'pending_superior', 'not_required', NULL, '2025-05-18 12:55:38', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+INSERT INTO `access_requests` VALUES (34, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-004', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'PC Access - Network', 'charles palomares', NULL, NULL, '', 'permanent', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-14 09:41:30', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 --
 -- Triggers `access_requests`
