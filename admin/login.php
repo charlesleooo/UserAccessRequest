@@ -81,7 +81,15 @@
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['admin_id'] = $user['id'];
             $_SESSION['admin_username'] = $user['username'];
-            header('Location: dashboard.php');
+            $_SESSION['role'] = $user['role'];
+            $_SESSION['admin_name'] = $user['username'];
+
+            // Redirect based on role
+            if ($user['role'] === 'superior') {
+                header('Location: ../superior/dashboard.php');
+            } else {
+                header('Location: dashboard.php');
+            }
             exit;
         } else {
             $error = "Invalid username or password";
