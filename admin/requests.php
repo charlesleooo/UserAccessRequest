@@ -97,7 +97,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 break;
             case 'admin':
                 $can_handle = ($current_status === 'pending_admin');
-                $next_status = ($action === 'approve') ? 'pending_testing_setup' : 'rejected';
+                if ($action === 'approve') {
+                    $next_status = ($request['access_type'] === 'System Application') ? 'pending_testing_setup' : 'approved';
+                } else {
+                    $next_status = 'rejected';
+                }
                 $id_field = 'admin_id';
                 $date_field = 'admin_review_date';
                 $notes_field = 'admin_notes';
@@ -236,68 +240,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         if ($action === 'approve' || $action === 'decline') {
             if ($next_status === 'approved' || $next_status === 'rejected') {
                 // Final approval/rejection - move to history
-            $sql = "INSERT INTO approval_history (
-                        access_request_number,
-                        action,
-                        requestor_name,
-                        business_unit,
-                        department,
-                        access_type,
-                        admin_id,
-                        comments,
-                        system_type,
-                        duration_type,
-                        start_date,
-                        end_date,
-                        justification,
-                        email,
-                        contact_number,
+                $sql = "INSERT INTO approval_history (
+                    access_request_number,
+                    action,
+                    requestor_name,
+                    business_unit,
+                    department,
+                    access_type,
+                    admin_id,
+                    comments,
+                    system_type,
+                    duration_type,
+                    start_date,
+                    end_date,
+                    justification,
+                    email,
+                    contact_number,
+                    testing_status,
                     superior_id,
                     superior_notes,
                     technical_id,
                     technical_notes,
                     process_owner_id,
                     process_owner_notes
-                    ) VALUES (
-                        :access_request_number,
+                ) VALUES (
+                    :access_request_number,
                     :action,
-                        :requestor_name,
-                        :business_unit,
-                        :department,
-                        :access_type,
-                        :admin_id,
-                        :comments,
-                        :system_type,
-                        :duration_type,
-                        :start_date,
-                        :end_date,
-                        :justification,
-                        :email,
-                        :contact_number,
+                    :requestor_name,
+                    :business_unit,
+                    :department,
+                    :access_type,
+                    :admin_id,
+                    :comments,
+                    :system_type,
+                    :duration_type,
+                    :start_date,
+                    :end_date,
+                    :justification,
+                    :email,
+                    :contact_number,
+                    'not_required',
                     :superior_id,
                     :superior_notes,
                     :technical_id,
                     :technical_notes,
                     :process_owner_id,
                     :process_owner_notes
-                    )";
+                )";
                     
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
-                'access_request_number' => $request['access_request_number'],
-                    'action' => $next_status,
-                'requestor_name' => $request['requestor_name'],
-                'business_unit' => $request['business_unit'],
-                'department' => $request['department'],
-                'access_type' => $request['access_type'],
-                'admin_id' => $admin_id,
-                'comments' => $review_notes,
-                'system_type' => $request['system_type'],
-                'duration_type' => $request['duration_type'],
-                'start_date' => $request['start_date'],
-                'end_date' => $request['end_date'],
-                'justification' => $request['justification'],
-                'email' => $request['email'],
+                $stmt = $pdo->prepare($sql);
+                $result = $stmt->execute([
+                    'access_request_number' => $request['access_request_number'],
+                    'action' => $next_status === 'approved' ? 'approved' : 'rejected',
+                    'requestor_name' => $request['requestor_name'],
+                    'business_unit' => $request['business_unit'],
+                    'department' => $request['department'],
+                    'access_type' => $request['access_type'],
+                    'admin_id' => $admin_id,
+                    'comments' => $review_notes,
+                    'system_type' => $request['system_type'],
+                    'duration_type' => $request['duration_type'],
+                    'start_date' => $request['start_date'],
+                    'end_date' => $request['end_date'],
+                    'justification' => $request['justification'],
+                    'email' => $request['email'],
                     'contact_number' => $request['contact_number'] ?? 'Not provided',
                     'superior_id' => $request['superior_id'],
                     'superior_notes' => $request['superior_notes'],
@@ -305,16 +311,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                     'technical_notes' => $request['technical_notes'],
                     'process_owner_id' => $request['process_owner_id'],
                     'process_owner_notes' => $request['process_owner_notes']
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to insert into approval history');
-            }
-            
+                ]);
+                
+                if (!$result) {
+                    throw new Exception('Failed to insert into approval history');
+                }
+                
                 // Delete from access_requests table
-            $sql = "DELETE FROM access_requests WHERE id = :request_id";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['request_id' => $request_id]);
+                $sql = "DELETE FROM access_requests WHERE id = :request_id";
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute(['request_id' => $request_id]);
             } else {
                 // Update status for next stage
                 $sql = "UPDATE access_requests SET 
