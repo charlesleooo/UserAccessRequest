@@ -1,3 +1,137 @@
+<?php
+session_start();
+require_once '../config.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+
+// Enable error reporting for development
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// OTP Generation function
+function generateOTP($length = 6) {
+    $characters = '0123456789';
+    $otp = '';
+    for ($i = 0; $i < $length; $i++) {
+        $otp .= $characters[rand(0, strlen($characters) - 1)];
+    }
+    return $otp;
+}
+
+// Handle AJAX requests
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+    header('Content-Type: application/json');
+    
+    if (isset($_POST['send_otp'])) {
+        $username = $_POST['username'] ?? '';
+        $password = $_POST['password'] ?? '';
+        
+        // Log the credentials attempt (without the actual password)
+        error_log("Admin login attempt for: " . $username);
+        
+        // Fetch user by email
+        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            echo json_encode(['status' => 'error', 'message' => 'Email not found or insufficient privileges']);
+            exit;
+        }
+        
+        if (!password_verify($password, $user['password'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid password']);
+            exit;
+        }
+
+        // Generate and store OTP
+        $otp = generateOTP();
+        $_SESSION['otp'] = $otp;
+        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
+        $_SESSION['temp_admin'] = $user;
+        
+        error_log("OTP generated for admin " . $username . ": " . $otp);
+
+        // Send OTP via PHPMailer
+        $mail = new PHPMailer\PHPMailer\PHPMailer(true); // Enable exceptions
+        try {
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'charlesondota@gmail.com';
+            $mail->Password = 'crpf bbcb vodv xbjk';
+            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+            $mail->SMTPDebug = 0; // 0 = off, 1 = client messages, 2 = client and server messages
+
+            $mail->setFrom('charlesondota@gmail.com', 'Alsons Agribusiness');
+            $mail->addAddress($user['employee_email'], $user['employee_name']);
+            $mail->isHTML(true);
+            $mail->Subject = 'Your Admin Portal One Time Password';
+            $mail->Body = "Hello {$user['employee_name']}, your OTP for admin login is <b>$otp</b>. It expires in 5 minutes.";
+
+            $mail->send();
+            
+            // Ensure session is written to storage
+            session_write_close();
+            session_start();
+            
+            error_log("OTP email sent successfully to " . $user['employee_email']);
+            echo json_encode(['status' => 'success', 'message' => 'OTP sent successfully']);
+        } catch (Exception $e) {
+            error_log("Failed to send OTP email: " . $mail->ErrorInfo);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP: ' . $mail->ErrorInfo]);
+        }
+        exit;
+    }
+    
+    if (isset($_POST['verify_otp'])) {
+        $entered_otp = $_POST['otp'] ?? '';
+        if (!isset($_SESSION['otp'], $_SESSION['otp_expiry'])) {
+            echo json_encode(['status' => 'error', 'message' => 'OTP session expired. Please try again.']);
+            exit;
+        }
+        
+        if ($_SESSION['otp_expiry'] < time()) {
+            echo json_encode(['status' => 'error', 'message' => 'OTP has expired. Please request a new one.']);
+            exit;
+        }
+        
+        if ($entered_otp == $_SESSION['otp'] && time() < $_SESSION['otp_expiry']) {
+            if (isset($_SESSION['temp_admin'])) {
+                $user = $_SESSION['temp_admin'];
+                $_SESSION['admin_id'] = $user['employee_id'];
+                $_SESSION['admin_username'] = $user['employee_name'];
+                $_SESSION['role'] = $user['role'];
+                $_SESSION['admin_name'] = $user['employee_name'];
+
+                unset($_SESSION['otp'], $_SESSION['otp_expiry'], $_SESSION['temp_admin']);
+
+                // Determine redirect location based on role
+                $redirect = 'dashboard.php';
+                switch ($user['role']) {
+                    case 'superior':
+                        $redirect = '../superior/dashboard.php';
+                        break;
+                    case 'technical_support':
+                        $redirect = '../technical_support/dashboard.php';
+                        break;
+                    case 'process_owner':
+                        $redirect = '../process_owner/dashboard.php';
+                        break;
+                }
+
+                echo json_encode(['status' => 'success', 'redirect' => $redirect]);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Session data missing. Please try again.']);
+            }
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid OTP. Please try again.']);
+        }
+        exit;
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -64,13 +198,6 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <?php
-    session_start();
-    require_once '../config.php';
-    
-    // Enable error reporting for debugging
-    error_reporting(E_ALL);
-    ini_set('display_errors', 1);
-    
     $login_attempt = false;
     
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -155,18 +282,19 @@
                 </div>
             <?php endif; ?>
             
-            <form method="POST" class="space-y-6" x-on:submit="loading = true">
+            <form method="POST" action="login.php" class="space-y-6" id="loginForm" onsubmit="handleLogin(event)">
                 <div class="animate-slide-up" style="animation-delay: 100ms">
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                             </svg>
                         </div>
-                        <input type="text" id="username" name="username" required autofocus
+                        <input type="email" id="username" name="username" required autofocus
                             class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition duration-200"
-                            placeholder="Enter your username">
+                            placeholder="Enter your email">
                     </div>
                 </div>
                 
@@ -205,15 +333,9 @@
                         </div>
                     </div>
                     
-                    <button type="submit"
-                        class="w-full flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]"
-                        :class="{ 'opacity-75 cursor-not-allowed': loading }"
-                        :disabled="loading">
-                        <span x-show="!loading">Sign In</span>
-                        <svg x-show="loading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
+                    <button type="submit" name="send_otp" value="1"
+                        class="w-full flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
+                        <span>Sign In</span>
                     </button>
                 </div>
             </form>
@@ -225,48 +347,203 @@
     </div>
 
     <script>
-        // Add some animation when form is submitted
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form');
-            
-            form.addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                Swal.fire({
-                    title: 'Logging in...',
-                    text: 'Please wait while we verify your credentials',
-                    allowOutsideClick: false,
-                    showConfirmButton: false,
-                    willOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                // Submit the form after showing the alert
-                setTimeout(() => {
-                    this.submit();
-                }, 1000);
+        function handleLogin(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            formData.append('send_otp', '1');
+
+            // Custom SweetAlert2 styling
+            const customClass = {
+                popup: 'bg-white rounded-2xl shadow-2xl',
+                title: 'text-gray-800 font-bold text-xl',
+                htmlContainer: 'text-gray-600',
+                input: 'mt-4 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-center text-2xl tracking-widest',
+                confirmButton: 'bg-primary-600 hover:bg-primary-700 text-white font-semibold px-6 py-2.5 rounded-lg transition duration-300 transform hover:scale-[1.02] active:scale-[0.98] mx-2',
+                cancelButton: 'bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold px-6 py-2.5 rounded-lg transition duration-300 mx-2'
+            };
+
+            // Show loading with improved design
+            Swal.fire({
+                title: 'Authenticating',
+                html: `
+                    <div class="flex flex-col items-center">
+                        <div class="w-16 h-16 mb-4">
+                            <svg class="animate-spin w-full h-full text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-gray-600">Please wait while we verify your credentials</p>
+                    </div>
+                `,
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                customClass
             });
-            
-            <?php if ($login_attempt): ?>
-                <?php if (isset($error)): ?>
+
+            // Send request with AJAX
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show OTP input modal with improved design
+                    Swal.fire({
+                        title: 'Enter OTP',
+                        html: `
+                            <div class="space-y-4">
+                                <div class="flex justify-center">
+                                    <div class="rounded-full bg-green-100 p-3">
+                                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <p class="text-gray-600">We've sent a verification code to your email</p>
+                                <p class="text-sm text-gray-500">Please check your inbox and enter the code below</p>
+                                <div id="otp-container" class="flex justify-center space-x-2 mt-4">
+                                    <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" autocomplete="off">
+                                    <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" autocomplete="off">
+                                    <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" autocomplete="off">
+                                    <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" autocomplete="off">
+                                    <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" autocomplete="off">
+                                    <input type="text" maxlength="1" class="w-10 h-12 text-center text-xl border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500" autocomplete="off">
+                                </div>
+                                <input type="hidden" id="complete-otp">
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'Verify',
+                        cancelButtonText: 'Cancel',
+                        showLoaderOnConfirm: true,
+                        allowOutsideClick: false,
+                        customClass,
+                        buttonsStyling: false,
+                        didOpen: () => {
+                            const otpInputs = document.querySelectorAll('#otp-container input');
+                            const completeOtp = document.getElementById('complete-otp');
+                            
+                            // Focus first input on open
+                            otpInputs[0].focus();
+                            
+                            // Handle input for each box
+                            otpInputs.forEach((input, index) => {
+                                // Auto focus next input
+                                input.addEventListener('input', function() {
+                                    if (this.value.length === 1) {
+                                        if (index < otpInputs.length - 1) {
+                                            otpInputs[index + 1].focus();
+                                        }
+                                    }
+                                    
+                                    // Update complete OTP value
+                                    let otp = '';
+                                    otpInputs.forEach(input => otp += input.value);
+                                    completeOtp.value = otp;
+                                });
+                                
+                                // Handle backspace
+                                input.addEventListener('keydown', function(e) {
+                                    if (e.key === 'Backspace' && !this.value) {
+                                        if (index > 0) {
+                                            otpInputs[index - 1].focus();
+                                        }
+                                    }
+                                });
+                                
+                                // Handle paste
+                                input.addEventListener('paste', function(e) {
+                                    e.preventDefault();
+                                    const paste = (e.clipboardData || window.clipboardData).getData('text');
+                                    if (!isNaN(paste) && paste.length <= otpInputs.length) {
+                                        for (let i = 0; i < paste.length; i++) {
+                                            if (index + i < otpInputs.length) {
+                                                otpInputs[index + i].value = paste[i];
+                                            }
+                                        }
+                                        
+                                        // Focus appropriate input after paste
+                                        const focusIndex = Math.min(index + paste.length, otpInputs.length - 1);
+                                        otpInputs[focusIndex].focus();
+                                        
+                                        // Update complete OTP
+                                        let otp = '';
+                                        otpInputs.forEach(input => otp += input.value);
+                                        completeOtp.value = otp;
+                                    }
+                                });
+                            });
+                        },
+                        preConfirm: () => {
+                            const completeOtp = document.getElementById('complete-otp').value;
+                            if (!completeOtp || completeOtp.length !== 6) {
+                                Swal.showValidationMessage('Please enter the complete 6-digit OTP code');
+                                return false;
+                            }
+                            
+                            return fetch(form.action, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
+                                body: new URLSearchParams({
+                                    verify_otp: '1',
+                                    otp: completeOtp
+                                }).toString()
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Network response was not ok');
+                                }
+                                return response.json();
+                            })
+                            .then(data => {
+                                if (data.status === 'error') {
+                                    throw new Error(data.message);
+                                }
+                                return data;
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage(error.message || 'An error occurred');
+                                return false;
+                            });
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value.status === 'success') {
+                            window.location.href = result.value.redirect;
+                        }
+                    }).catch(error => {
+                        Swal.showValidationMessage(error.message);
+                    });
+                } else {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Login Failed',
-                        text: '<?php echo addslashes($error); ?>',
-                        confirmButtonColor: '#0084FF'
+                        title: 'Error',
+                        text: data.message,
+                        customClass: {
+                            ...customClass,
+                            icon: 'text-red-500 border-red-200'
+                        },
+                        buttonsStyling: false
                     });
-                <?php else: ?>
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Login Successful',
-                        text: 'Redirecting to dashboard...',
-                        showConfirmButton: false,
-                        timer: 1500
-                    });
-                <?php endif; ?>
-            <?php endif; ?>
-        });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'An unexpected error occurred. Please try again.',
+                    confirmButtonColor: '#0284c7'
+                });
+            });
+        }
     </script>
 </body>
 </html>
