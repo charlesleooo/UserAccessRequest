@@ -337,6 +337,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                         class="w-full flex items-center justify-center bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
                         <span>Sign In</span>
                     </button>
+                    
+                    <div class="text-center mt-4">
+                        <a href="forgot_password.php" class="text-primary-600 hover:text-primary-700 text-sm">Forgot your password?</a>
+                    </div>
                 </div>
             </form>
         </div>

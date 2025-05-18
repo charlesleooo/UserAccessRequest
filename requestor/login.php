@@ -442,6 +442,10 @@ function generateOTP($length = 6) {
                     class="w-full flex items-center justify-center bg-primary hover:bg-secondary text-white font-semibold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.02] active:scale-[0.98]">
                     Login
                 </button>
+                
+                <div class="text-center mt-4">
+                    <a href="forgot_password.php" class="text-primary hover:text-secondary text-sm">Forgot your password?</a>
+                </div>
             </form>
         </div>
         
