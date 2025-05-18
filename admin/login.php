@@ -79,9 +79,9 @@
         $password = $_POST['password'] ?? '';
         
         error_log("Login attempt for username: " . $username);
-        
-        try {
-            $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE username = ?");
+          try {
+            // Check employees table for users with admin roles
+            $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
             $stmt->execute([$username]);
             $user = $stmt->fetch();
             
@@ -91,10 +91,10 @@
             }
             
             if ($user && password_verify($password, $user['password'])) {
-                $_SESSION['admin_id'] = $user['id'];
-                $_SESSION['admin_username'] = $user['username'];
+                $_SESSION['admin_id'] = $user['employee_id'];
+                $_SESSION['admin_username'] = $user['employee_name'];
                 $_SESSION['role'] = $user['role'];
-                $_SESSION['admin_name'] = $user['username'];
+                $_SESSION['admin_name'] = $user['employee_name'];
                 
                 error_log("Login successful. Session data: " . print_r($_SESSION, true));
 
