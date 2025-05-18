@@ -282,94 +282,25 @@ try {
     </div>
 
     <!-- View Request Modal -->
-    <div id="viewRequestModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[80vh] overflow-y-auto">
-            <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-gray-900">Request Details</h3>
-                <button id="closeModal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
-                    <i class='bx bx-x text-2xl'></i>
-                </button>
-            </div>
-            <div id="modalContent" class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Request Information -->
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-700 mb-3">Request Information</h4>
-                        <div class="space-y-2">
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Request Number:</span>
-                                <p id="modal-request-number" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Access Type:</span>
-                                <p id="modal-access-type" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">System Type:</span>
-                                <p id="modal-system-type" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Role/Access Type:</span>
-                                <p id="modal-role-access" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Duration:</span>
-                                <p id="modal-duration" class="text-gray-800"></p>
-                            </div>
-                        </div>
+    <div id="viewRequestModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-[96%] max-w-7xl mx-auto shadow-xl flex flex-col max-h-[90vh]">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                    <div class="w-1/4">
+                        <p class="text-sm font-medium text-gray-500">Request Number</p>
+                        <p id="modal-request-number" class="text-lg font-semibold text-gray-900"></p>
                     </div>
-                    
-                    <!-- Requestor Information -->
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <h4 class="font-semibold text-gray-700 mb-3">Requestor Information</h4>
-                        <div class="space-y-2">
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Name:</span>
-                                <p id="modal-requestor-name" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Department:</span>
-                                <p id="modal-department" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Business Unit:</span>
-                                <p id="modal-business-unit" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Employee ID:</span>
-                                <p id="modal-employee-id" class="text-gray-800"></p>
-                            </div>
-                            <div>
-                                <span class="text-sm font-medium text-gray-500">Email:</span>
-                                <p id="modal-email" class="text-gray-800"></p>
-                            </div>
-                        </div>
+                    <div class="flex-1 text-center">
+                        <h3 class="text-xl font-semibold text-gray-800">Access Request Details</h3>
+                    </div>
+                    <div class="w-1/4 flex justify-end">
+                        <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                            <i class='bx bx-x text-2xl'></i>
+                        </button>
                     </div>
                 </div>
-
-                <!-- Justification -->
-                <div class="mt-6 bg-gray-50 rounded-lg p-4">
-                    <h4 class="font-semibold text-gray-700 mb-3">Justification</h4>
-                    <p id="modal-justification" class="text-gray-800 whitespace-pre-wrap break-words"></p>
-                </div>
-
-                <!-- Review Information -->
-                <div class="mt-6 bg-gray-50 rounded-lg p-4">
-                    <h4 class="font-semibold text-gray-700 mb-3">Your Review</h4>
-                    <div class="space-y-2">
-                        <div>
-                            <span class="text-sm font-medium text-gray-500">Review Date:</span>
-                            <p id="modal-review-date" class="text-gray-800"></p>
-                        </div>
-                        <div>
-                            <span class="text-sm font-medium text-gray-500">Action:</span>
-                            <p id="modal-action" class="text-gray-800"></p>
-                        </div>
-                        <div>
-                            <span class="text-sm font-medium text-gray-500">Notes:</span>
-                            <p id="modal-review-notes" class="text-gray-800 whitespace-pre-wrap break-words"></p>
-                        </div>
-                    </div>
+                <div id="modalContent" class="p-6 overflow-y-auto">
+                    <!-- Content populated by JavaScript -->
                 </div>
             </div>
         </div>
@@ -387,39 +318,139 @@ try {
                 button.addEventListener('click', function() {
                     const requestData = JSON.parse(this.getAttribute('data-request'));
                     
-                    // Populate modal with request data
+                    // Populate modal header with request number
                     document.getElementById('modal-request-number').textContent = requestData.access_request_number;
-                    document.getElementById('modal-access-type').textContent = requestData.access_type || 'N/A';
-                    document.getElementById('modal-system-type').textContent = requestData.system_type || 'N/A';
-                    document.getElementById('modal-role-access').textContent = requestData.role_access_type || 'N/A';
                     
-                    // Duration information
+                    // Format duration details
                     let durationText = requestData.duration_type || 'N/A';
                     if (requestData.duration_type === 'temporary' && requestData.start_date && requestData.end_date) {
-                        const startDate = new Date(requestData.start_date).toLocaleDateString();
-                        const endDate = new Date(requestData.end_date).toLocaleDateString();
-                        durationText += ` (${startDate} to ${endDate})`;
+                        durationText = `${new Date(requestData.start_date).toLocaleDateString()} - ${new Date(requestData.end_date).toLocaleDateString()}`;
+                    } else if (requestData.duration_type === 'permanent') {
+                        durationText = 'Permanent';
                     }
-                    document.getElementById('modal-duration').textContent = durationText;
                     
-                    // Requestor information
-                    document.getElementById('modal-requestor-name').textContent = requestData.requestor_name;
-                    document.getElementById('modal-department').textContent = requestData.department;
-                    document.getElementById('modal-business-unit').textContent = requestData.business_unit;
-                    document.getElementById('modal-employee-id').textContent = requestData.employee_id || 'N/A';
-                    document.getElementById('modal-email').textContent = requestData.email || 'N/A';
+                    // Set appropriate status color
+                    const statusColor = requestData.action === 'Rejected' ? 'text-red-600' : 'text-green-600';
                     
-                    // Justification
-                    document.getElementById('modal-justification').textContent = requestData.justification || 'N/A';
-                    
-                    // Review information
-                    document.getElementById('modal-review-date').textContent = new Date(requestData.review_date).toLocaleString();
-                    
-                    const actionElem = document.getElementById('modal-action');
-                    actionElem.textContent = requestData.action;
-                    actionElem.className = requestData.action === 'Rejected' ? 'text-red-600 font-medium' : 'text-green-600 font-medium';
-                    
-                    document.getElementById('modal-review-notes').textContent = requestData.review_notes || 'No notes provided';
+                    // Build the modal content with the same grid layout as admin side
+                    document.getElementById('modalContent').innerHTML = `
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Request Overview -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-info-circle text-primary-600 text-xl mr-2'></i>
+                                    Request Overview
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Request Number:</span>
+                                        <span class="font-medium text-gray-900">${requestData.access_request_number}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">Status:</span>
+                                        <span class="font-medium ${statusColor}">${requestData.action}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Review Date:</span>
+                                        <span class="font-medium text-gray-900">${new Date(requestData.review_date).toLocaleString()}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Duration:</span>
+                                        <span class="font-medium text-gray-900">${durationText}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Requestor Info -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-user text-primary-600 text-xl mr-2'></i>
+                                    Requestor Information
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Name:</span>
+                                        <span class="font-medium text-gray-900">${requestData.requestor_name}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Business Unit:</span>
+                                        <span class="font-medium text-gray-900">${requestData.business_unit}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Department:</span>
+                                        <span class="font-medium text-gray-900">${requestData.department}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Email:</span>
+                                        <span class="font-medium text-gray-900">${requestData.email || 'N/A'}</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Employee ID:</span>
+                                        <span class="font-medium text-gray-900">${requestData.employee_id || 'N/A'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Access Details -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-lock-open text-primary-600 text-xl mr-2'></i>
+                                    Access Details
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Access Type:</span>
+                                        <span class="font-medium text-gray-900">${requestData.access_type}</span>
+                                    </div>
+                                    ${requestData.system_type ? `
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">System Type:</span>
+                                        <span class="font-medium text-gray-900">${requestData.system_type}</span>
+                                    </div>
+                                    ` : ''}
+                                    ${requestData.role_access_type ? `
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Role Access Type:</span>
+                                        <span class="font-medium text-gray-900">${requestData.role_access_type}</span>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                            <!-- Justification -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
+                                    Justification
+                                </h3>
+                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                    ${requestData.justification || 'No justification provided.'}
+                                </div>
+                            </div>
+                            
+                            <!-- Your Review -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-check-shield text-primary-600 text-xl mr-2'></i>
+                                    Your Review
+                                </h3>
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-600">Action:</span>
+                                        <span class="font-medium ${statusColor}">${requestData.action}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-gray-600 block mb-2">Review Notes:</span>
+                                        <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                            ${requestData.review_notes || 'No notes provided.'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                     
                     // Show modal
                     modal.classList.remove('hidden');

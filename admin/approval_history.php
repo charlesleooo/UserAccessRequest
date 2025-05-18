@@ -343,8 +343,19 @@ try {
                     return response.json();
                 })
                 .then(data => {
+                    // Check if the response is in the expected format
                     if (!data || typeof data !== 'object') {
                         throw new Error('Invalid response data');
+                    }
+                    
+                    // Handle both possible response formats (direct data or data in success.data)
+                    if (data.success === false) {
+                        throw new Error(data.message || 'Failed to load request details');
+                    }
+                    
+                    // If we have a success property, extract the actual data
+                    if (typeof data.success === 'boolean' && data.success === true) {
+                        data = data.data;
                     }
                     
                     // Render the entire modal content including header
@@ -389,14 +400,14 @@ try {
                                                     ? 'bg-green-100 text-green-700' 
                                                     : 'bg-red-100 text-red-700'
                                                 }">
-                                                    ${data.action.toUpperCase()}
+                                                    ${data.action ? data.action.toUpperCase() : 'UNKNOWN'}
                                                 </span>
                                             </div>
                                         </div>
                                         <div class="flex justify-between">
                                             <span class="text-gray-600">Review Date:</span>
                                             <span class="font-medium text-gray-900">
-                                                ${new Date(data.created_at).toLocaleString()}
+                                                ${data.created_at ? new Date(data.created_at).toLocaleString() : 'Unknown date'}
                                             </span>
                                         </div>
                                         <div class="flex justify-between">
@@ -460,7 +471,7 @@ try {
                                         ${data.duration_type === 'temporary' ? `
                                         <div class="flex justify-between">
                                             <span class="text-gray-600">Duration Period:</span>
-                                            <span class="font-medium text-gray-900">${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}</span>
+                                            <span class="font-medium text-gray-900">${data.start_date ? new Date(data.start_date).toLocaleDateString() : 'Unknown'} - ${data.end_date ? new Date(data.end_date).toLocaleDateString() : 'Unknown'}</span>
                                         </div>
                                         ` : ''}
                                     </div>
