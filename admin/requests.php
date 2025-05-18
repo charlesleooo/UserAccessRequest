@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     $request_id = (int)$_POST['request_id'];
     $admin_id = $_SESSION['admin_id'];
     $review_notes = $_POST['review_notes'] ?? '';
+    $admin_role = $_SESSION['role'] ?? 'admin'; // Get the admin's role
     
     try {
         // Start transaction
@@ -67,15 +68,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             throw new Exception('Request not found');
         }
 
+        // Check if the current user has the right role to handle this request
+        $current_status = $request['status'];
+        $can_handle = false;
+        $next_status = '';
+        
+        switch ($admin_role) {
+            case 'superior':
+                $can_handle = ($current_status === 'pending_superior');
+                $next_status = ($action === 'approve') ? 'pending_technical' : 'rejected';
+                $id_field = 'superior_id';
+                $date_field = 'superior_review_date';
+                $notes_field = 'superior_notes';
+                break;
+            case 'technical_support':
+                $can_handle = ($current_status === 'pending_technical');
+                $next_status = ($action === 'approve') ? 'pending_process_owner' : 'rejected';
+                $id_field = 'technical_id';
+                $date_field = 'technical_review_date';
+                $notes_field = 'technical_notes';
+                break;
+            case 'process_owner':
+                $can_handle = ($current_status === 'pending_process_owner');
+                $next_status = ($action === 'approve') ? 'pending_admin' : 'rejected';
+                $id_field = 'process_owner_id';
+                $date_field = 'process_owner_review_date';
+                $notes_field = 'process_owner_notes';
+                break;
+            case 'admin':
+                $can_handle = ($current_status === 'pending_admin');
+                $next_status = ($action === 'approve') ? 'pending_testing_setup' : 'rejected';
+                $id_field = 'admin_id';
+                $date_field = 'admin_review_date';
+                $notes_field = 'admin_notes';
+                break;
+            default:
+                throw new Exception('Invalid role');
+        }
+
+        if (!$can_handle) {
+            throw new Exception('You do not have permission to handle this request at its current stage');
+        }
+
         // Special handling for System Application access type
-        if ($action === 'approve' && $request['access_type'] === 'System Application') {
+        if ($action === 'approve' && $request['access_type'] === 'System Application' && $admin_role === 'admin') {
             // For System Application, set status to pending_testing instead of approved
             $sql = "UPDATE access_requests SET 
-                status = 'pending_testing', 
+                status = 'pending_testing_setup', 
                 testing_status = 'pending',
-                reviewed_by = :admin_id, 
-                review_date = NOW(), 
-                review_notes = :review_notes 
+                $id_field = :admin_id, 
+                $date_field = NOW(), 
+                $notes_field = :review_notes 
                 WHERE id = :request_id";
                 
             $stmt = $pdo->prepare($sql);
@@ -90,18 +133,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             }
             
             // Send email notification for testing phase
-            // Create PHPMailer instance
             $mail = new PHPMailer(true);
             
             try {
                 // Server settings
                 $mail->isSMTP();
-                $mail->Host       = 'smtp.gmail.com';
-                $mail->SMTPAuth   = true;
-                $mail->Username   = 'charlesondota@gmail.com';
-                $mail->Password   = 'crpf bbcb vodv xbjk';
+                $mail->Host = 'smtp.gmail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'charlesondota@gmail.com';
+                $mail->Password = 'crpf bbcb vodv xbjk';
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = 587;
+                $mail->Port = 587;
 
                 // Recipients
                 $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
@@ -122,29 +164,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 $mail->Body = "
                     <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
                         <div style='background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
-                            <h2 style='margin: 0;'>System Access - Testing Required</h2>
-                            <p style='margin: 5px 0 0;'>Your application access request has been provisionally approved</p>
+                            <h2 style='margin: 0;'>Access Request Provisionally Approved</h2>
+                            <p style='margin: 5px 0 0;'>Technical team will provide testing instructions soon</p>
                         </div>
 
                         <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
                             <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
-                            <p style='color: #1F2937;'>Your request for system application access has been <strong>provisionally approved</strong>. Before final approval, you need to test the application access to confirm it works correctly.</p>
+                            <p style='color: #1F2937;'>Your access request has been <strong>provisionally approved</strong> by the administrator. The technical support team will contact you shortly with detailed instructions for testing your access.</p>
                             
                             <div style='background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;'>
-                                <strong>Important:</strong> Please test the application access using the credentials provided below. After testing, you must return to the system and confirm whether the testing was successful or failed.
+                                <strong>Important:</strong> Please wait for testing instructions from the technical team. You will need to confirm your test results before your access is finalized.
                             </div>
-                            
-                            " . (!empty($review_notes) ? "
-                            <div style='background-color: white; padding: 15px; border-left: 4px solid #10B981; margin: 20px 0;'>
-                                <strong>Access Details & Testing Instructions:</strong><br>
-                                {$review_notes}
-                            </div>" : "") . "
-                            
-                            <p style='color: #1F2937;'>After testing the application, please log in to the Access Request Portal and update the request status to either:</p>
-                            <ul style='color: #1F2937;'>
-                                <li>Testing Successful - if you were able to access the system correctly</li>
-                                <li>Testing Failed - if you encountered any issues accessing the system</li>
-                            </ul>
                         </div>
 
                         <div style='margin-top: 30px;'>
@@ -159,634 +189,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                                     <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
                                     <td style='padding: 12px; border: 1px solid #ddd;'>
                                         <span style='color: #f59e0b; font-weight: bold;'>
-                                            PENDING TESTING
+                                            PENDING TESTING INSTRUCTIONS
                                         </span>
                                     </td>
-                                </tr>
-                            </table>
-
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>System/Application Details</h3>
-                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
-                                </tr>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Duration:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$duration_details}</td>
-                                </tr>
-                            </table>
-
-                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
-                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
-                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
-                            </div>
-                        </div>
-                    </div>";
-
-                $mail->AltBody = strip_tags($mail->Body);
-                $mail->send();
-
-            } catch (PHPMailerException $e) {
-                // Log email error but don't prevent successful update
-                error_log("Email sending failed: {$mail->ErrorInfo}");
-            }
-            
-            // Commit transaction
-            $pdo->commit();
-            $_SESSION['success_message'] = "Request has been provisionally approved. The user will test the application and confirm the result.";
-            header('Location: requests.php');
-            exit();
-        }
-
-        // Handle finalize_approval action (after successful testing)
-        if ($action === 'finalize_approval') {
-            // Verify the request is in pending_testing status with success
-            if ($request['status'] !== 'pending_testing' || $request['testing_status'] !== 'success') {
-                throw new Exception('Invalid request state for finalizing approval');
-            }
-            
-            // Move to approval_history with approved status
-            $sql = "INSERT INTO approval_history (
-                        access_request_number,
-                        action,
-                        requestor_name,
-                        business_unit,
-                        department,
-                        access_type,
-                        admin_id,
-                        comments,
-                        system_type,
-                        duration_type,
-                        start_date,
-                        end_date,
-                        justification,
-                        email,
-                        contact_number,
-                        testing_status
-                    ) VALUES (
-                        :access_request_number,
-                        'approved',
-                        :requestor_name,
-                        :business_unit,
-                        :department,
-                        :access_type,
-                        :admin_id,
-                        :comments,
-                        :system_type,
-                        :duration_type,
-                        :start_date,
-                        :end_date,
-                        :justification,
-                        :email,
-                        :contact_number,
-                        'success'
-                    )";
-                    
-            $stmt = $pdo->prepare($sql);
-            
-            // If contact_number is null or empty string, set a default value
-            $contactNumber = $request['contact_number'];
-            if (empty($contactNumber)) {
-                $contactNumber = 'Not provided';
-            }
-            
-            $result = $stmt->execute([
-                'access_request_number' => $request['access_request_number'],
-                'requestor_name' => $request['requestor_name'],
-                'business_unit' => $request['business_unit'],
-                'department' => $request['department'],
-                'access_type' => $request['access_type'],
-                'admin_id' => $admin_id,
-                'comments' => $review_notes,
-                'system_type' => $request['system_type'],
-                'duration_type' => $request['duration_type'],
-                'start_date' => $request['start_date'],
-                'end_date' => $request['end_date'],
-                'justification' => $request['justification'],
-                'email' => $request['email'],
-                'contact_number' => $contactNumber
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to insert into approval history');
-            }
-            
-            // Delete the request
-            $sql = "DELETE FROM access_requests WHERE id = :request_id";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['request_id' => $request_id]);
-            
-            // Send notification email
-            $mail = new PHPMailer(true);
-            
-            try {
-                // Server settings
-                $mail->isSMTP();
-                $mail->Host       = 'smtp.gmail.com';
-                $mail->SMTPAuth   = true;
-                $mail->Username   = 'charlesondota@gmail.com';
-                $mail->Password   = 'crpf bbcb vodv xbjk';
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = 587;
-
-                // Recipients
-                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
-                $mail->addAddress($request['email'], $request['requestor_name']);
-
-                // Content
-                $mail->isHTML(true);
-                $mail->Subject = "Access Request Fully Approved After Testing - " . $request['access_request_number'];
-
-                // Format system types if present
-                $system_types_display = $request['system_type'] ?? 'N/A';
-
-                // Format duration details
-                $duration_details = $request['duration_type'] === 'permanent' ? 
-                    'Permanent' : 
-                    "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
-
-                $mail->Body = "
-                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
-                        <div style='background-color: #10B981; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
-                            <h2 style='margin: 0;'>Access Request Fully Approved</h2>
-                            <p style='margin: 5px 0 0;'>Your application access testing was successful</p>
-                        </div>
-
-                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
-                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
-                            <p style='color: #1F2937;'>We are pleased to inform you that your access request has been <strong>FULLY APPROVED</strong> after successful testing.</p>
-                            
-                            " . (!empty($review_notes) ? "
-                            <div style='background-color: white; padding: 15px; border-left: 4px solid #10B981; margin: 20px 0;'>
-                                <strong>Admin Notes:</strong><br>
-                                {$review_notes}
-                            </div>" : "") . "
-                        </div>
-
-                        <div style='margin-top: 30px;'>
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
-                            
-                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>
-                                        <span style='color: #059669; font-weight: bold;'>APPROVED</span>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>System/Application Details</h3>
-                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
-                                </tr>
-                            </table>
-
-                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
-                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
-                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
-                            </div>
-                        </div>
-                    </div>";
-
-                $mail->AltBody = strip_tags($mail->Body);
-                $mail->send();
-            } catch (PHPMailerException $e) {
-                // Log email error but don't prevent approval
-                error_log("Email sending failed: {$mail->ErrorInfo}");
-            }
-            
-            $pdo->commit();
-            $_SESSION['success_message'] = "Request has been fully approved after successful testing.";
-            header('Location: requests.php');
-            exit();
-        }
-        
-        // Handle reject_after_testing action
-        if ($action === 'reject_after_testing') {
-            // Verify the request is in pending_testing status with failed testing
-            if ($request['status'] !== 'pending_testing' || $request['testing_status'] !== 'failed') {
-                throw new Exception('Invalid request state for rejection after failed testing');
-            }
-            
-            // Move to approval_history with rejected status
-            $sql = "INSERT INTO approval_history (
-                        access_request_number,
-                        action,
-                        requestor_name,
-                        business_unit,
-                        department,
-                        access_type,
-                        admin_id,
-                        comments,
-                        system_type,
-                        duration_type,
-                        start_date,
-                        end_date,
-                        justification,
-                        email,
-                        contact_number,
-                        testing_status
-                    ) VALUES (
-                        :access_request_number,
-                        'rejected',
-                        :requestor_name,
-                        :business_unit,
-                        :department,
-                        :access_type,
-                        :admin_id,
-                        :comments,
-                        :system_type,
-                        :duration_type,
-                        :start_date,
-                        :end_date,
-                        :justification,
-                        :email,
-                        :contact_number,
-                        'failed'
-                    )";
-                    
-            $stmt = $pdo->prepare($sql);
-            
-            // If contact_number is null or empty string, set a default value
-            $contactNumber = $request['contact_number'];
-            if (empty($contactNumber)) {
-                $contactNumber = 'Not provided';
-            }
-            
-            $result = $stmt->execute([
-                'access_request_number' => $request['access_request_number'],
-                'requestor_name' => $request['requestor_name'],
-                'business_unit' => $request['business_unit'],
-                'department' => $request['department'],
-                'access_type' => $request['access_type'],
-                'admin_id' => $admin_id,
-                'comments' => $review_notes,
-                'system_type' => $request['system_type'],
-                'duration_type' => $request['duration_type'],
-                'start_date' => $request['start_date'],
-                'end_date' => $request['end_date'],
-                'justification' => $request['justification'],
-                'email' => $request['email'],
-                'contact_number' => $contactNumber
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to insert into approval history');
-            }
-            
-            // Delete the request
-            $sql = "DELETE FROM access_requests WHERE id = :request_id";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['request_id' => $request_id]);
-            
-            // Send notification email
-            $mail = new PHPMailer(true);
-            
-            try {
-                // Server settings
-                $mail->isSMTP();
-                $mail->Host       = 'smtp.gmail.com';
-                $mail->SMTPAuth   = true;
-                $mail->Username   = 'charlesondota@gmail.com';
-                $mail->Password   = 'crpf bbcb vodv xbjk';
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = 587;
-
-                // Recipients
-                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
-                $mail->addAddress($request['email'], $request['requestor_name']);
-
-                // Content
-                $mail->isHTML(true);
-                $mail->Subject = "Access Request Rejected After Failed Testing - " . $request['access_request_number'];
-
-                // Format system types if present
-                $system_types_display = $request['system_type'] ?? 'N/A';
-
-                $mail->Body = "
-                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
-                        <div style='background-color: #EF4444; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
-                            <h2 style='margin: 0;'>Access Request Rejected</h2>
-                            <p style='margin: 5px 0 0;'>Application testing failed</p>
-                        </div>
-
-                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
-                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
-                            <p style='color: #1F2937;'>We regret to inform you that your access request has been <strong>REJECTED</strong> following the failed testing process.</p>
-                            
-                            " . (!empty($review_notes) ? "
-                            <div style='background-color: white; padding: 15px; border-left: 4px solid #EF4444; margin: 20px 0;'>
-                                <strong>Rejection Reason:</strong><br>
-                                {$review_notes}
-                            </div>" : "") . "
-                            
-                            <p style='color: #1F2937;'>If you believe this was an error or if you need assistance, please contact the IT support team.</p>
-                        </div>
-
-                        <div style='margin-top: 30px;'>
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
-                            
-                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>
-                                        <span style='color: #DC2626; font-weight: bold;'>REJECTED</span>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>System/Application Details</h3>
-                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
-                                </tr>
-                            </table>
-
-                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
-                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
-                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
-                            </div>
-                        </div>
-                    </div>";
-
-                $mail->AltBody = strip_tags($mail->Body);
-                $mail->send();
-            } catch (PHPMailerException $e) {
-                // Log email error but don't prevent rejection
-                error_log("Email sending failed: {$mail->ErrorInfo}");
-            }
-            
-            $pdo->commit();
-            $_SESSION['success_message'] = "Request has been rejected after failed testing.";
-            header('Location: requests.php');
-            exit();
-        }
-
-        // Handle retry_testing action
-        if ($action === 'retry_testing') {
-            // Verify the request is in pending_testing status with failed testing
-            if ($request['status'] !== 'pending_testing' || $request['testing_status'] !== 'failed') {
-                throw new Exception('Invalid request state for retrying testing');
-            }
-            
-            // Reset the testing status to pending
-            $sql = "UPDATE access_requests 
-                    SET testing_status = 'pending',
-                        review_notes = :review_notes 
-                    WHERE id = :request_id";
-                    
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
-                'review_notes' => $review_notes,
-                'request_id' => $request_id
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to update testing status');
-            }
-            
-            // Send notification email
-            $mail = new PHPMailer(true);
-            
-            try {
-                // Server settings
-                $mail->isSMTP();
-                $mail->Host       = 'smtp.gmail.com';
-                $mail->SMTPAuth   = true;
-                $mail->Username   = 'charlesondota@gmail.com';
-                $mail->Password   = 'crpf bbcb vodv xbjk';
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = 587;
-
-                // Recipients
-                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
-                $mail->addAddress($request['email'], $request['requestor_name']);
-
-                // Content
-                $mail->isHTML(true);
-                $mail->Subject = "New Testing Required - " . $request['access_request_number'];
-
-                $mail->Body = "
-                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
-                        <div style='background-color: #EAB308; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
-                            <h2 style='margin: 0;'>New Testing Required</h2>
-                            <p style='margin: 5px 0 0;'>Your access has been updated for retesting</p>
-                        </div>
-
-                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
-                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
-                            <p style='color: #1F2937;'>The administrator has updated your access and requested you to test it again.</p>
-                            
-                            " . (!empty($review_notes) ? "
-                            <div style='background-color: white; padding: 15px; border-left: 4px solid #EAB308; margin: 20px 0;'>
-                                <strong>Updated Access Details & Testing Instructions:</strong><br>
-                                {$review_notes}
-                            </div>" : "") . "
-                            
-                            <p style='color: #1F2937;'>Please log in to the Access Request Portal and test your access again. After testing, update the request status to either:</p>
-                            <ul style='color: #1F2937;'>
-                                <li>Testing Successful - if you were able to access the system correctly</li>
-                                <li>Testing Failed - if you still encounter issues accessing the system</li>
-                            </ul>
-                        </div>
-                    </div>
-                ";
-
-                $mail->send();
-            } catch (PHPMailerException $e) {
-                // Log email error but don't prevent successful update
-                error_log("Email sending failed: {$mail->ErrorInfo}");
-            }
-            
-            $pdo->commit();
-            $_SESSION['success_message'] = "Request has been reset for retesting. The user will be notified to test again.";
-            header('Location: requests.php');
-            exit();
-        }
-
-        // Standard handling for other access types or rejection actions
-        // 2. Insert into approval_history table first for approved/rejected status
-        if ($action === 'approve' || $action === 'decline') {
-            $sql = "INSERT INTO approval_history (
-                        access_request_number,
-                        action,
-                        requestor_name,
-                        business_unit,
-                        department,
-                        access_type,
-                        admin_id,
-                        comments,
-                        system_type,
-                        duration_type,
-                        start_date,
-                        end_date,
-                        justification,
-                        email,
-                        contact_number
-                    ) VALUES (
-                        :access_request_number,
-                        :action,
-                        :requestor_name,
-                        :business_unit,
-                        :department,
-                        :access_type,
-                        :admin_id,
-                        :comments,
-                        :system_type,
-                        :duration_type,
-                        :start_date,
-                        :end_date,
-                        :justification,
-                        :email,
-                        :contact_number
-                    )";
-
-            $stmt = $pdo->prepare($sql);
-            
-            // If contact_number is null or empty string, set a default value
-            $contactNumber = $request['contact_number'];
-            if (empty($contactNumber)) {
-                $contactNumber = 'Not provided';
-            }
-            
-            $result = $stmt->execute([
-                'access_request_number' => $request['access_request_number'],
-                'action' => ($action === 'approve') ? 'approved' : 'rejected',
-                'requestor_name' => $request['requestor_name'],
-                'business_unit' => $request['business_unit'],
-                'department' => $request['department'],
-                'access_type' => $request['access_type'],
-                'admin_id' => $admin_id,
-                'comments' => $review_notes,
-                'system_type' => $request['system_type'],
-                'duration_type' => $request['duration_type'],
-                'start_date' => $request['start_date'],
-                'end_date' => $request['end_date'],
-                'justification' => $request['justification'],
-                'email' => $request['email'],
-                'contact_number' => $contactNumber
-            ]);
-
-            if (!$result) {
-                throw new Exception('Failed to insert into approval history');
-            }
-
-            // 3. Delete from access_requests table
-            $sql = "DELETE FROM access_requests WHERE id = :request_id";  // Changed from access_request_number
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute(['request_id' => $request_id]);  // Changed parameter name to match
-
-            // After successful database operations, before commit, add email notification
-            // Create PHPMailer instance
-            $mail = new PHPMailer(true);
-            
-            try {
-                // Server settings
-                $mail->isSMTP();
-                $mail->Host       = 'smtp.gmail.com';
-                $mail->SMTPAuth   = true;
-                $mail->Username   = 'charlesondota@gmail.com';
-                $mail->Password   = 'crpf bbcb vodv xbjk';
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                $mail->Port       = 587;
-
-                // Recipients
-                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
-                $mail->addAddress($request['email'], $request['requestor_name']);
-
-                // Content
-                $mail->isHTML(true);
-                $mail->Subject = "Access Request " . ($action === 'approve' ? 'Approved' : 'Declined') . " - " . $request['access_request_number'];
-
-                // Format system types if present
-                $system_types_display = $request['system_type'] ?? 'N/A';
-
-                // Format duration details
-                $duration_details = $request['duration_type'] === 'permanent' ? 
-                    'Permanent' : 
-                    "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
-
-                $mail->Body = "
-                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
-                        <div style='background-color: #4F46E5; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
-                            <h2 style='margin: 0;'>Official Admin Response</h2>
-                            <p style='margin: 5px 0 0;'>Access Request " . ($action === 'approve' ? 'Approved' : 'Declined') . "</p>
-                        </div>
-
-                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
-                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
-                            <p style='color: #1F2937;'>This is an official notification from the System Administrator regarding your access request. Your request has been <strong>" . ($action === 'approve' ? 'APPROVED' : 'DECLINED') . "</strong>.</p>
-                            
-                            " . (!empty($review_notes) ? "
-                            <div style='background-color: white; padding: 15px; border-left: 4px solid " . ($action === 'approve' ? '#10B981' : '#EF4444') . "; margin: 20px 0;'>
-                                <strong>Admin Review Notes:</strong><br>
-                                {$review_notes}
-                            </div>" : "") . "
-                        </div>
-
-                        <div style='margin-top: 30px;'>
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
-                            
-                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>
-                                        <span style='color: " . ($action === 'approve' ? '#059669' : '#DC2626') . "; font-weight: bold;'>
-                                            " . ($action === 'approve' ? 'APPROVED' : 'DECLINED') . "
-                                        </span>
-                                    </td>
-                                </tr>
-                            </table>
-
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Requestor Information</h3>
-                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Full Name:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['requestor_name']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Business Unit:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['business_unit']}</td>
-                                </tr>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Department:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['department']}</td>
-                                </tr>
-                                <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Email:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['email']}</td>
-                                </tr>
-                                <tr style='background-color: #f8f9fa;'>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Contact Number:</strong></td>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$contactNumber}</td>
                                 </tr>
                             </table>
 
@@ -797,19 +202,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                                     <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
                                 </tr>
                                 <tr>
-                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System Type:</strong></td>
                                     <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
                                 </tr>
-                                <tr style='background-color: #f8f9fa;'>
+                                <tr>
                                     <td style='padding: 12px; border: 1px solid #ddd;'><strong>Duration:</strong></td>
                                     <td style='padding: 12px; border: 1px solid #ddd;'>{$duration_details}</td>
                                 </tr>
                             </table>
-
-                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Justification</h3>
-                            <div style='padding: 12px; border: 1px solid #ddd; margin-bottom: 20px; background-color: #f8f9fa;'>
-                                {$request['justification']}
-                            </div>
 
                             <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
                                 <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
@@ -822,23 +222,233 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 $mail->send();
 
             } catch (PHPMailerException $e) {
-                // Log email error but don't prevent successful approval/decline
+                // Log email error but don't prevent successful update
                 error_log("Email sending failed: {$mail->ErrorInfo}");
             }
+            
+            $pdo->commit();
+            $_SESSION['success_message'] = "Request has been provisionally approved. The user will test the application and confirm the result.";
+            header('Location: requests.php');
+            exit();
         }
 
-        // Commit transaction
-        $pdo->commit();
-        $_SESSION['success_message'] = "Request successfully " . ($action === 'approve' ? 'approved' : 'declined');
+        // Standard handling for other access types or rejection actions
+        if ($action === 'approve' || $action === 'decline') {
+            if ($next_status === 'approved' || $next_status === 'rejected') {
+                // Final approval/rejection - move to history
+            $sql = "INSERT INTO approval_history (
+                        access_request_number,
+                        action,
+                        requestor_name,
+                        business_unit,
+                        department,
+                        access_type,
+                        admin_id,
+                        comments,
+                        system_type,
+                        duration_type,
+                        start_date,
+                        end_date,
+                        justification,
+                        email,
+                        contact_number,
+                    superior_id,
+                    superior_notes,
+                    technical_id,
+                    technical_notes,
+                    process_owner_id,
+                    process_owner_notes
+                    ) VALUES (
+                        :access_request_number,
+                    :action,
+                        :requestor_name,
+                        :business_unit,
+                        :department,
+                        :access_type,
+                        :admin_id,
+                        :comments,
+                        :system_type,
+                        :duration_type,
+                        :start_date,
+                        :end_date,
+                        :justification,
+                        :email,
+                        :contact_number,
+                    :superior_id,
+                    :superior_notes,
+                    :technical_id,
+                    :technical_notes,
+                    :process_owner_id,
+                    :process_owner_notes
+                    )";
+                    
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                'access_request_number' => $request['access_request_number'],
+                    'action' => $next_status,
+                'requestor_name' => $request['requestor_name'],
+                'business_unit' => $request['business_unit'],
+                'department' => $request['department'],
+                'access_type' => $request['access_type'],
+                'admin_id' => $admin_id,
+                'comments' => $review_notes,
+                'system_type' => $request['system_type'],
+                'duration_type' => $request['duration_type'],
+                'start_date' => $request['start_date'],
+                'end_date' => $request['end_date'],
+                'justification' => $request['justification'],
+                'email' => $request['email'],
+                    'contact_number' => $request['contact_number'] ?? 'Not provided',
+                    'superior_id' => $request['superior_id'],
+                    'superior_notes' => $request['superior_notes'],
+                    'technical_id' => $request['technical_id'],
+                    'technical_notes' => $request['technical_notes'],
+                    'process_owner_id' => $request['process_owner_id'],
+                    'process_owner_notes' => $request['process_owner_notes']
+            ]);
+            
+            if (!$result) {
+                throw new Exception('Failed to insert into approval history');
+            }
+            
+                // Delete from access_requests table
+            $sql = "DELETE FROM access_requests WHERE id = :request_id";
+            $stmt = $pdo->prepare($sql);
+            $stmt->execute(['request_id' => $request_id]);
+            } else {
+                // Update status for next stage
+                $sql = "UPDATE access_requests SET 
+                    status = :next_status,
+                    $id_field = :admin_id,
+                    $date_field = NOW(),
+                    $notes_field = :review_notes
+                    WHERE id = :request_id";
+                    
+            $stmt = $pdo->prepare($sql);
+            $result = $stmt->execute([
+                    'next_status' => $next_status,
+                    'admin_id' => $admin_id,
+                'review_notes' => $review_notes,
+                'request_id' => $request_id
+            ]);
+            
+            if (!$result) {
+                    throw new Exception('Failed to update request status');
+                }
+            }
+            
+            // Send email notification
+            $mail = new PHPMailer(true);
+            
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host = 'smtp.gmail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'charlesondota@gmail.com';
+                $mail->Password = 'crpf bbcb vodv xbjk';
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = 587;
 
+                // Recipients
+                $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                $mail->addAddress($request['email'], $request['requestor_name']);
+
+                // Content
+                $mail->isHTML(true);
+                
+                if ($next_status === 'approved' || $next_status === 'rejected') {
+                    $mail->Subject = "Access Request " . ($next_status === 'approved' ? 'Approved' : 'Rejected') . " - " . $request['access_request_number'];
+                    $status_color = $next_status === 'approved' ? '#059669' : '#DC2626';
+                    $status_text = $next_status === 'approved' ? 'APPROVED' : 'REJECTED';
+                } else {
+                    $mail->Subject = "Access Request Status Update - " . $request['access_request_number'];
+                    $status_color = '#3B82F6';
+                    $status_text = 'IN PROGRESS';
+                }
+
+                // Format system types if present
+                $system_types_display = isset($request['system_type']) ? $request['system_type'] : 'N/A';
+                $contact_number = isset($request['contact_number']) ? $request['contact_number'] : 'Not provided';
+
+                // Format duration details
+                $duration_details = $request['duration_type'] === 'permanent' ? 
+                    'Permanent' : 
+                    "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
+
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                        <div style='background-color: {$status_color}; color: white; padding: 20px; text-align: center; border-radius: 8px;'>
+                            <h2 style='margin: 0;'>Access Request {$status_text}</h2>
+                        </div>
+
+                        <div style='padding: 20px; background-color: #f8f9fa; border-radius: 8px; margin-top: 20px;'>
+                            <p style='color: #1F2937; font-size: 16px;'>Dear {$request['requestor_name']},</p>
+                            <p style='color: #1F2937;'>Your access request has been <strong>{$status_text}</strong>.</p>
+                            " . (!empty($review_notes) ? "
+                            <div style='background-color: white; padding: 15px; border-left: 4px solid {$status_color}; margin: 20px 0;'>
+                                <strong>Notes:</strong><br>
+                                {$review_notes}
+                            </div>" : "") . "
+                        </div>
+
+                        <div style='margin-top: 30px;'>
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
+                            
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>
+                                        <span style='color: {$status_color}; font-weight: bold;'>{$status_text}</span>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>System/Application Details</h3>
+                            <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_type']}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$system_types_display}</td>
+                                </tr>
+                                <tr>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'><strong>Duration:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #ddd;'>{$duration_details}</td>
+                                </tr>
+                            </table>
+
+                            <div style='margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 8px;'>
+                                <p style='margin: 0; color: #4B5563; font-size: 0.9em;'>This is an automated message from the System Administrator. Please do not reply to this email.</p>
+                                <p style='margin: 10px 0 0; color: #4B5563; font-size: 0.9em;'>If you have any questions, please contact the IT Support team.</p>
+                            </div>
+                        </div>
+                    </div>";
+
+                $mail->AltBody = strip_tags($mail->Body);
+                $mail->send();
+            } catch (PHPMailerException $e) {
+                // Log email error but don't prevent successful update
+                error_log("Email sending failed: {$mail->ErrorInfo}");
+        }
+
+        $pdo->commit();
+            $_SESSION['success_message'] = "Request has been " . ($action === 'approve' ? 'approved' : 'declined') . " successfully.";
+            header('Location: requests.php');
+            exit();
+        }
     } catch (Exception $e) {
-        // Rollback transaction on error
         $pdo->rollBack();
-        $_SESSION['error_message'] = "Error updating request: " . $e->getMessage();
-    }
-    
+        $_SESSION['error_message'] = $e->getMessage();
     header('Location: requests.php');
     exit();
+    }
 }
 
 // Get all requests
@@ -1077,56 +687,95 @@ try {
                             </div>
                         </div>
                     </div>
-                    <div class="overflow-x-auto">
+                    <div class="flex flex-col">
+                        <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                            <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                                <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Request Number
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Requestor
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Access Type
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Submitted
+                                                </th>
+                                                <th scope="col" class="relative px-6 py-3">
+                                                    <span class="sr-only">Actions</span>
+                                                </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php foreach ($requests as $request): ?>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($request['access_request_number']); ?></div>
+                                            <tr>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    <?php echo htmlspecialchars($request['access_request_number']); ?>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($request['requestor_name']); ?></div>
-                                        <div class="text-sm text-gray-500"><?php echo htmlspecialchars($request['email']); ?></div>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <?php echo htmlspecialchars($request['requestor_name']); ?>
                                     </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($request['business_unit']); ?></div>
-                                        <div class="text-sm text-gray-500"><?php echo htmlspecialchars($request['department']); ?></div>
-                                    </td>
-                                    <td class="px-6 py-4">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($request['access_type']); ?></div>
-                                        <?php if ($request['system_type']): ?>
-                                            <div class="text-sm text-gray-500"><?php echo htmlspecialchars($request['system_type']); ?></div>
-                                        <?php endif; ?>
+                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <?php echo htmlspecialchars($request['access_type']); ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            <?php echo $request['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                                ($request['status'] === 'approved' ? 'bg-green-100 text-green-800' : 
-                                                ($request['status'] === 'pending_testing' ? 'bg-blue-100 text-blue-800' :
-                                                'bg-red-100 text-red-800')); ?>">
-                                            <?php echo $request['status'] === 'pending_testing' ? 'Pending Testing' : ucfirst($request['status']); ?>
+                                                    <?php 
+                                                    $statusClass = '';
+                                                    $status = strtolower($request['status']);
+                                                    
+                                                    switch ($status) {
+                                                        case 'pending_superior':
+                                                            $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                            $displayStatus = 'Pending Superior Review';
+                                                            break;
+                                                        case 'pending_technical':
+                                                            $statusClass = 'bg-blue-100 text-blue-800';
+                                                            $displayStatus = 'Pending Technical Review';
+                                                            break;
+                                                        case 'pending_process_owner':
+                                                            $statusClass = 'bg-indigo-100 text-indigo-800';
+                                                            $displayStatus = 'Pending Process Owner Review';
+                                                            break;
+                                                        case 'pending_admin':
+                                                            $statusClass = 'bg-purple-100 text-purple-800';
+                                                            $displayStatus = 'Pending Admin Review';
+                                                            break;
+                                                        case 'pending_testing_setup':
+                                                            $statusClass = 'bg-amber-100 text-amber-800';
+                                                            $displayStatus = 'Pending Test Setup';
+                                                            break;
+                                                        case 'pending_testing':
+                                                            $statusClass = 'bg-cyan-100 text-cyan-800';
+                                                            $displayStatus = 'Pending Testing';
+                                                            break;
+                                                        case 'approved':
+                                                            $statusClass = 'bg-green-100 text-green-800';
+                                                            $displayStatus = 'Approved';
+                                                            break;
+                                                        case 'rejected':
+                                                            $statusClass = 'bg-red-100 text-red-800';
+                                                            $displayStatus = 'Rejected';
+                                                            break;
+                                                        default:
+                                                            $statusClass = 'bg-gray-100 text-gray-800';
+                                                            $displayStatus = ucfirst($status);
+                                                    }
+                                                    ?>
+                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
+                                                        <?php echo $displayStatus; ?>
                                         </span>
-                                        <?php if ($request['status'] === 'pending_testing'): ?>
-                                        <div class="mt-1">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                <?php echo $request['testing_status'] === 'pending' ? 'bg-yellow-50 text-yellow-600' : 
-                                                    ($request['testing_status'] === 'success' ? 'bg-green-50 text-green-600' : 
-                                                    'bg-red-50 text-red-600'); ?>">
+                                                    <?php if ($status === 'pending_testing'): ?>
+                                                    <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $request['testing_status'] === 'success' ? 'bg-green-100 text-green-800' : ($request['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
                                                 <?php echo ucfirst($request['testing_status']); ?>
                                             </span>
-                                        </div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1134,12 +783,33 @@ try {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex justify-end gap-2">
-                                            <button onclick="showDetailsModal(<?php echo $request['id']; ?>)" 
+                                            <button onclick="showRequestDetails(<?php echo $request['id']; ?>)" 
                                                     class="inline-flex items-center px-3 py-1 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100">
                                                 <i class='bx bx-info-circle'></i>
                                                 <span class="ml-1">View</span>
                                             </button>
-                                            <?php if ($request['status'] === 'pending'): ?>
+
+                                                        <?php
+                                                        $canHandle = false;
+                                                        $admin_role = $_SESSION['role'] ?? 'admin';
+
+                                                        switch ($admin_role) {
+                                                            case 'superior':
+                                                                $canHandle = ($status === 'pending_superior');
+                                                                break;
+                                                            case 'technical_support':
+                                                                $canHandle = ($status === 'pending_technical');
+                                                                break;
+                                                            case 'process_owner':
+                                                                $canHandle = ($status === 'pending_process_owner');
+                                                                break;
+                                                            case 'admin':
+                                                                $canHandle = ($status === 'pending_admin');
+                                                                break;
+                                                        }
+
+                                                        if ($canHandle):
+                                                        ?>
                                             <button onclick="showActionModal(<?php echo $request['id']; ?>, 'approve')" 
                                                     class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
                                                 <i class='bx bx-check'></i>
@@ -1152,27 +822,25 @@ try {
                                             </button>
                                             <?php endif; ?>
                                             
-                                            <?php if ($request['status'] === 'pending_testing' && $request['testing_status'] === 'success'): ?>
+                                                        <?php if ($admin_role === 'admin' && $status === 'pending_testing'): ?>
+                                                            <?php if ($request['testing_status'] === 'success'): ?>
                                             <button onclick="showActionModal(<?php echo $request['id']; ?>, 'finalize_approval')" 
                                                     class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
                                                 <i class='bx bx-check-double'></i>
                                                 <span class="ml-1">Finalize Approval</span>
                                             </button>
-                                            <?php endif; ?>
-                                            
-                                            <?php if ($request['status'] === 'pending_testing' && $request['testing_status'] === 'failed'): ?>
-                                            <div class="space-x-2">
+                                                            <?php elseif ($request['testing_status'] === 'failed'): ?>
+                                                            <button onclick="showActionModal(<?php echo $request['id']; ?>, 'reject_after_testing')" 
+                                                                    class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
+                                                                <i class='bx bx-x'></i>
+                                                                <span class="ml-1">Reject</span>
+                                                            </button>
                                                 <button onclick="showActionModal(<?php echo $request['id']; ?>, 'retry_testing')" 
                                                         class="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100">
                                                     <i class='bx bx-refresh'></i>
                                                     <span class="ml-1">Retry Testing</span>
                                                 </button>
-                                                <button onclick="showActionModal(<?php echo $request['id']; ?>, 'reject_after_testing')" 
-                                                        class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
-                                                    <i class='bx bx-x-circle'></i>
-                                                    <span class="ml-1">Reject</span>
-                                                </button>
-                                            </div>
+                                                            <?php endif; ?>
                                             <?php endif; ?>
                                         </div>
                                     </td>
@@ -1180,6 +848,9 @@ try {
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1189,8 +860,8 @@ try {
     <!-- Details Modal -->
     <div id="detailsModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-xl w-[90%] max-w-7xl mx-auto shadow-xl">
-                <div class="flex items-center px-6 py-4 border-b border-gray-200">
+            <div class="bg-white rounded-xl w-[96%] max-w-7xl mx-auto shadow-xl flex flex-col max-h-[90vh]">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200 flex-shrink-0">
                     <div class="w-1/4">
                         <p class="text-sm font-medium text-gray-500">Request Number</p>
                         <p id="detail_request_number" class="text-lg font-semibold text-gray-900"></p>
@@ -1204,8 +875,8 @@ try {
                         </button>
                     </div>
                 </div>
-                <div class="p-6">
-                    <div id="modalContent">
+                <div class="p-6 overflow-y-auto">
+                    <div id="detailsModalContent">
                         <!-- Modal content will be populated by JavaScript -->
                     </div>
                 </div>
@@ -1339,60 +1010,95 @@ try {
             // No longer needed with SweetAlert2, keeping for compatibility
         }
 
-        function showDetailsModal(requestId) {
-            document.getElementById('detailsModal').classList.remove('hidden');
-            const modalContainer = document.getElementById('modalContent');
-            
-            // Show loading state
+        function showRequestDetails(requestId) {
+            const modalContainer = document.getElementById('detailsModalContent');
             modalContainer.innerHTML = `
-                <div class="flex justify-center items-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <span class="ml-2">Loading details...</span>
+                <div class="flex justify-center items-center p-8">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             `;
             
-            // Fetch request details via AJAX
-            fetch(`./get_request_details.php?id=${requestId}`)
-                .then(async response => {
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(errorText || 'Failed to load request details');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    if (!data || typeof data !== 'object') {
-                        throw new Error('Invalid response data');
+            document.getElementById('detailsModal').classList.remove('hidden');
+            
+            fetch(`get_request_details.php?id=${requestId}`)
+                .then(response => response.json())
+                .then(response => {
+                    if (!response.success) {
+                        throw new Error(response.message || 'Failed to load request details');
                     }
                     
-                    // Update the request number in the header
+                    const data = response.data;
                     document.getElementById('detail_request_number').textContent = data.access_request_number;
                     
-                    // Render the modal content with the format from view_request.php
+                    // Previous review comments
+                    let reviewComments = '';
+                    
+                    if (data.superior_review_notes && data.superior_review_notes.trim() !== '') {
+                        reviewComments += `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                <i class='bx bx-message-detail text-primary-600 text-xl mr-2'></i>
+                                Superior's Comments
+                            </h3>
+                            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                ${data.superior_review_notes}
+                            </div>
+                        </div>
+                        `;
+                    }
+                    
+                    if (data.technical_review_notes && data.technical_review_notes.trim() !== '') {
+                        reviewComments += `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                <i class='bx bx-code-alt text-primary-600 text-xl mr-2'></i>
+                                Technical Review Comments
+                            </h3>
+                            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                ${data.technical_review_notes}
+                            </div>
+                        </div>
+                        `;
+                    }
+                    
+                    if (data.process_owner_review_notes && data.process_owner_review_notes.trim() !== '') {
+                        reviewComments += `
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                <i class='bx bx-briefcase text-primary-600 text-xl mr-2'></i>
+                                Process Owner Comments
+                            </h3>
+                            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                ${data.process_owner_review_notes}
+                            </div>
+                        </div>
+                        `;
+                    }
+                    
                     modalContainer.innerHTML = `
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                            <!-- Request Info -->
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <!-- Request Overview -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                                     <i class='bx bx-info-circle text-primary-600 text-xl mr-2'></i>
-                                    Request Information
+                                    Request Overview
                                 </h3>
                                 <div class="space-y-3">
                                     <div class="flex justify-between">
-                                        <span class="text-gray-600">Request No:</span>
+                                        <span class="text-gray-600">Request Number:</span>
                                         <span class="font-medium text-gray-900">${data.access_request_number}</span>
                                     </div>
-                                    <div class="flex justify-between">
+                                    <div class="flex justify-between items-center">
                                         <span class="text-gray-600">Status:</span>
-                                        <div class="flex justify-center items-center ${
-                                            data.status === 'pending' ? 'bg-yellow-50' : 
+                                        <div class="flex items-center ${
+                                            data.status.includes('pending') ? 'bg-yellow-50' : 
                                             (data.status === 'approved' ? 'bg-green-50' : 'bg-red-50')
                                         } rounded-lg px-2 py-1">
                                             <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                                data.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 
+                                                data.status.includes('pending') ? 'bg-yellow-100 text-yellow-700' : 
                                                 (data.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
                                             }">
-                                                ${data.status.toUpperCase()}
+                                                ${data.status_display}
                                             </span>
                                         </div>
                                     </div>
@@ -1436,8 +1142,8 @@ try {
                                         <span class="font-medium text-gray-900">${data.email}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-gray-600">Contact:</span>
-                                        <span class="font-medium text-gray-900">${data.contact_number || 'Not provided'}</span>
+                                        <span class="text-gray-600">Employee ID:</span>
+                                        <span class="font-medium text-gray-900">${data.employee_id}</span>
                                     </div>
                                 </div>
                             </div>
@@ -1475,47 +1181,98 @@ try {
                             </div>
                         </div>
                         
-                        <!-- Justification -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
-                                Justification
-                            </h3>
-                            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                ${data.justification || 'No justification provided.'}
+                        <div class="grid grid-cols-1 lg:grid-cols-${reviewComments ? '2' : '1'} gap-6 mt-6">
+                            <!-- Justification -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
+                                    Justification
+                                </h3>
+                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                    ${data.justification || 'No justification provided.'}
+                                </div>
                             </div>
+                            
+                            ${data.review_history && data.review_history.length > 0 && !reviewComments ? `
+                            <!-- Review History -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                    <i class='bx bx-history text-primary-600 text-xl mr-2'></i>
+                                    Review History
+                                </h3>
+                                <div class="space-y-4">
+                                    ${data.review_history.map(review => `
+                                        <div class="bg-gray-50 p-4 rounded-lg">
+                                            <div class="flex justify-between items-center mb-2">
+                                                <span class="font-medium text-gray-900">${review.role}</span>
+                                                <span class="text-sm text-gray-500">${new Date(review.date).toLocaleString()}</span>
+                                            </div>
+                                            <div class="flex items-center mb-2">
+                                                <span class="text-sm font-medium ${
+                                                    review.action === 'Declined' ? 'text-red-600' : 
+                                                    (review.action === 'Approved' ? 'text-green-600' : 'text-primary-600')
+                                                }">${review.action}</span>
+                                            </div>
+                                            <p class="text-gray-700 text-sm">${review.note}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            ` : ''}
                         </div>
                         
-                        ${data.testing_notes ? `
-                        <div class=\"bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6\">
-                            <h3 class=\"text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center\">
-                                <i class='bx bx-flask text-primary-600 text-xl mr-2'></i>
-                                Testing Notes / User Feedback
+                        ${reviewComments ? `
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                            ${reviewComments}
+                        </div>
+                        ` : ''}
+                        
+                        ${data.testing_status ? `
+                        <!-- Testing Status -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                <i class='bx bx-test-tube text-primary-600 text-xl mr-2'></i>
+                                Testing Status
                             </h3>
-                            <div class=\"bg-gray-50 p-4 rounded-lg text-gray-700\">
-                                ${data.testing_notes.replace(/\n/g, '<br>')}
+                            <div class="flex items-center justify-between">
+                                <span class="text-gray-600">Status:</span>
+                                <span class="px-3 py-1 text-xs font-medium rounded-full ${
+                                    data.testing_status === 'success' ? 'bg-green-100 text-green-700' :
+                                    data.testing_status === 'failed' ? 'bg-red-100 text-red-700' :
+                                    'bg-yellow-100 text-yellow-700'
+                                }">
+                                    ${data.testing_status.charAt(0).toUpperCase() + data.testing_status.slice(1)}
+                                </span>
                             </div>
+                            ${data.testing_notes ? `
+                            <div class="mt-4">
+                                <span class="text-gray-600">Testing Notes:</span>
+                                <div class="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">
+                                    ${data.testing_notes}
+                                </div>
+                            </div>
+                            ` : ''}
                         </div>
                         ` : ''}
                     `;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    modalContainer.innerHTML = `
-                        <div class="text-center py-8">
-                            <div class="text-red-600 mb-2">
-                                <i class='bx bx-error-circle text-3xl'></i>
-                            </div>
-                            <p class="text-red-600 font-medium">Error loading request details</p>
-                            <p class="text-gray-500 text-sm mt-1">${error.message}</p>
-                            <button onclick="hideDetailsModal()" 
-                                    class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-                                Close
-                            </button>
-                        </div>
-                    `;
-                });
-        }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            modalContainer.innerHTML = `
+                <div class="text-center py-8">
+                    <div class="text-red-600 mb-2">
+                        <i class='bx bx-error-circle text-3xl'></i>
+                    </div>
+                    <p class="text-red-600 font-medium">Error loading request details</p>
+                    <p class="text-gray-500 text-sm mt-1">${error.message}</p>
+                    <button onclick="hideDetailsModal()" 
+                            class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                        Close
+                    </button>
+                </div>
+            `;
+        });
+}
 
         function hideDetailsModal() {
             document.getElementById('detailsModal').classList.add('hidden');

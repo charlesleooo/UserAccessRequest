@@ -4,56 +4,32 @@ require_once '../config.php';
 require_once '../admin/analytics_functions.php';
 
 // Authentication check
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') {
     header("Location: ../admin/login.php");
     exit();
 }
 
 // Get quick stats for the dashboard
 try {
-    // Get analytics data
-    $statsData = getDashboardStats($pdo);
-    
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status = 'pending_superior'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status = 'pending'");
     $pendingRequests = $stmt->fetchColumn();
     
-    // Get today's approvals count
+    // Get today's technical reviews count
     $todayDate = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'approved' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'technical_review' AND DATE(created_at) = :today");
     $stmt->execute([':today' => $todayDate]);
-    $approvedToday = $stmt->fetchColumn();
-    
-    // Get today's rejections count
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'rejected' AND DATE(created_at) = :today");
-    $stmt->execute([':today' => $todayDate]);
-    $rejectedToday = $stmt->fetchColumn();
+    $technicalReviewsToday = $stmt->fetchColumn();
     
     // Get recent requests
-    $stmt = $pdo->query("SELECT * FROM access_requests WHERE status = 'pending_superior' ORDER BY submission_date DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT * FROM access_requests ORDER BY submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get recent approval history
-    $stmt = $pdo->query("SELECT h.*, a.username as admin_username 
-                        FROM approval_history h 
-                        LEFT JOIN admin_users a ON h.admin_id = a.id 
-                        ORDER BY h.created_at DESC LIMIT 5");
-    $recentApprovals = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
 } catch (PDOException $e) {
-    // Handle database errors gracefully
     error_log("Dashboard data fetch error: " . $e->getMessage());
     $pendingRequests = 0;
-    $approvedToday = 0;
-    $rejectedToday = 0;
-    $statsData = [
-        'total' => 0,
-        'approved' => 0,
-        'approval_rate' => 0,
-        'decline_rate' => 0
-    ];
+    $technicalReviewsToday = 0;
     $recentRequests = [];
-    $recentApprovals = [];
 }
 ?>
 
@@ -62,7 +38,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Superior Dashboard - UAR System</title>
+    <title>Technical Support Dashboard - UAR System</title>
 
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -120,14 +96,14 @@ try {
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
-                        <span class="ml-3">Requests</span>
+                        <span class="ml-3">Technical Reviews</span>
                     </a>
                     
-                    <a href="approval_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bx-history text-xl'></i>
                         </span>
-                        <span class="ml-3">Approval History</span>
+                        <span class="ml-3">Review History</span>
                     </a>
                 </nav>
                 
@@ -154,7 +130,7 @@ try {
                                 <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
                             </p>
                             <p class="text-xs text-gray-500 truncate">
-                                Superior
+                                Technical Support
                             </p>
                         </div>
                     </div>
@@ -167,7 +143,7 @@ try {
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Superior Dashboard</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Technical Support Dashboard</h1>
                     <p class="text-gray-600 mt-1">Welcome back, <?php echo htmlspecialchars($_SESSION['admin_username']); ?></p>
                 </div>
             </div>
@@ -175,14 +151,14 @@ try {
             <!-- Content -->
             <div class="p-8">
                 <!-- Quick Stats -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div class="bg-white rounded-xl shadow p-6">
                         <div class="flex items-center">
                             <div class="bg-primary-100 p-3 rounded-lg">
                                 <i class='bx bx-time text-2xl text-primary-600'></i>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm text-gray-500">Pending Requests</p>
+                                <p class="text-sm text-gray-500">Pending Reviews</p>
                                 <h4 class="text-2xl font-bold text-gray-900"><?php echo $pendingRequests; ?></h4>
                             </div>
                         </div>
@@ -194,20 +170,8 @@ try {
                                 <i class='bx bx-check-circle text-2xl text-green-600'></i>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm text-gray-500">Approved Today</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $approvedToday; ?></h4>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow p-6">
-                        <div class="flex items-center">
-                            <div class="bg-red-100 p-3 rounded-lg">
-                                <i class='bx bx-x-circle text-2xl text-red-600'></i>
-                            </div>
-                            <div class="ml-4">
-                                <p class="text-sm text-gray-500">Rejected Today</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $rejectedToday; ?></h4>
+                                <p class="text-sm text-gray-500">Reviews Today</p>
+                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $technicalReviewsToday; ?></h4>
                             </div>
                         </div>
                     </div>
@@ -217,7 +181,7 @@ try {
                 <div class="bg-white rounded-xl shadow">
                     <div class="px-6 py-4 border-b border-gray-100">
                         <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-semibold text-gray-800">Recent Requests</h3>
+                            <h3 class="text-lg font-semibold text-gray-800">Recent Requests for Technical Review</h3>
                             <a href="requests.php" class="text-primary-600 hover:text-primary-700 text-sm font-medium">View All</a>
                         </div>
                     </div>
@@ -272,4 +236,4 @@ try {
         </div>
     </div>
 </body>
-</html>
+</html> 

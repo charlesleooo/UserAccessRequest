@@ -1,9 +1,9 @@
 <?php
-require_once 'config.php';
+require_once '../config.php';
 
-$username = 'superior';
-$password = 'superior123';
-$role = 'superior'; // Set the role of the user
+$username = 'process_owner';
+$password = 'process_owner123';
+$role = 'process_owner'; // Set the role of the user
 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
 try {

@@ -67,6 +67,10 @@
     session_start();
     require_once '../config.php';
     
+    // Enable error reporting for debugging
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+    
     $login_attempt = false;
     
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
@@ -74,25 +78,49 @@
         $username = $_POST['username'] ?? '';
         $password = $_POST['password'] ?? '';
         
-        $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE username = ?");
-        $stmt->execute([$username]);
-        $user = $stmt->fetch();
+        error_log("Login attempt for username: " . $username);
         
-        if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['admin_id'] = $user['id'];
-            $_SESSION['admin_username'] = $user['username'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['admin_name'] = $user['username'];
-
-            // Redirect based on role
-            if ($user['role'] === 'superior') {
-                header('Location: ../superior/dashboard.php');
-            } else {
-                header('Location: dashboard.php');
+        try {
+            $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE username = ?");
+            $stmt->execute([$username]);
+            $user = $stmt->fetch();
+            
+            error_log("User data found: " . ($user ? "yes" : "no"));
+            if ($user) {
+                error_log("User role: " . $user['role']);
             }
-            exit;
-        } else {
-            $error = "Invalid username or password";
+            
+            if ($user && password_verify($password, $user['password'])) {
+                $_SESSION['admin_id'] = $user['id'];
+                $_SESSION['admin_username'] = $user['username'];
+                $_SESSION['role'] = $user['role'];
+                $_SESSION['admin_name'] = $user['username'];
+                
+                error_log("Login successful. Session data: " . print_r($_SESSION, true));
+
+                // Redirect based on role
+                switch ($user['role']) {
+                    case 'superior':
+                        error_log("Redirecting to superior dashboard");
+                        header('Location: ../superior/dashboard.php');
+                        break;
+                    case 'technical_support':
+                        header('Location: ../technical_support/dashboard.php');
+                        break;
+                    case 'process_owner':
+                        header('Location: ../process_owner/dashboard.php');
+                        break;
+                    default:
+                        header('Location: dashboard.php');
+                }
+                exit;
+            } else {
+                error_log("Login failed: " . ($user ? "invalid password" : "user not found"));
+                $error = "Invalid username or password";
+            }
+        } catch (PDOException $e) {
+            error_log("Database error during login: " . $e->getMessage());
+            $error = "Database error occurred";
         }
     }
     ?>

@@ -93,26 +93,7 @@ try {
         end_date,
         justification,
         submission_date,
-        status
-    ) VALUES (
-        :requestor_name,
-        :business_unit,
-        :access_request_number,
-        :department,
-        :email,
-        :employee_id,
-        :request_date,
-        :access_type,
-        :system_type,
-        :other_system_type,
-        :role_access_type,
-        :duration_type,
-        :start_date,
-        :end_date,
-        :justification,
-        NOW(),
-        'pending'
-    )";
+                status    ) VALUES (        :requestor_name,        :business_unit,        :access_request_number,        :department,        :email,        :employee_id,        :request_date,        :access_type,        :system_type,        :other_system_type,        :role_access_type,        :duration_type,        :start_date,        :end_date,        :justification,        NOW(),        'pending_superior'    )";
 
     $stmt = $pdo->prepare($sql);
 
@@ -160,6 +141,10 @@ try {
             $mail->addAddress($_POST['email'], $_POST['requestor_name']); // Add requestor
             $mail->addAddress('charlesondota@gmail.com', 'System Administrator'); // Add admin
 
+            // Add superior notification
+            $superior_email = 'superior@example.com'; // Get this from your configuration
+            $mail->addAddress($superior_email, 'Department Superior');
+
             // Content
             $mail->isHTML(true);
             $mail->Subject = "Access Request Submitted - $access_request_number";
@@ -181,6 +166,13 @@ try {
             $mail->Body = "
                 <h2>Access Request Details</h2>
                 <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
+                    <div style='background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; margin-bottom: 20px; border-radius: 4px;'>
+                        <strong>Superior Action Required:</strong> Please review and approve/reject this access request through the User Access Request System.
+                        <p style='margin-top: 10px;'>
+                            <a href='http://your-domain/superior/login.php' style='background-color: #0d6efd; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;'>Review Request</a>
+                        </p>
+                    </div>
+
                     <h3>Request Information:</h3>
                     <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
                         <tr style='background-color: #f8f9fa;'>
@@ -193,7 +185,7 @@ try {
                         </tr>
                         <tr style='background-color: #f8f9fa;'>
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>Status:</strong></td>
-                            <td style='padding: 8px; border: 1px solid #ddd;'>Pending</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Pending Superior Review</td>
                         </tr>
                     </table>
 

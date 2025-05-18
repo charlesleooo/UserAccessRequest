@@ -355,6 +355,174 @@ try {
             <?php endif; ?>
         </div>
     </div>
+
+    <!-- Add approval timeline -->
+    <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Approval Timeline</h3>
+        </div>
+        <div class="border-t border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <div class="flow-root">
+                    <ul role="list" class="-mb-8">
+                        <!-- Superior Review -->
+                        <li>
+                            <div class="relative pb-8">
+                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                <div class="relative flex space-x-3">
+                                    <div>
+                                        <span class="h-8 w-8 rounded-full <?php echo $request['superior_id'] ? 'bg-green-500' : ($request['status'] === 'pending_superior' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
+                                            <i class='bx bx-user text-white'></i>
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                        <div>
+                                            <p class="text-sm text-gray-500">Superior Review</p>
+                                            <?php if ($request['superior_id']): ?>
+                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
+                                            <?php if ($request['superior_review_date']): ?>
+                                            <time datetime="<?php echo $request['superior_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['superior_review_date'])); ?></time>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <!-- Technical Review -->
+                        <li>
+                            <div class="relative pb-8">
+                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                <div class="relative flex space-x-3">
+                                    <div>
+                                        <span class="h-8 w-8 rounded-full <?php echo $request['technical_id'] ? 'bg-green-500' : ($request['status'] === 'pending_technical' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
+                                            <i class='bx bx-wrench text-white'></i>
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                        <div>
+                                            <p class="text-sm text-gray-500">Technical Review</p>
+                                            <?php if ($request['technical_id']): ?>
+                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['technical_notes'])); ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
+                                            <?php if ($request['technical_review_date']): ?>
+                                            <time datetime="<?php echo $request['technical_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['technical_review_date'])); ?></time>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <!-- Process Owner Review -->
+                        <li>
+                            <div class="relative pb-8">
+                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
+                                <div class="relative flex space-x-3">
+                                    <div>
+                                        <span class="h-8 w-8 rounded-full <?php echo $request['process_owner_id'] ? 'bg-green-500' : ($request['status'] === 'pending_process_owner' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
+                                            <i class='bx bx-briefcase text-white'></i>
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                        <div>
+                                            <p class="text-sm text-gray-500">Process Owner Review</p>
+                                            <?php if ($request['process_owner_id']): ?>
+                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['process_owner_notes'])); ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
+                                            <?php if ($request['process_owner_review_date']): ?>
+                                            <time datetime="<?php echo $request['process_owner_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['process_owner_review_date'])); ?></time>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        <!-- Admin Review -->
+                        <li>
+                            <div class="relative">
+                                <div class="relative flex space-x-3">
+                                    <div>
+                                        <span class="h-8 w-8 rounded-full <?php echo $request['admin_id'] ? 'bg-green-500' : ($request['status'] === 'pending_admin' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
+                                            <i class='bx bx-shield text-white'></i>
+                                        </span>
+                                    </div>
+                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                        <div>
+                                            <p class="text-sm text-gray-500">Admin Review</p>
+                                            <?php if ($request['admin_id']): ?>
+                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['admin_notes'])); ?></p>
+                                            <?php endif; ?>
+                                        </div>
+                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
+                                            <?php if ($request['admin_review_date']): ?>
+                                            <time datetime="<?php echo $request['admin_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['admin_review_date'])); ?></time>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add testing status section if applicable -->
+    <?php if ($request['status'] === 'pending_testing'): ?>
+    <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Testing Status</h3>
+        </div>
+        <div class="border-t border-gray-200">
+            <div class="px-4 py-5 sm:p-6">
+                <?php if ($request['testing_status'] === 'pending'): ?>
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500">Please test your access and update the status:</p>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'success')" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            Testing Success
+                        </button>
+                        <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'failed')" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            Testing Failed
+                        </button>
+                    </div>
+                </div>
+                <?php else: ?>
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <?php if ($request['testing_status'] === 'success'): ?>
+                        <i class='bx bx-check text-2xl text-green-500'></i>
+                        <?php else: ?>
+                        <i class='bx bx-x text-2xl text-red-500'></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="ml-3">
+                        <h3 class="text-sm font-medium text-gray-900">
+                            Testing <?php echo ucfirst($request['testing_status']); ?>
+                        </h3>
+                        <?php if ($request['testing_notes']): ?>
+                        <div class="mt-2 text-sm text-gray-500">
+                            <p><?php echo nl2br(htmlspecialchars($request['testing_notes'])); ?></p>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
 
 <!-- SweetAlert2 CDN -->
@@ -387,6 +555,46 @@ try {
             });
         }
     });
+
+    function updateTestingStatus(requestId, status) {
+        Swal.fire({
+            title: 'Update Testing Status',
+            text: 'Please provide any notes about the testing process:',
+            input: 'textarea',
+            showCancelButton: true,
+            confirmButtonText: 'Submit',
+            showLoaderOnConfirm: true,
+            preConfirm: (notes) => {
+                return fetch('testing_status.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `request_id=${requestId}&testing_status=${status}&testing_notes=${encodeURIComponent(notes)}`,
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(response.statusText);
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    Swal.showValidationMessage(`Request failed: ${error}`);
+                });
+            },
+            allowOutsideClick: () => !Swal.isLoading()
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Success!',
+                    text: 'Testing status has been updated.',
+                    icon: 'success'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        });
+    }
 </script>
 </body>
 </html> 
