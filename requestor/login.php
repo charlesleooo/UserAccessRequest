@@ -448,6 +448,16 @@ function generateOTP($length = 6) {
                     <span class="mx-2 text-gray-400">|</span>
                     <a href="signup.php" class="text-primary hover:text-secondary text-sm">Sign Up</a>
                 </div>
+
+                <div class="text-center mt-4">
+                    <a href="../index.php" 
+                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-300">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Home Page
+                    </a>
+                </div>
             </form>
         </div>
         

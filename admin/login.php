@@ -330,7 +330,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             
             <form method="POST" action="login.php" class="space-y-6" id="loginForm" onsubmit="handleLogin(event)">
                 <div class="animate-slide-up" style="animation-delay: 100ms">
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Company Email</label>
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
@@ -367,7 +367,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                         </button>
                     </div>
                 </div>
-                
                 <div class="animate-slide-up" style="animation-delay: 300ms">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center">
@@ -387,6 +386,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                     <div class="text-center mt-4">
                         <a href="forgot_password.php" class="text-primary-600 hover:text-primary-700 text-sm">Forgot your password?</a>
                     </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="../index.php" 
+                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition duration-300">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                        </svg>
+                        Back to Home Page
+                    </a>
                 </div>
             </form>
         </div>
