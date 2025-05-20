@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 18, 2025 at 02:40 PM
+-- Generation Time: May 20, 2025 at 02:59 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -178,7 +178,7 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`, `employee_email`, `password`, `is_temp_password`, `role`) VALUES
-('123', 'AAC', 'test', 'INFORMATION TECHNOLOGY (IT)', 'charlesondota@gmail.com', '$2y$10$a.0LwArrj9cZ4TBW2TWXcuRN6hihHOZwYWsJUHV538Q4K1BUg9B1O', 0, 'requestor'),
+('123', 'AAC', 'superior', 'INFORMATION TECHNOLOGY (IT)', 'charlesondota@gmail.com', '$2y$10$Ao6tJGW4vvECcFrK6IgPlO/Q08jbcMOIxMAFRpwp1.EZ8VRAllGT.', 0, 'superior'),
 ('AAC000001', 'AAC', 'ALCANTARA, ALEJANDRO I.', 'G & A', '', NULL, 1, 'requestor'),
 ('AAC000003', 'AAC', 'TICAO, REX J.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC000007', 'AAC', 'MINGO, NOEL R.', 'GROW OUT', '', NULL, 1, 'requestor'),
@@ -761,13 +761,14 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC002631', 'AAC', 'COMALING, MAR JUN P.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC002635', 'AAC', 'PALER, DAN RUZEL D.', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('AAC002637', 'AAC', 'BALLON, KEINTH JANN C.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
+('AAC052002', 'AAC', 'TAMPUS, ALVIN A. JR.', 'INFORMATION TECHNOLOGY (IT)', 'alvintampus3@gmail.com', NULL, 1, 'admin'),
 ('AAC052003', 'AAC', 'PALOMARES, CHARLES LEO H.', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', 0, 'admin'),
 ('ALD000001', 'ALDEV', 'ALIPOON,NEIL QUIRINO', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000003', 'ALDEV', 'ARONG JR.,DEMETRIO FERRAREN', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
-('ALD000006', 'ALDEV', 'SOMBILON,TRACLIO MEJIAS', 'BANANA', '', NULL, 1, 'requestor'),
-('ALD000007', 'ALDEV', 'EDULOG,ELLAINE MAE SEVIOLA', 'BANANA', '', NULL, 1, 'requestor'),
-('ALD000008', 'ALDEV', 'ROSARIO,ARNEL CRISTUTA', 'BANANA', '', NULL, 1, 'requestor');
+('ALD000006', 'ALDEV', 'SOMBILON,TRACLIO MEJIAS', 'BANANA', '', NULL, 1, 'requestor');
 INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`, `employee_email`, `password`, `is_temp_password`, `role`) VALUES
+('ALD000007', 'ALDEV', 'EDULOG,ELLAINE MAE SEVIOLA', 'BANANA', '', NULL, 1, 'requestor'),
+('ALD000008', 'ALDEV', 'ROSARIO,ARNEL CRISTUTA', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000020', 'ALDEV', 'SINGIT,EDWIN EYA', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000023', 'ALDEV', 'SULIT,SHERYL SINDOL', 'ENGINEERING', '', NULL, 1, 'requestor'),
 ('ALD000026', 'ALDEV', 'APOSTER,KEVIN LUMANTA', 'ENGINEERING', '', NULL, 1, 'requestor'),
@@ -958,6 +959,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('FHI000226', 'FHI', 'GANTALAO, JOHN DAVE TACULOD', 'FHI Production-Packing House (PH)', '', NULL, 1, 'requestor'),
 ('FHI000227', 'FHI', 'DEQUINA, JULIUS CAESAR CAGADAS', 'FHI Production-Packing House (PH)', '', NULL, 1, 'requestor'),
 ('FHI000228', 'FHI', 'VELASCO, RONALD  MIANO', 'FHI Engineering', '', NULL, 1, 'requestor'),
+('process1', 'AAC', 'process owner', 'INFORMATION TECHNOLOGY (IT)', 'clpalomares2003@gmail.com', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', 0, 'process_owner'),
 ('SAC000032', 'SACI', 'FABROA, EDUMAR ECHAVEZ', 'OFFICE OF AVP', '', NULL, 1, 'requestor'),
 ('SAV000002', 'ALDEV', 'DAMOLE,NELDRIN VILLANUEVA', 'BANANA', '', NULL, 1, 'requestor'),
 ('SAV000004', 'SAVI', 'GECOSALA,ENRIQUE CASTILLON', 'BANANA MARIBULAN', '', NULL, 1, 'requestor'),
@@ -1055,7 +1057,8 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('SFC000021', 'SFC', 'EDUAVE, ALLAN CABAÑEROS', 'PINEAPPLE', '', NULL, 1, 'requestor'),
 ('SFC000022', 'SFC', 'BANTACULO, EDEM CADAY', 'PINEAPPLE', '', NULL, 1, 'requestor'),
 ('SFC000023', 'SFC', 'ABAJA, BERNARD OCONG', 'PINEAPPLE', '', NULL, 1, 'requestor'),
-('SFC000024', 'SFC', 'GESIM, JANICE BORJA', 'PINEAPPLE', '', NULL, 1, 'requestor');
+('SFC000024', 'SFC', 'GESIM, JANICE BORJA', 'PINEAPPLE', '', NULL, 1, 'requestor'),
+('techsupp1', 'AAC', 'technical support', 'INFORMATION TECHNOLOGY (IT)', 'dimokokilalahehe@gmail.com', '$2y$10$ey1NtHsptYY.xhxccySrT.9r4.qRjNjgeaqF79V1KTqQWtDrkxBum', 0, 'technical_support');
 
 -- --------------------------------------------------------
 
@@ -1264,7 +1267,7 @@ ALTER TABLE `employees_archive`
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `reports`
@@ -1292,7 +1295,7 @@ ALTER TABLE `users`
 -- Constraints for table `approval_history`
 --
 ALTER TABLE `approval_history`
-  ADD CONSTRAINT `approval_history_ibfk_2` FOREIGN KEY (`admin_id`) REFERENCES `admin_users` (`id`);
+  ADD CONSTRAINT `approval_history_ibfk_2` FOREIGN KEY (`admin_id`) REFERENCES `admin_users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `employees_archive`
