@@ -105,6 +105,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['admin_name'] = $user['employee_name'];
 
+                // Ensure this user exists in admin_users table for foreign key relationships
+                try {
+                    // Check if user already exists in admin_users
+                    $adminStmt = $pdo->prepare("SELECT id FROM admin_users WHERE username = ?");
+                    $adminStmt->execute([$user['employee_id']]);
+                    $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if (!$adminUser) {
+                        // Create an entry in admin_users for this employee
+                        $role = $user['role'];
+                        $password = $user['password'] ?? password_hash('default123', PASSWORD_DEFAULT);
+                        
+                        $insertStmt = $pdo->prepare("INSERT INTO admin_users (role, username, password) 
+                                                 VALUES (?, ?, ?)");
+                        $insertStmt->execute([$role, $user['employee_id'], $password]);
+                        
+                        error_log("Created admin_users entry for " . $user['employee_id']);
+                    }
+                } catch (Exception $e) {
+                    // Log error but don't prevent login
+                    error_log("Error ensuring admin_users entry: " . $e->getMessage());
+                }
+
                 unset($_SESSION['otp'], $_SESSION['otp_expiry'], $_SESSION['temp_admin']);
 
                 // Determine redirect location based on role
@@ -222,6 +245,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                 $_SESSION['admin_username'] = $user['employee_name'];
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['admin_name'] = $user['employee_name'];
+                
+                // Ensure this user exists in admin_users table for foreign key relationships
+                try {
+                    // Check if user already exists in admin_users
+                    $adminStmt = $pdo->prepare("SELECT id FROM admin_users WHERE username = ?");
+                    $adminStmt->execute([$user['employee_id']]);
+                    $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
+                    
+                    if (!$adminUser) {
+                        // Create an entry in admin_users for this employee
+                        $role = $user['role'];
+                        $password = $user['password'] ?? password_hash('default123', PASSWORD_DEFAULT);
+                        
+                        $insertStmt = $pdo->prepare("INSERT INTO admin_users (role, username, password) 
+                                                 VALUES (?, ?, ?)");
+                        $insertStmt->execute([$role, $user['employee_id'], $password]);
+                        
+                        error_log("Created admin_users entry for " . $user['employee_id']);
+                    }
+                } catch (Exception $e) {
+                    // Log error but don't prevent login
+                    error_log("Error ensuring admin_users entry: " . $e->getMessage());
+                }
                 
                 error_log("Login successful. Session data: " . print_r($_SESSION, true));
 

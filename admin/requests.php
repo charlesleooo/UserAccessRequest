@@ -7,10 +7,15 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
+// Track if a transaction is active
+$transaction_active = false;
+
 // Add the generateRequestNumber function at the top
 function generateRequestNumber($pdo) {
+    global $transaction_active;
     try {
         $pdo->beginTransaction();
+        $transaction_active = true;
         
         // Get the highest request number from both tables
         $sql = "SELECT MAX(CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED)) as max_num 
@@ -32,10 +37,14 @@ function generateRequestNumber($pdo) {
         $requestNumber = sprintf("REQ%d-%03d", $year, $nextNumber);
         
         $pdo->commit();
+        $transaction_active = false;
         return $requestNumber;
         
     } catch (Exception $e) {
-        $pdo->rollBack();
+        if ($transaction_active) {
+            $pdo->rollBack();
+            $transaction_active = false;
+        }
         throw new Exception("Failed to generate request number: " . $e->getMessage());
     }
 }
@@ -55,8 +64,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     $admin_role = $_SESSION['role'] ?? 'admin'; // Get the admin's role
     
     try {
+        // Get the admin_users.id that matches the employee's employee_id or username
+        $adminStmt = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+        $adminStmt->execute([
+            'username' => $_SESSION['admin_username'] ?? '',
+            'employee_id' => $_SESSION['admin_id'] ?? ''
+        ]);
+        $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$adminUser) {
+            throw new Exception('Admin user record not found. Please contact system administrator.');
+        }
+        
+        $admin_users_id = $adminUser['id']; // This is the correct admin_id to use with approval_history
+        
         // Start transaction
         $pdo->beginTransaction();
+        $transaction_active = true;
 
         // 1. First get the request details before updating
         $sql = "SELECT * FROM access_requests WHERE id = :request_id";
@@ -127,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 
             $stmt = $pdo->prepare($sql);
             $result = $stmt->execute([
-                'admin_id' => $admin_id,
+                'admin_id' => $admin_users_id,
                 'review_notes' => $review_notes,
                 'request_id' => $request_id
             ]);
@@ -231,6 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             }
             
             $pdo->commit();
+            $transaction_active = false;
             $_SESSION['success_message'] = "Request has been provisionally approved. The user will test the application and confirm the result.";
             header('Location: requests.php');
             exit();
@@ -296,7 +321,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                     'business_unit' => $request['business_unit'],
                     'department' => $request['department'],
                     'access_type' => $request['access_type'],
-                    'admin_id' => $admin_id,
+                    'admin_id' => $admin_users_id,
                     'comments' => $review_notes,
                     'system_type' => $request['system_type'],
                     'duration_type' => $request['duration_type'],
@@ -333,7 +358,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             $stmt = $pdo->prepare($sql);
             $result = $stmt->execute([
                     'next_status' => $next_status,
-                    'admin_id' => $admin_id,
+                    'admin_id' => $admin_users_id,
                 'review_notes' => $review_notes,
                 'request_id' => $request_id
             ]);
@@ -445,12 +470,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         }
 
         $pdo->commit();
+            $transaction_active = false;
             $_SESSION['success_message'] = "Request has been " . ($action === 'approve' ? 'approved' : 'declined') . " successfully.";
             header('Location: requests.php');
             exit();
         }
     } catch (Exception $e) {
-        $pdo->rollBack();
+        if ($transaction_active) {
+            $pdo->rollBack();
+            $transaction_active = false;
+        }
         $_SESSION['error_message'] = $e->getMessage();
     header('Location: requests.php');
     exit();
@@ -495,6 +524,7 @@ try {
             // Need to move this to approval_history
             try {
                 $pdo->beginTransaction();
+                $transaction_active = true;
                 
                 // Insert into approval history
                 $sql = "INSERT INTO approval_history (
@@ -509,6 +539,19 @@ try {
                         'success', :employee_id
                     )";
                 
+                // Get the admin_users id for the current admin
+                $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+                $adminQuery->execute([
+                    'username' => $_SESSION['admin_username'] ?? '',
+                    'employee_id' => $_SESSION['admin_id'] ?? ''
+                ]);
+                $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+                $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
+                
+                if (!$admin_users_id) {
+                    throw new Exception('Admin user record not found. Cannot complete approval.');
+                }
+                
                 $stmt = $pdo->prepare($sql);
                 $result = $stmt->execute([
                     'access_request_number' => $request['access_request_number'],
@@ -516,7 +559,7 @@ try {
                     'business_unit' => $request['business_unit'],
                     'department' => $request['department'],
                     'access_type' => $request['access_type'],
-                    'admin_id' => $request['admin_id'],
+                    'admin_id' => $admin_users_id,
                     'comments' => $request['review_notes'] ?? 'Automatically approved after successful testing',
                     'system_type' => $request['system_type'],
                     'duration_type' => $request['duration_type'],
@@ -535,11 +578,18 @@ try {
                     $deleteStmt->execute(['request_id' => $request['id']]);
                     
                     $pdo->commit();
+                    $transaction_active = false;
                 } else {
-                    $pdo->rollBack();
+                    if ($transaction_active) {
+                        $pdo->rollBack();
+                        $transaction_active = false;
+                    }
                 }
             } catch (Exception $e) {
-                $pdo->rollBack();
+                if ($transaction_active) {
+                    $pdo->rollBack();
+                    $transaction_active = false;
+                }
                 error_log("Error processing approved request: " . $e->getMessage());
             }
         }

@@ -2,6 +2,9 @@
 require_once '../config.php';
 session_start();
 
+// Track if a transaction is active
+$transaction_active = false;
+
 // Security headers
 header("X-XSS-Protection: 1; mode=block");
 header("X-Content-Type-Options: nosniff");
@@ -65,6 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     try {
                         // Start transaction
                         $pdo->beginTransaction();
+                        $transaction_active = true;
                         
                         // First get the employee details with error handling
                         $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_id = ?");
@@ -99,6 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         // Commit transaction
                         $pdo->commit();
+                        $transaction_active = false;
                         
                         $_SESSION['message'] = [
                             'type' => 'success',
@@ -106,7 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ];
                     } catch (Exception $e) {
                         // Rollback transaction on error
-                        $pdo->rollBack();
+                        if ($transaction_active) {
+                            $pdo->rollBack();
+                            $transaction_active = false;
+                        }
                         throw $e;
                     }
                     break;

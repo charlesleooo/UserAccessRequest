@@ -6,6 +6,9 @@ require_once '../config.php';
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Track if a transaction is active
+$transaction_active = false;
+
 // Debug POST data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     error_log("POST Data: " . print_r($_POST, true));
@@ -37,6 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
     try {
         // Start a transaction
         $pdo->beginTransaction();
+        $transaction_active = true;
         error_log("Started transaction");
         
         // Verify this request belongs to the current user and is in pending_testing status
@@ -104,6 +108,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                     'success', :employee_id
                 )";
             
+            // Get the admin_users id for the admin who approved this request
+            $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE id = :admin_id OR username = :admin_id");
+            $adminQuery->execute(['admin_id' => $requestData['admin_id']]);
+            $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+            $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
+            
+            // If no admin_users id found, try to get any admin user as fallback
+            if (!$admin_users_id) {
+                $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE role = 'admin' LIMIT 1");
+                $adminQuery->execute();
+                $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+                $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
+                
+                if (!$admin_users_id) {
+                    throw new Exception('Admin user record not found. Cannot complete approval process.');
+                }
+            }
+            
             $stmt = $pdo->prepare($sql);
             $result = $stmt->execute([
                 'access_request_number' => $requestData['access_request_number'],
@@ -111,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                 'business_unit' => $requestData['business_unit'],
                 'department' => $requestData['department'],
                 'access_type' => $requestData['access_type'],
-                'admin_id' => $requestData['admin_id'],
+                'admin_id' => $admin_users_id,
                 'comments' => 'Automatically approved after successful testing',
                 'system_type' => $requestData['system_type'],
                 'duration_type' => $requestData['duration_type'],
@@ -162,6 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         
         // Commit the transaction
         $pdo->commit();
+        $transaction_active = false;
         error_log("Transaction committed");
         
         // Redirect back to dashboard
@@ -170,7 +193,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         
     } catch (Exception $e) {
         // Rollback the transaction on error
-        $pdo->rollBack();
+        if ($transaction_active) {
+            $pdo->rollBack();
+            $transaction_active = false;
+        }
         error_log("Error occurred: " . $e->getMessage());
         error_log("Stack trace: " . $e->getTraceAsString());
         

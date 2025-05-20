@@ -5,6 +5,9 @@ require_once '../config.php';
 // Set JSON header
 header('Content-Type: application/json');
 
+// Track if a transaction is active
+$transaction_active = false;
+
 // Check if user is logged in and has appropriate role
 if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['superior', 'technical', 'technical_support', 'process_owner', 'admin'])) {
     echo json_encode([
@@ -30,7 +33,29 @@ if (!isset($_POST['request_id']) || !isset($_POST['action']) || !isset($_POST['r
 }
 
 try {
+    // Get the admin_users id for the current admin
+    $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+    $adminQuery->execute([
+        'username' => $_SESSION['admin_username'] ?? '',
+        'employee_id' => $_SESSION['admin_id'] ?? ''
+    ]);
+    $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+    $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
+    
+    if (!$admin_users_id) {
+        // Try to find by role as a fallback
+        $roleQuery = $pdo->prepare("SELECT id FROM admin_users WHERE role = :role LIMIT 1");
+        $roleQuery->execute(['role' => $_SESSION['role']]);
+        $roleRecord = $roleQuery->fetch(PDO::FETCH_ASSOC);
+        $admin_users_id = $roleRecord ? $roleRecord['id'] : null;
+        
+        if (!$admin_users_id) {
+            throw new Exception('Admin user record not found. Cannot complete approval process.');
+        }
+    }
+    
     $pdo->beginTransaction();
+    $transaction_active = true;
 
     $request_id = $_POST['request_id'];
     $action = $_POST['action'];
@@ -185,12 +210,7 @@ try {
                 break;
         }
         
-        $pdo->commit();
-        
-        echo json_encode([
-            'success' => true,
-            'message' => $message
-        ]);
+                $pdo->commit();                $transaction_active = false;                                echo json_encode([                    'success' => true,                    'message' => $message                ]);
         
         exit();
     }
@@ -294,10 +314,7 @@ try {
                     $stmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
                     $stmt->execute([$request_id]);
                     
-                    $response['message'] = 'Testing successful - Access has been approved';
-                    $pdo->commit();
-                    echo json_encode($response);
-                    exit();
+                    $response['message'] = 'Testing successful - Access has been approved';                    $pdo->commit();                    $transaction_active = false;                    echo json_encode($response);                    exit();
                 } else if ($action === 'approve') {
                     // If test failed and approving, send back for retesting
                     $new_status = 'pending_testing_setup';
@@ -499,7 +516,7 @@ try {
             'business_unit' => $request['business_unit'],
             'department' => $request['department'],
             'access_type' => $request['access_type'],
-            'admin_id' => $admin_id,
+            'admin_id' => $admin_users_id,
             'comments' => $review_notes,
             'system_type' => $request['system_type'],
             'duration_type' => $request['duration_type'],
@@ -522,6 +539,7 @@ try {
     }
 
     $pdo->commit();
+    $transaction_active = false;
     
     echo json_encode([
         'success' => true,
@@ -529,7 +547,10 @@ try {
     ]);
 
 } catch (Exception $e) {
-    $pdo->rollBack();
+    if ($transaction_active) {
+        $pdo->rollBack();
+        $transaction_active = false;
+    }
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
