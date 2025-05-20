@@ -34,9 +34,10 @@ $historyId = intval($_GET['id']);
 
 // Fetch the request history details
 try {
-    $query = "SELECT ah.*, admin.username as admin_username 
+    $query = "SELECT ah.*, admin.username as admin_username, e.employee_name as admin_name
               FROM approval_history ah
               LEFT JOIN admin_users admin ON ah.admin_id = admin.id
+              LEFT JOIN employees e ON admin.username = e.employee_id
               WHERE ah.history_id = :history_id";
     
     $stmt = $pdo->prepare($query);
@@ -240,7 +241,7 @@ try {
     
     $pdf->Cell(60, $dataRowHeight, $durationText, 1, 0, 'L');
     $pdf->Cell(65, $dataRowHeight, $requiredDate->format('M d, Y'), 1, 0, 'L');
-    $pdf->Cell(65, $dataRowHeight, $request['admin_username'] ?? 'N/A', 1, 1, 'L');
+    $pdf->Cell(65, $dataRowHeight, $request['admin_name'] ?? $request['admin_username'] ?? 'N/A', 1, 1, 'L');
     
     // Third row - Justification and comments - Using consistent column width distribution
     $pdf->SetTextColor(255);
@@ -299,7 +300,7 @@ try {
 
     // Name lines with consistent borders
     $pdf->Cell($signWidth, 6, $request['requestor_name'] ?? 'N/A', 1, 0, 'C');
-    $pdf->Cell($signWidth, 6, $request['admin_username'] ?? 'N/A', 1, 0, 'C');
+    $pdf->Cell($signWidth, 6, $request['admin_name'] ?? $request['admin_username'] ?? 'N/A', 1, 0, 'C');
     $pdf->Cell($signWidth, 6, 'IT Manager', 1, 1, 'C');
 
     // Clear any output buffered content

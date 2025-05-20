@@ -10,9 +10,10 @@ if (!isset($_SESSION['admin_id'])) {
 
 // Get approval history
 try {
-    $sql = "SELECT h.*, a.username as admin_username 
+    $sql = "SELECT h.*, a.username as admin_username, e.employee_name as admin_name 
             FROM approval_history h 
             LEFT JOIN admin_users a ON h.admin_id = a.id 
+            LEFT JOIN employees e ON a.username = e.employee_id
             ORDER BY h.created_at DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
@@ -265,7 +266,7 @@ try {
                                         <?php endif; ?>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['admin_username']); ?></div>
+                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['admin_name']); ?></div>
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-500">
@@ -412,7 +413,7 @@ try {
                                         </div>
                                         <div class="flex justify-between">
                                             <span class="text-gray-600">Reviewed By:</span>
-                                            <span class="font-medium text-gray-900">${data.admin_username}</span>
+                                            <span class="font-medium text-gray-900">${data.admin_name}</span>
                                         </div>
                                     </div>
                                 </div>

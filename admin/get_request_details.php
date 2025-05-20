@@ -30,9 +30,10 @@ try {
     if ($isHistoryRequest) {
         // Get history details
         $stmt = $pdo->prepare("
-            SELECT h.*, a.username as admin_username 
+            SELECT h.*, a.username as admin_username, e.employee_name as admin_name
             FROM approval_history h 
             LEFT JOIN admin_users a ON h.admin_id = a.id 
+            LEFT JOIN employees e ON a.username = e.employee_id
             WHERE h.history_id = ?
         ");
         
