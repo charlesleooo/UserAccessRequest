@@ -447,6 +447,14 @@ function generateOTP($length = 6) {
                         class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     Sign In
                 </button>
+
+                <!-- Sign Up     Button -->
+                <div class="mt-4 text-center">
+                    <span class="text-gray-600">Don't have an account?</span>
+                    <a href="signup.php" class="ml-1 text-blue-600 hover:text-blue-800 font-medium">
+                        Sign up
+                    </a>
+                </div>
             </form>
 
             <!-- Back to Home Page -->

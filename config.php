@@ -1,7 +1,7 @@
 <?php
 // Database configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'uar_db');
+define('DB_NAME', 'u742707152_uardb');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('BASE_URL', 'https://royalblue-chimpanzee-160919.hostingersite.com'); // Replace with your actual domain
