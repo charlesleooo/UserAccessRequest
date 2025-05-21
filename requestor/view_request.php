@@ -344,12 +344,19 @@ try {
         <!-- Actions -->
         <div class="flex justify-between items-center" data-aos="fade-up" data-aos-duration="800" data-aos-delay="500">
             <div class="flex space-x-2">
-                <a href="my_requests.php" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                <a href="my_requests.php" 
+                   class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                     <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                 </a>
             </div>
-            <?php if ($request['status'] === 'pending'): ?>
-            <button id="cancelRequestBtn" class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+            <?php 
+            $status = strtolower($request['status']);
+            $adminReviewDate = $request['admin_review_date'] ?? null;
+            
+            if ($status === 'pending' || ($status !== 'approved' && $status !== 'rejected' && !$adminReviewDate)): 
+            ?>
+            <button onclick="cancelRequest(<?php echo $request['id']; ?>)"
+                    class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
                 <i class='bx bx-x mr-2'></i> Cancel Request
             </button>
             <?php endif; ?>
@@ -545,27 +552,36 @@ try {
         // Initialize AOS animation library
         AOS.init();
         
-        // Setup cancel request button
-        const cancelBtn = document.getElementById('cancelRequestBtn');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', function() {
-                Swal.fire({
-                    title: 'Cancel Request',
-                    text: 'Are you sure you want to cancel this request?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'Yes, cancel it!',
-                    cancelButtonText: 'No, keep it'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Redirect to cancel_request.php with the request ID
-                        window.location.href = 'cancel_request.php?id=<?php echo $requestId; ?>';
-                    }
-                });
-            });
-        }
+        // Show success/error messages
+        <?php if (isset($_GET['success']) && $_GET['success'] === 'cancelled'): ?>
+        Swal.fire({
+            title: 'Success!',
+            text: 'Your request has been cancelled successfully.',
+            icon: 'success',
+            timer: 3000,
+            showConfirmButton: false
+        }).then(() => {
+            window.location.href = 'my_requests.php';
+        });
+        <?php endif; ?>
+        
+        <?php if (isset($_GET['error'])): ?>
+        Swal.fire({
+            title: 'Error!',
+            text: <?php 
+                $errorMsg = 'An error occurred. Please try again.';
+                if ($_GET['error'] === 'not_found') {
+                    $errorMsg = 'Request not found.';
+                } elseif ($_GET['error'] === 'cannot_cancel') {
+                    $errorMsg = 'This request cannot be cancelled.';
+                } elseif ($_GET['error'] === 'invalid_request') {
+                    $errorMsg = 'Invalid request.';
+                }
+                echo json_encode($errorMsg);
+            ?>,
+            icon: 'error'
+        });
+        <?php endif; ?>
     });
 
     function updateTestingStatus(requestId, status) {
@@ -604,6 +620,66 @@ try {
                 }).then(() => {
                     window.location.reload();
                 });
+            }
+        });
+    }
+
+    function cancelRequest(requestId) {
+        Swal.fire({
+            title: 'Cancel Request',
+            html: `
+                <div class="mb-4">
+                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-2 text-left">
+                        Please provide a reason for cancellation
+                    </label>
+                    <textarea id="reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows="4" placeholder="Enter your reason for cancellation..."></textarea>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, cancel it!',
+            cancelButtonText: 'No, keep it',
+            preConfirm: () => {
+                const reason = document.getElementById('reason').value;
+                if (!reason) {
+                    Swal.showValidationMessage('Please provide a cancellation reason');
+                    return false;
+                }
+                return reason;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading modal
+                Swal.fire({
+                    title: 'Processing Cancellation',
+                    html: `
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <i class="bx bx-loader-alt bx-spin text-4xl text-primary-600"></i>
+                            </div>
+                            <p class="text-gray-600">Please wait while your request is being cancelled...</p>
+                        </div>
+                    `,
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
+
+                // Create a form and submit it
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'cancel_request.php?id=' + requestId;
+                
+                const reasonInput = document.createElement('input');
+                reasonInput.type = 'hidden';
+                reasonInput.name = 'reason';
+                reasonInput.value = result.value;
+                
+                form.appendChild(reasonInput);
+                document.body.appendChild(form);
+                form.submit();
             }
         });
     }
