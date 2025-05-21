@@ -23,7 +23,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
     header('Content-Type: application/json');
     
     if (isset($_POST['send_otp'])) {
-        $username = $_POST['username'] ?? '';
+        $username = $_POST['employee_email'] ?? '';
         $password = $_POST['password'] ?? '';
         
         // Log the credentials attempt (without the actual password)
@@ -225,7 +225,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
     
     if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $login_attempt = true;
-        $username = $_POST['username'] ?? '';
+        $username = $_POST['employee_email'] ?? '';
         $password = $_POST['password'] ?? '';
         
         error_log("Login attempt for username: " . $username);
