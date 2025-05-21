@@ -123,6 +123,31 @@ try {
     ]);
 
     if ($success) {
+        // Get the superior from the same department
+        $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
+                              FROM employees 
+                              WHERE department = ? 
+                              AND role = 'superior' 
+                              LIMIT 1");
+        $stmt->execute([$_POST['department']]);
+        $superior = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$superior) {
+            // If no superior found for the department, use a default superior
+            $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
+                                 FROM employees 
+                                 WHERE role = 'superior' 
+                                 LIMIT 1");
+            $stmt->execute();
+            $superior = $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+
+        // Update the request with the superior's ID
+        $stmt = $pdo->prepare("UPDATE access_requests 
+                              SET superior_id = ? 
+                              WHERE access_request_number = ?");
+        $stmt->execute([$superior['employee_id'], $access_request_number]);
+
         // Create PHPMailer instance
         $mail = new PHPMailer(true);
         
@@ -139,11 +164,8 @@ try {
             // Recipients
             $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
             $mail->addAddress($_POST['email'], $_POST['requestor_name']); // Add requestor
+            $mail->addAddress($superior['employee_email'], $superior['employee_name']); // Add department superior
             $mail->addAddress('charlesondota@gmail.com', 'System Administrator'); // Add admin
-
-            // Add superior notification
-            $superior_email = 'superior@example.com'; // Get this from your configuration
-            $mail->addAddress($superior_email, 'Department Superior');
 
             // Content
             $mail->isHTML(true);
@@ -167,7 +189,8 @@ try {
                 <h2>Access Request Details</h2>
                 <div style='font-family: Arial, sans-serif; line-height: 1.6;'>
                     <div style='background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 15px; margin-bottom: 20px; border-radius: 4px;'>
-                        <strong>Superior Action Required:</strong> Please review and approve/reject this access request through the User Access Request System.
+                        <strong>Dear {$superior['employee_name']},</strong><br><br>
+                        A new access request has been submitted by a member of your department and requires your review.
                         <p style='margin-top: 10px;'>
                             <a href='http://your-domain/superior/login.php' style='background-color: #0d6efd; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;'>Review Request</a>
                         </p>
@@ -185,7 +208,11 @@ try {
                         </tr>
                         <tr style='background-color: #f8f9fa;'>
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>Status:</strong></td>
-                            <td style='padding: 8px; border: 1px solid #ddd;'>Pending Superior Review</td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>Pending Your Review</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Department Superior:</strong></td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{$superior['employee_name']}</td>
                         </tr>
                     </table>
 
