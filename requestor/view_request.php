@@ -354,166 +354,178 @@ try {
             </button>
             <?php endif; ?>
         </div>
-    </div>
+    </div>    <!-- Add approval timeline -->
+    <div class="p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800">
+            <h3 class="text-lg font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100 flex items-center">
+                <i class='bx bx-history text-primary-500 text-xl mr-2'></i>
+                Approval Timeline
+            </h3>            
+            
+            <div class="relative">
+                <!-- Vertical Line - will end at the last item -->
+                <div class="absolute left-5 top-0 h-[calc(98%-4rem)] w-0.5 bg-gray-200"></div>
+                
+                <div class="space-y-8">
+                    <!-- Superior Review -->
+                    <div class="relative flex items-start group">
+                        <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                            <div class="w-10 h-10 rounded-full <?php echo $request['superior_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                <i class='bx bxs-user-check text-xl text-white'></i>
+                            </div>
+                        </div>
+                        <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                <h4 class="text-base font-semibold text-gray-900">Superior Review</h4>
+                                <?php if ($request['superior_review_date']): ?>
+                                    <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                        <?php echo date('M j, Y h:i A', strtotime($request['superior_review_date'])); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                <?php 
+                                if (!empty($request['superior_notes'])) {
+                                    echo nl2br(htmlspecialchars($request['superior_notes']));
+                                } else {
+                                    echo '<span class="text-gray-500 italic">Pending review</span>';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- Add approval timeline -->
-    <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">Approval Timeline</h3>
-        </div>
-        <div class="border-t border-gray-200">
-            <div class="px-4 py-5 sm:p-6">
-                <div class="flow-root">
-                    <ul role="list" class="-mb-8">
-                        <!-- Superior Review -->
-                        <li>
-                            <div class="relative pb-8">
-                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
-                                <div class="relative flex space-x-3">
-                                    <div>
-                                        <span class="h-8 w-8 rounded-full <?php echo $request['superior_id'] ? 'bg-green-500' : ($request['status'] === 'pending_superior' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
-                                            <i class='bx bx-user text-white'></i>
-                                        </span>
-                                    </div>
-                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                        <div>
-                                            <p class="text-sm text-gray-500">Superior Review</p>
-                                            <?php if ($request['superior_id']): ?>
-                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?></p>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                            <?php if ($request['superior_review_date']): ?>
-                                            <time datetime="<?php echo $request['superior_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['superior_review_date'])); ?></time>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
+                    <!-- Technical Review -->
+                    <div class="relative flex items-start group">
+                        <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                            <div class="w-10 h-10 rounded-full <?php echo $request['technical_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                <i class='bx bx-code-alt text-xl text-white'></i>
                             </div>
-                        </li>
-                        <!-- Technical Review -->
-                        <li>
-                            <div class="relative pb-8">
-                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
-                                <div class="relative flex space-x-3">
-                                    <div>
-                                        <span class="h-8 w-8 rounded-full <?php echo $request['technical_id'] ? 'bg-green-500' : ($request['status'] === 'pending_technical' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
-                                            <i class='bx bx-wrench text-white'></i>
-                                        </span>
-                                    </div>
-                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                        <div>
-                                            <p class="text-sm text-gray-500">Technical Review</p>
-                                            <?php if ($request['technical_id']): ?>
-                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['technical_notes'])); ?></p>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                            <?php if ($request['technical_review_date']): ?>
-                                            <time datetime="<?php echo $request['technical_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['technical_review_date'])); ?></time>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
+                        </div>
+                        <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                <h4 class="text-base font-semibold text-gray-900">Technical Support Review</h4>
+                                <?php if ($request['technical_review_date']): ?>
+                                    <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                        <?php echo date('M j, Y h:i A', strtotime($request['technical_review_date'])); ?>
+                                    </span>
+                                <?php endif; ?>
                             </div>
-                        </li>
-                        <!-- Process Owner Review -->
-                        <li>
-                            <div class="relative pb-8">
-                                <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></span>
-                                <div class="relative flex space-x-3">
-                                    <div>
-                                        <span class="h-8 w-8 rounded-full <?php echo $request['process_owner_id'] ? 'bg-green-500' : ($request['status'] === 'pending_process_owner' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
-                                            <i class='bx bx-briefcase text-white'></i>
-                                        </span>
-                                    </div>
-                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                        <div>
-                                            <p class="text-sm text-gray-500">Process Owner Review</p>
-                                            <?php if ($request['process_owner_id']): ?>
-                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['process_owner_notes'])); ?></p>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                            <?php if ($request['process_owner_review_date']): ?>
-                                            <time datetime="<?php echo $request['process_owner_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['process_owner_review_date'])); ?></time>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                <?php 
+                                if (!empty($request['technical_notes'])) {
+                                    echo nl2br(htmlspecialchars($request['technical_notes']));
+                                } else {
+                                    echo '<span class="text-gray-500 italic">Awaiting technical review</span>';
+                                }
+                                ?>
                             </div>
-                        </li>
-                        <!-- Admin Review -->
-                        <li>
-                            <div class="relative">
-                                <div class="relative flex space-x-3">
-                                    <div>
-                                        <span class="h-8 w-8 rounded-full <?php echo $request['admin_id'] ? 'bg-green-500' : ($request['status'] === 'pending_admin' ? 'bg-yellow-500' : 'bg-gray-400'); ?> flex items-center justify-center ring-8 ring-white">
-                                            <i class='bx bx-shield text-white'></i>
-                                        </span>
-                                    </div>
-                                    <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
-                                        <div>
-                                            <p class="text-sm text-gray-500">Admin Review</p>
-                                            <?php if ($request['admin_id']): ?>
-                                            <p class="text-sm text-gray-600 mt-1"><?php echo nl2br(htmlspecialchars($request['admin_notes'])); ?></p>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="text-right text-sm whitespace-nowrap text-gray-500">
-                                            <?php if ($request['admin_review_date']): ?>
-                                            <time datetime="<?php echo $request['admin_review_date']; ?>"><?php echo date('M d, Y', strtotime($request['admin_review_date'])); ?></time>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                </div>
+                        </div>
+                    </div>
+
+                    <!-- Process Owner Review -->
+                    <div class="relative flex items-start group">
+                        <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                            <div class="w-10 h-10 rounded-full <?php echo $request['process_owner_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                <i class='bx bx-user-voice text-xl text-white'></i>
                             </div>
-                        </li>
-                    </ul>
+                        </div>
+                        <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                <h4 class="text-base font-semibold text-gray-900">Process Owner Review</h4>
+                                <?php if ($request['process_owner_review_date']): ?>
+                                    <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                        <?php echo date('M j, Y h:i A', strtotime($request['process_owner_review_date'])); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                <?php 
+                                if (!empty($request['process_owner_notes'])) {
+                                    echo nl2br(htmlspecialchars($request['process_owner_notes']));
+                                } else {
+                                    echo '<span class="text-gray-500 italic">Awaiting process owner review</span>';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Review -->
+                    <div class="relative flex items-start group">
+                        <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                            <div class="w-10 h-10 rounded-full <?php echo $request['admin_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                <i class='bx bx-shield-quarter text-xl text-white'></i>
+                            </div>
+                        </div>
+                        <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                <h4 class="text-base font-semibold text-gray-900">Admin Review</h4>
+                                <?php if ($request['admin_review_date']): ?>
+                                    <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                        <?php echo date('M j, Y h:i A', strtotime($request['admin_review_date'])); ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                <?php 
+                                if (!empty($request['admin_notes'])) {
+                                    echo nl2br(htmlspecialchars($request['admin_notes']));
+                                } else {
+                                    echo '<span class="text-gray-500 italic">Awaiting admin review</span>';
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Add testing status section if applicable -->
+    </div>    <!-- Add testing status section if applicable -->
     <?php if ($request['status'] === 'pending_testing'): ?>
-    <div class="mt-8 bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6">
-            <h3 class="text-lg leading-6 font-medium text-gray-900">Testing Status</h3>
-        </div>
-        <div class="border-t border-gray-200">
-            <div class="px-4 py-5 sm:p-6">
+    <div class="p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                <i class='bx bx-test-tube text-messenger-primary text-xl mr-2'></i>
+                Testing Status
+            </h3>
+            <div class="p-4">
                 <?php if ($request['testing_status'] === 'pending'): ?>
-                <div class="flex items-center justify-between">
+                <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <p class="text-sm text-gray-500">Please test your access and update the status:</p>
+                        <p class="text-gray-700 font-medium mb-2">System Access Testing Required</p>
+                        <p class="text-sm text-gray-600">Please test your system access and update the status below.</p>
                     </div>
-                    <div class="flex space-x-3">
+                    <div class="flex flex-col sm:flex-row gap-3">
                         <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'success')" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-messenger-primary text-white hover:bg-messenger-dark focus:outline-none focus:ring-2 focus:ring-messenger-light focus:ring-offset-2 transition-colors duration-200">
+                            <i class='bx bx-check-circle mr-2 text-xl'></i>
                             Testing Success
                         </button>
                         <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'failed')" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium rounded-lg bg-red-500 text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 transition-colors duration-200">
+                            <i class='bx bx-x-circle mr-2 text-xl'></i>
                             Testing Failed
                         </button>
                     </div>
-                </div>
-                <?php else: ?>
-                <div class="flex items-center">
+                </div>                <?php else: ?>
+                <div class="flex items-start space-x-4">
                     <div class="flex-shrink-0">
-                        <?php if ($request['testing_status'] === 'success'): ?>
-                        <i class='bx bx-check text-2xl text-green-500'></i>
-                        <?php else: ?>
-                        <i class='bx bx-x text-2xl text-red-500'></i>
-                        <?php endif; ?>
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full <?php echo $request['testing_status'] === 'success' ? 'bg-green-100' : 'bg-red-100'; ?>">
+                            <?php if ($request['testing_status'] === 'success'): ?>
+                            <i class='bx bx-check text-3xl text-green-500'></i>
+                            <?php else: ?>
+                            <i class='bx bx-x text-3xl text-red-500'></i>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-gray-900">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-medium <?php echo $request['testing_status'] === 'success' ? 'text-green-700' : 'text-red-700'; ?>">
                             Testing <?php echo ucfirst($request['testing_status']); ?>
                         </h3>
                         <?php if ($request['testing_notes']): ?>
-                        <div class="mt-2 text-sm text-gray-500">
-                            <p><?php echo nl2br(htmlspecialchars($request['testing_notes'])); ?></p>
+                        <div class="mt-2 p-4 bg-gray-50 rounded-lg">
+                            <p class="text-gray-700"><?php echo nl2br(htmlspecialchars($request['testing_notes'])); ?></p>
                         </div>
                         <?php endif; ?>
                     </div>
@@ -597,4 +609,4 @@ try {
     }
 </script>
 </body>
-</html> 
+</html>
