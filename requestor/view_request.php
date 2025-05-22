@@ -119,7 +119,7 @@ try {
 <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" x-data="{open: true}">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
-            <img src="../logo.png" alt="Logo" class="w-48 mx-auto transition-all duration-300 hover:scale-105">
+            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
         </div>
         <nav class="flex-1 pt-4 px-3 space-y-1 overflow-y-auto">
             <a href="dashboard.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
@@ -165,12 +165,7 @@ try {
     </div>
 </div>
 
-<!-- Mobile menu toggle -->
-<div class="fixed top-4 left-4 z-50 md:hidden">
-    <button type="button" class="p-2 bg-white rounded-lg shadow-md text-gray-700" @click="open = !open">
-        <i class='bx bx-menu text-2xl'></i>
-    </button>
-</div>
+<!-- Mobile menu toggle removed -->
 
 <!-- Main Content -->
 <div class="ml-0 md:ml-72 transition-all duration-300">

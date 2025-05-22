@@ -241,10 +241,22 @@ try {
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" x-data="{open: true}">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" 
+    x-data="{
+        open: true,
+        init() {
+            if (typeof Alpine !== 'undefined' && Alpine.store) {
+                this.open = Alpine.store('sidebar').open;
+                this.$watch('open', val => {
+                    Alpine.store('sidebar').open = val;
+                });
+            }
+        }
+    }" 
+    :class="{'translate-x-0': open, '-translate-x-full': !open}">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
-            <img src="../logo.png" alt="Logo" class="w-48 mx-auto transition-all duration-300 hover:scale-105">
+            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
         </div>
         <nav class="flex-1 pt-4 px-3 space-y-1 overflow-y-auto">
             <a href="dashboard.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
@@ -296,21 +308,18 @@ try {
     </div>
 </div>
 
-<!-- Mobile menu toggle -->
-<div class="fixed top-4 left-4 z-50 md:hidden">
-    <button type="button" class="p-2 bg-white rounded-lg shadow-md text-gray-700" @click="open = !open">
-        <i class='bx bx-menu text-2xl'></i>
-    </button>
-</div>
+<!-- Mobile menu toggle removed -->
 
 <!-- Main Content -->
-<div class="ml-0 md:ml-72 transition-all duration-300">
+<div x-data="{}" :class="{'ml-0 md:ml-72': $store.sidebar.open, 'ml-0': !$store.sidebar.open}" class="transition-all duration-300">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
-            <div data-aos="fade-right" data-aos-duration="800">
-                <h2 class="text-2xl font-bold text-gray-800">Create Access Request</h2>
-                <p class="text-gray-600 text-lg mt-1">Fill in the details below to submit a new access request</p>
+            <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Create Access Request</h2>
+                    <p class="text-gray-600 text-lg mt-1">Fill in the details below to submit a new access request</p>
+                </div>
             </div>
             <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
                 <div class="flex items-center space-x-2 text-sm bg-primary-50 text-primary-700 px-4 py-2 rounded-lg">
@@ -879,6 +888,23 @@ try {
             init() {
                 this.setupProgressBar();
                 this.setupDateTime();
+                
+                // Initialize Alpine store for sidebar state if Alpine.js is loaded
+                if (typeof Alpine !== 'undefined') {
+                    if (!Alpine.store) {
+                        // If Alpine.store is not available yet, wait for Alpine to initialize
+                        document.addEventListener('alpine:init', () => {
+                            Alpine.store('sidebar', {
+                                open: true
+                            });
+                        });
+                    } else {
+                        // If Alpine.store is already available
+                        Alpine.store('sidebar', {
+                            open: true
+                        });
+                    }
+                }
                 
                 // Initialize AOS
                 AOS.init({

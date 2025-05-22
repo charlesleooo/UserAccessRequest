@@ -93,7 +93,7 @@ try {
     <!-- Boxicons -->
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- Alpine.js for interactions -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
     <!-- Animate on Scroll -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
@@ -197,19 +197,34 @@ try {
         [x-cloak] {
             display: none !important;
         }
+        
+        .sidebar-transition {
+            transition-property: transform, margin, width;
+            transition-duration: 300ms;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar-open {
+                transform: translateX(0);
+            }
+            .sidebar-closed {
+                transform: translateX(-100%);
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
+<body class="bg-gray-50 font-sans" x-data="{ sidebarOpen: true }">
 <!-- Progress bar -->
 <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" x-data="{open: true}">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card sidebar-transition" 
+    :class="sidebarOpen ? 'sidebar-open' : 'sidebar-closed'">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
-            <img src="../logo.png" alt="Logo" class="w-48 mx-auto transition-all duration-300 hover:scale-105">
+            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
         </div>
         <nav class="flex-1 pt-4 px-3 space-y-1 overflow-y-auto">
             <a href="dashboard.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
@@ -261,14 +276,18 @@ try {
     </div>
 </div>
 
+<!-- Mobile menu toggle removed -->
+
 <!-- Main Content -->
-<div class="ml-0 md:ml-72 transition-all duration-300">
+<div class="sidebar-transition" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
-            <div data-aos="fade-right" data-aos-duration="800">
-                <h2 class="text-2xl font-bold text-gray-800">Request History</h2>
-                <p class="text-gray-600 text-lg mt-1">View all your previously processed requests</p>
+            <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Request History</h2>
+                    <p class="text-gray-600 text-lg mt-1">View all your previously processed requests</p>
+                </div>
             </div>
             <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
                 <div class="flex items-center space-x-2 text-sm bg-primary-50 text-primary-700 px-4 py-2 rounded-lg">
@@ -431,6 +450,23 @@ try {
 <script>
 // Initialize DataTables with custom styling
 $(document).ready(function() {
+    // Initialize Alpine store for sidebar state if Alpine.js is loaded
+    if (typeof Alpine !== 'undefined') {
+        if (!Alpine.store) {
+            // If Alpine.store is not available yet, wait for Alpine to initialize
+            document.addEventListener('alpine:init', () => {
+                Alpine.store('sidebar', {
+                    open: true
+                });
+            });
+        } else {
+            // If Alpine.store is already available
+            Alpine.store('sidebar', {
+                open: true
+            });
+        }
+    }
+    
     $('#requests-table').DataTable({
         responsive: true,
         lengthMenu: [10, 25, 50, 100],

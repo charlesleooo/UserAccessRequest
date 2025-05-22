@@ -49,6 +49,8 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <!-- Alpine.js for interactions -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -67,14 +69,32 @@ try {
             }
         }
     </script>
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        .sidebar-transition {
+            transition-property: transform, margin, width;
+            transition-duration: 300ms;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar-open {
+                transform: translateX(0);
+            }
+            .sidebar-closed {
+                transform: translateX(-100%);
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }">
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg sidebar-transition"
+     :class="sidebarOpen ? 'sidebar-open' : 'sidebar-closed'">
     <div class="flex flex-col h-full">
-        <div class="text-center mt-4">
-            <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
+        <div class="text-center mt-4 flex justify-center items-center">
+            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
         </div>
         <nav class="flex-1 pt-6 px-4 space-y-1 overflow-y-auto">
             <a href="dashboard.php" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition hover:bg-indigo-100 group">
@@ -126,14 +146,18 @@ try {
     </div>
 </div>
 
+<!-- Mobile menu toggle removed -->
+
 <!-- Main Content -->
-<div class="flex-1 ml-72">
+<div class="sidebar-transition" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-8 py-4">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800">User Access Request System</h2>
-                <p class="text-gray-600 text-xl mt-1">Welcome back <?php echo htmlspecialchars($username); ?></p>
+            <div class="flex items-center">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">User Access Request System</h2>
+                    <p class="text-gray-600 text-xl mt-1">Welcome back <?php echo htmlspecialchars($username); ?></p>
+                </div>
             </div>
         </div>
     </div>
