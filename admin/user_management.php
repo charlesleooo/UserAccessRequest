@@ -164,6 +164,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $department = filter_input(INPUT_POST, 'department', FILTER_SANITIZE_STRING);
                     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
                     
+                    // IMPORTANT FIX: Get the exact role value from POST without any filtering or sanitization
+                    $role = $_POST['role'] ?? 'requestor';
+                    
+                    // Debug logs to track the issue
+                    error_log("RAW POST DATA: " . print_r($_POST, true));
+                    error_log("SELECTED ROLE VALUE: " . $role);
+                    
                     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                         throw new Exception('Invalid email format');
                     }
@@ -182,8 +189,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new Exception('Email address already exists');
                     }
                     
-                    $stmt = $pdo->prepare("INSERT INTO employees (employee_id, employee_name, company, department, employee_email) VALUES (?, ?, ?, ?, ?)");
-                    $stmt->execute([$employee_id, $employee_name, $company, $department, $email]);
+                    // Start transaction to ensure both inserts succeed or fail together
+                    $pdo->beginTransaction();
+                    $transaction_active = true;
+                    
+                    try {
+                        // Insert into employees table WITH THE CORRECT ROLE
+                        $stmt = $pdo->prepare("INSERT INTO employees (employee_id, employee_name, company, department, employee_email, role) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt->execute([$employee_id, $employee_name, $company, $department, $email, $role]);
+                        
+                        // Default password for admin users
+                        $default_password = password_hash('password123', PASSWORD_DEFAULT);
+                        
+                        // Delete any existing admin user entry first
+                        $delete_stmt = $pdo->prepare("DELETE FROM admin_users WHERE username = ?");
+                        $delete_stmt->execute([$employee_id]);
+                        
+                        // Now create a fresh admin user entry with the selected role
+                        $insert_stmt = $pdo->prepare("INSERT INTO admin_users (username, password, role) VALUES (?, ?, ?)");
+                        $insert_result = $insert_stmt->execute([$employee_id, $default_password, $role]);
+                        
+                        if (!$insert_result) {
+                            throw new Exception("Failed to create admin user with role: " . $role);
+                        }
+                        
+                        // Commit the transaction
+                        $pdo->commit();
+                        $transaction_active = false;
+                        
+                        error_log("SUCCESS: User created with role: " . $role . " in both tables");
+                    } catch (Exception $e) {
+                        // Rollback on error
+                        if ($transaction_active) {
+                            $pdo->rollBack();
+                            $transaction_active = false;
+                        }
+                        throw $e;
+                    }
                     
                     $_SESSION['message'] = [
                         'title' => 'Success',
@@ -748,7 +790,7 @@ $existing_usernames = array_column($admin_users, 'username');
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addEmployeeForm" method="POST">
+                    <form id="addEmployeeForm" method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
                         <input type="hidden" name="action" value="add">
                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
                         
@@ -792,6 +834,18 @@ $existing_usernames = array_column($admin_users, 'username');
                             <label for="add_email" class="form-label">Email <span class="text-danger">*</span></label>
                             <input type="email" class="form-control" id="add_email" name="email" required>
                             <div class="form-text">Enter a valid email address</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="add_role" class="form-label">Role</label>
+                            <select class="form-select" id="add_role" name="role" required>
+                                <option value="requestor">Requestor</option>
+                                <option value="admin">Admin</option>
+                                <option value="superior">Superior</option>
+                                <option value="technical_support">Technical Support</option>
+                                <option value="process_owner">Process Owner</option>
+                            </select>
+                            <div class="form-text">Assign a role if this employee needs system access</div>
                         </div>
                         
                         <div class="text-end">
@@ -915,40 +969,9 @@ $existing_usernames = array_column($admin_users, 'username');
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        const form = $(this);
-                        const formData = form.serialize();
-                        
-                        $.ajax({
-                            url: form.attr('action'),
-                            type: 'POST',
-                            data: formData,
-                            success: function(response) {
-                                $('#addEmployeeModal').modal('hide');
-                                form[0].reset();
-                                
-                                Swal.fire({
-                                    title: 'Success!',
-                                    text: 'Employee added successfully.',
-                                    icon: 'success',
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                }).then(() => {
-                                    location.reload();
-                                });
-                            },
-                            error: function(xhr) {
-                                let errorMessage = 'An error occurred while adding the employee.';
-                                if (xhr.responseJSON && xhr.responseJSON.message) {
-                                    errorMessage = xhr.responseJSON.message;
-                                }
-                                
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: errorMessage,
-                                    icon: 'error'
-                                });
-                            }
-                        });
+                        // Get the form and directly submit it without AJAX
+                        // This ensures all form values are properly submitted
+                        document.getElementById('addEmployeeForm').submit();
                     }
                 });
             });
