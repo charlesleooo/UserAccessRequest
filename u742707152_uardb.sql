@@ -44,6 +44,8 @@ CREATE TABLE `access_requests` (
   `duration_type` varchar(20) DEFAULT NULL,
   `start_date` date DEFAULT NULL,
   `end_date` date DEFAULT NULL,
+  `access_level` varchar(20) DEFAULT NULL,
+  `usernames` json DEFAULT NULL,
   `status` enum('pending_superior','pending_technical','pending_process_owner','pending_admin','approved','rejected','pending_testing','pending_testing_setup','pending_testing_review') NOT NULL DEFAULT 'pending_superior',
   `testing_status` enum('not_required','pending','success','failed') DEFAULT 'not_required',
   `testing_notes` text DEFAULT NULL,
@@ -66,11 +68,16 @@ CREATE TABLE `access_requests` (
   `review_notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- Add new columns to access_requests table if they don't exist
+ALTER TABLE `access_requests`
+ADD COLUMN IF NOT EXISTS `access_level` varchar(20) DEFAULT NULL AFTER `end_date`,
+ADD COLUMN IF NOT EXISTS `usernames` json DEFAULT NULL AFTER `access_level`;
+
 --
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
+INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `access_level`, `usernames`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
 (42, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-009', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'ahahaa', 'ERP/NAV', NULL, '', 'permanent', NULL, NULL, 'pending_testing_review', 'success', 'qwe', 'qwe', '2025-05-18 16:02:28', 6, '2025-05-18 16:05:48', 'qwe', 9, '2025-05-18 16:24:39', 'qwe', 10, '2025-05-18 16:06:09', 'qwe', 3, '2025-05-18 16:06:19', 'qwe', NULL, NULL, NULL),
 (43, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-010', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'newly hired', 'Legacy Inventory', NULL, '', 'permanent', NULL, NULL, 'pending_testing_review', 'success', 'qwe', 'qweqwe', '2025-05-18 16:11:07', 6, '2025-05-18 16:11:19', 'qwe', 9, '2025-05-18 16:18:52', 'qwe', 10, '2025-05-18 16:11:42', 'qwe', 3, '2025-05-18 16:11:58', 'qwe', NULL, NULL, NULL);
 
@@ -766,7 +773,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC002631', 'AAC', 'COMALING, MAR JUN P.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC002635', 'AAC', 'PALER, DAN RUZEL D.', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('AAC002637', 'AAC', 'BALLON, KEINTH JANN C.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
-('AAC052002', 'AAC', 'TAMPUS, ALVIN A. JR.', 'INFORMATION TECHNOLOGY (IT)', 'alvintampus3@gmail.com', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', 0, 'superior'),
+('AAC052002', 'AAC', 'TAMPUS, ALVIN A. JR.', 'INFORMATION TECHNOLOGY (IT)', 'alvintampus3@gmail.com', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', 0, 'requestor'),
 ('AAC052003', 'AAC', 'PALOMARES, CHARLES LEO H.', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', 0, 'admin'),
 ('ALD000001', 'ALDEV', 'ALIPOON,NEIL QUIRINO', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000003', 'ALDEV', 'ARONG JR.,DEMETRIO FERRAREN', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor');
