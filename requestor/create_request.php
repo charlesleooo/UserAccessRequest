@@ -241,22 +241,10 @@ try {
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" 
-    x-data="{
-        open: true,
-        init() {
-            if (typeof Alpine !== 'undefined' && Alpine.store) {
-                this.open = Alpine.store('sidebar').open;
-                this.$watch('open', val => {
-                    Alpine.store('sidebar').open = val;
-                });
-            }
-        }
-    }" 
-    :class="{'translate-x-0': open, '-translate-x-full': !open}">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" x-data="{open: true}">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
-            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
+            <img src="../logo.png" alt="Logo" class="w-48 mx-auto transition-all duration-300 hover:scale-105">
         </div>
         <nav class="flex-1 pt-4 px-3 space-y-1 overflow-y-auto">
             <a href="dashboard.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
@@ -308,18 +296,21 @@ try {
     </div>
 </div>
 
-<!-- Mobile menu toggle removed -->
+<!-- Mobile menu toggle -->
+<div class="fixed top-4 left-4 z-50 md:hidden">
+    <button type="button" class="p-2 bg-white rounded-lg shadow-md text-gray-700" @click="open = !open">
+        <i class='bx bx-menu text-2xl'></i>
+    </button>
+</div>
 
 <!-- Main Content -->
-<div x-data="{}" :class="{'ml-0 md:ml-72': $store.sidebar.open, 'ml-0': !$store.sidebar.open}" class="transition-all duration-300">
+<div class="ml-0 md:ml-72 transition-all duration-300">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
-            <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Create Access Request</h2>
-                    <p class="text-gray-600 text-lg mt-1">Fill in the details below to submit a new access request</p>
-                </div>
+            <div data-aos="fade-right" data-aos-duration="800">
+                <h2 class="text-2xl font-bold text-gray-800">Create Access Request</h2>
+                <p class="text-gray-600 text-lg mt-1">Fill in the details below to submit a new access request</p>
             </div>
             <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
                 <div class="flex items-center space-x-2 text-sm bg-primary-50 text-primary-700 px-4 py-2 rounded-lg">
@@ -427,390 +418,265 @@ try {
                         </div>
                     </div>
 
-                    <!-- Access Types -->
+                    <!-- Multiple User Forms Section -->
                     <div class="bg-white p-6 rounded-xl shadow-card border border-gray-100 transition-all duration-300 hover:shadow-lg" data-aos="fade-up" data-aos-duration="800">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-5 pb-2 border-b border-gray-200 flex items-center">
-                            <i class='bx bx-lock-open text-primary-500 text-2xl mr-2'></i>
-                            Access Type <span class="text-red-500">*</span>
-                        </h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'System Application'}" x-data>
-                                <input type="radio" name="access_type" value="System Application" required class="custom-radio hidden"
-                                    @change="accessTypeValue = 'System Application'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'System Application'}">
-                                    <i class='bx bx-window-alt text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'System Application'}">
-                                    System Application
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'PC Access - Network'}" x-data>
-                                <input type="radio" name="access_type" value="PC Access - Network" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'PC Access - Network'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'PC Access - Network'}">
-                                    <i class='bx bx-desktop text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'PC Access - Network'}">
-                                    PC Access - Network
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'Email Access'}" x-data>
-                                <input type="radio" name="access_type" value="Email Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'Email Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'Email Access'}">
-                                    <i class='bx bx-envelope text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'Email Access'}">
-                                    Email Access
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'Server Access'}" x-data>
-                                <input type="radio" name="access_type" value="Server Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'Server Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'Server Access'}">
-                                    <i class='bx bx-server text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'Server Access'}">
-                                    Server Access
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'Internet Access'}" x-data>
-                                <input type="radio" name="access_type" value="Internet Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'Internet Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'Internet Access'}">
-                                    <i class='bx bx-globe text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'Internet Access'}">
-                                    Internet Access
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'Printer Access'}" x-data>
-                                <input type="radio" name="access_type" value="Printer Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'Printer Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'Printer Access'}">
-                                    <i class='bx bx-printer text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'Printer Access'}">
-                                    Printer Access
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'Active Directory Access (MS ENTRA ID)'}" x-data>
-                                <input type="radio" name="access_type" value="Active Directory Access (MS ENTRA ID)" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'Active Directory Access (MS ENTRA ID)'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'Active Directory Access (MS ENTRA ID)'}">
-                                    <i class='bx bx-folder-open text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'Active Directory Access (MS ENTRA ID)'}">
-                                    Active Directory Access
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'Firewall Access'}" x-data>
-                                <input type="radio" name="access_type" value="Firewall Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'Firewall Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'Firewall Access'}">
-                                    <i class='bx bx-shield-quarter text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'Firewall Access'}">
-                                    Firewall Access
-                                </span>
-                            </label>
-                            
-                            <!-- Additional items -->
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'Wi-Fi/Access Point Access'}" x-data>
-                                <input type="radio" name="access_type" value="Wi-Fi/Access Point Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'Wi-Fi/Access Point Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'Wi-Fi/Access Point Access'}">
-                                    <i class='bx bx-wifi text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'Wi-Fi/Access Point Access'}">
-                                    Wi-Fi/Access Point Access
-                                </span>
-                            </label>
-                            
-                            <!-- More access type options with similar pattern -->
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'TNA Biometric Device Access'}" x-data>
-                                <input type="radio" name="access_type" value="TNA Biometric Device Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'TNA Biometric Device Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'TNA Biometric Device Access'}">
-                                    <i class='bx bx-fingerprint text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'TNA Biometric Device Access'}">
-                                    TNA Biometric Device Access
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'USB/PC-port Access'}" x-data>
-                                <input type="radio" name="access_type" value="USB/PC-port Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'USB/PC-port Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'USB/PC-port Access'}">
-                                    <i class='bx bx-usb text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'USB/PC-port Access'}">
-                                    USB/PC-port Access
-                                </span>
-                            </label>
-                            
-                            <label class="radio-card" :class="{'border-primary-500 bg-primary-50': accessTypeValue === 'CCTV Access'}" x-data>
-                                <input type="radio" name="access_type" value="CCTV Access" class="custom-radio hidden"
-                                    x-on:change="accessTypeValue = 'CCTV Access'; toggleSystemApplicationSection()">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': accessTypeValue === 'CCTV Access'}">
-                                    <i class='bx bx-cctv text-xl'></i>
-                                </div>
-                                <span class="text-gray-700" :class="{'text-primary-600 font-medium': accessTypeValue === 'CCTV Access'}">
-                                    CCTV Access
-                                </span>
-                            </label>
+                        <div class="flex items-center justify-between mb-6">
+                            <h2 class="text-xl font-semibold text-gray-800 flex items-center">
+                                <i class='bx bx-user-plus text-primary-500 text-2xl mr-2'></i>
+                                User Access Forms
+                            </h2>
                         </div>
-                    </div>
 
-                    <!-- System/Application Type -->
-                    <div id="systemApplicationSection" class="hidden bg-white p-6 rounded-xl shadow-card border border-gray-100 transition-all duration-300 hover:shadow-lg transform" 
-                        data-aos="fade-up" data-aos-duration="800">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-5 pb-2 border-b border-gray-200 flex items-center">
-                            <i class='bx bx-grid-alt text-primary-500 text-2xl mr-2'></i>
-                            System/Application Type
-                        </h2>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Canvasing System" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Canvasing System</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="ERP/NAV" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">ERP/NAV</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Legacy Payroll" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Legacy Payroll</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="HRIS" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">HRIS</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Legacy Purchasing" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Legacy Purchasing</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Piece Rate Payroll System" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Piece Rate Payroll System</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Legacy Inventory" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Legacy Inventory</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Fresh Chilled Receiving System" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Fresh Chilled Receiving System</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Legacy Vouchering" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Legacy Vouchering</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Quickbooks" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Quickbooks</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Legacy Ledger System" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Legacy Ledger System</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="Memorandum Receipt" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">Memorandum Receipt</span>
-                            </label>
-                            
-                            <label class="checkbox-card">
-                                <input type="checkbox" name="system_type[]" value="ZankPOS" class="hidden checkbox-system">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 checkbox-icon">
-                                    <i class='bx bx-circle text-xl'></i>
-                                </div>
-                                <span class="text-gray-700">ZankPOS</span>
-                            </label>
-                            
-                            <div class="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4 flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition duration-200">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600">
-                                    <i class='bx bx-plus-circle text-xl'></i>
-                                </div>
-                                <input type="checkbox" name="system_type[]" value="other" id="otherSystemType" class="hidden">
-                                <span class="text-gray-700 mr-4">Other (specify):</span>
-                                <input type="text" name="other_system_type" id="otherSystemTypeText"
-                                    class="flex-1 input-field" disabled>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Role Access Type -->
-                    <div id="roleAccessSection" class="hidden bg-white p-6 rounded-xl shadow-card border border-gray-100 transition-all duration-300 hover:shadow-lg"
-                        x-show="showRoleAccessSection"
-                        x-transition:enter="transition ease-out duration-300"
-                        x-transition:enter-start="opacity-0 transform -translate-y-4"
-                        x-transition:enter-end="opacity-100 transform translate-y-0"
-                        x-transition:leave="transition ease-in duration-300"
-                        x-transition:leave-start="opacity-100 transform translate-y-0"
-                        x-transition:leave-end="opacity-0 transform -translate-y-4"
-                        data-aos="fade-up" data-aos-duration="800">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-5 pb-2 border-b border-gray-200 flex items-center">
-                            <i class='bx bx-user-check text-primary-500 text-2xl mr-2'></i>
-                            Role Access Type (If applicable)
-                        </h2>
-                        <div>
-                            <div class="relative">
-                                <textarea name="role_access_type" rows="4" 
-                                    class="input-field pl-10 resize-none" 
-                                    placeholder="Enter role access type details"
-                                    x-model="roleAccessType"></textarea>
-                                <span class="absolute top-3 left-3 text-gray-500">
-                                    <i class='bx bx-edit-alt'></i>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
+                        <!-- User Forms Container -->
+                        <div class="space-y-6">
+                            <template x-for="(form, index) in userForms" :key="index">
+                                <div class="border border-gray-200 rounded-xl p-6 bg-gray-50" 
+                                     x-transition:enter="transition ease-out duration-300"
+                                     x-transition:enter-start="opacity-0 transform -translate-y-4"
+                                     x-transition:enter-end="opacity-100 transform translate-y-0">
+                                    <div class="flex justify-between items-center mb-4">
+                                        <h3 class="text-lg font-medium text-gray-800">User Form #<span x-text="index + 1"></span></h3>
+                                        <div class="flex items-center space-x-2">
+                                            <button type="button" 
+                                                    @click="addUserForm"
+                                                    class="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center text-sm">
+                                                <i class='bx bx-plus mr-1'></i>
+                                                Add Another User
+                                            </button>
+                                            <button type="button" 
+                                                    @click="removeUserForm(index)"
+                                                    class="p-2 text-red-600 hover:text-red-700 transition-colors"
+                                                    x-show="userForms.length > 1">
+                                                <i class='bx bx-trash text-xl'></i>
+                                            </button>
+                                        </div>
+                                    </div>
 
-                    <!-- Access Duration -->
-                    <div class="bg-white p-6 rounded-xl shadow-card border border-gray-100 transition-all duration-300 hover:shadow-lg" data-aos="fade-up" data-aos-duration="800">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-5 pb-2 border-b border-gray-200 flex items-center">
-                            <i class='bx bx-time text-primary-500 text-2xl mr-2'></i>
-                            Access Duration <span class="text-red-500">*</span>
-                        </h2>
-                        <div class="space-y-4">
-                            <label class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition cursor-pointer"
-                                :class="{'border-primary-500 bg-primary-50': durationType === 'permanent'}">
-                                <input type="radio" name="duration_type" value="permanent" required class="hidden" x-model="durationType">
-                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                    :class="{'bg-primary-100 text-primary-600': durationType === 'permanent'}">
-                                    <i class='bx bx-check-circle text-xl' x-show="durationType === 'permanent'"></i>
-                                    <i class='bx bx-circle text-xl' x-show="durationType !== 'permanent'"></i>
-                                </div>
-                                <span class="text-gray-700 text-lg" :class="{'text-primary-600 font-medium': durationType === 'permanent'}">Permanent</span>
-                            </label>
-                            
-                            <div class="p-4 border border-gray-200 rounded-xl"
-                                :class="{'border-primary-500 bg-primary-50': durationType === 'temporary'}">
-                                <div class="flex flex-wrap items-center gap-4">
-                                    <label class="flex items-center">
-                                        <input type="radio" name="duration_type" value="temporary" class="hidden" x-model="durationType">
-                                        <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
-                                            :class="{'bg-primary-100 text-primary-600': durationType === 'temporary'}">
-                                            <i class='bx bx-check-circle text-xl' x-show="durationType === 'temporary'"></i>
-                                            <i class='bx bx-circle text-xl' x-show="durationType !== 'temporary'"></i>
+                                    <!-- Username Field -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Username <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="space-y-4">
+                                            <template x-for="(username, usernameIndex) in form.usernames" :key="usernameIndex">
+                                                <div class="flex items-center gap-4">
+                                                    <div class="flex-1 relative">
+                                                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                                            <i class='bx bx-user'></i>
+                                                        </span>
+                                                        <input type="text" 
+                                                               :name="'user_forms['+index+'][usernames][]'"
+                                                               x-model="form.usernames[usernameIndex]"
+                                                               class="input-field pl-10"
+                                                               :placeholder="'Username ' + (usernameIndex + 1)"
+                                                               required>
+                                                    </div>
+                                                    <button type="button" 
+                                                            @click="removeUsername(index, usernameIndex)"
+                                                            class="p-2 text-red-600 hover:text-red-700 transition-colors"
+                                                            x-show="form.usernames.length > 1">
+                                                        <i class='bx bx-trash text-xl'></i>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                            <button type="button" 
+                                                    @click="addUsername(index)"
+                                                    class="mt-2 px-4 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors flex items-center">
+                                                <i class='bx bx-plus mr-2'></i>
+                                                Add Another Username
+                                            </button>
                                         </div>
-                                        <span class="text-gray-700 text-lg" :class="{'text-primary-600 font-medium': durationType === 'temporary'}">Temporary</span>
-                                    </label>
-                                    
-                                    <div class="flex-1 flex flex-wrap items-center gap-3 mt-2 md:mt-0" x-show="durationType === 'temporary'"
-                                        x-transition:enter="transition ease-out duration-300"
-                                        x-transition:enter-start="opacity-0"
-                                        x-transition:enter-end="opacity-100">
-                                        <div class="relative">
-                                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                                                <i class='bx bx-calendar'></i>
-                                            </span>
-                                            <input type="date" name="start_date" 
-                                                class="input-field pl-10" 
-                                                :disabled="durationType !== 'temporary'"
-                                                :required="durationType === 'temporary'"
-                                                x-model="startDate">
+                                    </div>
+
+                                    <!-- Access Type Selection -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Access Type <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            <template x-for="accessType in accessTypes" :key="accessType.value">
+                                                <label class="radio-card" :class="{'border-primary-500 bg-primary-50': form.accessType === accessType.value}">
+                                                    <input type="radio" 
+                                                           :name="'user_forms['+index+'][access_type]'" 
+                                                           :value="accessType.value"
+                                                           x-model="form.accessType"
+                                                           class="custom-radio hidden"
+                                                           required>
+                                                    <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
+                                                         :class="{'bg-primary-100 text-primary-600': form.accessType === accessType.value}">
+                                                        <i :class="accessType.icon + ' text-xl'"></i>
+                                                    </div>
+                                                    <span class="text-gray-700" :class="{'text-primary-600 font-medium': form.accessType === accessType.value}">
+                                                        <span x-text="accessType.label"></span>
+                                                    </span>
+                                                </label>
+                                            </template>
                                         </div>
-                                        <span class="text-gray-700 text-lg mx-2">to</span>
+                                    </div>
+
+                                    <!-- Access Level Selection (for System Application) -->
+                                    <div x-show="form.accessType === 'System Application'" 
+                                         x-transition:enter="transition ease-out duration-300"
+                                         x-transition:enter-start="opacity-0"
+                                         x-transition:enter-end="opacity-100"
+                                         class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Access Level <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                            <template x-for="level in accessLevels" :key="level.value">
+                                                <label class="radio-card" :class="{'border-primary-500 bg-primary-50': form.accessLevel === level.value}">
+                                                    <input type="radio" 
+                                                           :name="'user_forms['+index+'][access_level]'" 
+                                                           :value="level.value"
+                                                           x-model="form.accessLevel"
+                                                           class="custom-radio hidden"
+                                                           :required="form.accessType === 'System Application'">
+                                                    <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
+                                                         :class="{'bg-primary-100 text-primary-600': form.accessLevel === level.value}">
+                                                        <i :class="level.icon + ' text-xl'"></i>
+                                                    </div>
+                                                    <span class="text-gray-700" :class="{'text-primary-600 font-medium': form.accessLevel === level.value}">
+                                                        <span x-text="level.label"></span>
+                                                    </span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- System Application Type (if applicable) -->
+                                    <div x-show="form.accessType === 'System Application'" 
+                                         x-transition:enter="transition ease-out duration-300"
+                                         x-transition:enter-start="opacity-0"
+                                         x-transition:enter-end="opacity-100"
+                                         class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            System/Application Type
+                                        </label>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                                            <template x-for="systemType in systemTypes" :key="systemType.value">
+                                                <label class="checkbox-card"
+                                                       :class="{
+                                                           'border-primary-500 bg-primary-50': form.selectedSystems.includes(systemType.value),
+                                                           'bg-white border-gray-200': !form.selectedSystems.includes(systemType.value)
+                                                       }">
+                                                    <input type="checkbox"
+                                                           :name="'user_forms['+index+'][system_type][]'"
+                                                           :value="systemType.value"
+                                                           x-model="form.selectedSystems"
+                                                           class="custom-checkbox hidden">
+                                                    <div class="w-10 h-10 mr-3 rounded-lg flex items-center justify-center text-gray-600 checkbox-icon"
+                                                         :class="{
+                                                             'bg-primary-100 text-primary-600': form.selectedSystems.includes(systemType.value),
+                                                             'bg-gray-100 text-gray-600': !form.selectedSystems.includes(systemType.value)
+                                                         }">
+                                                        <i :class="form.selectedSystems.includes(systemType.value) ? 'bx bx-check-circle text-xl' : 'bx bx-circle text-xl'"></i>
+                                                    </div>
+                                                    <span class="text-gray-700"
+                                                          :class="{
+                                                              'text-primary-600 font-medium': form.selectedSystems.includes(systemType.value)
+                                                          }"
+                                                          x-text="systemType.label"></span>
+                                                </label>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Access Duration -->
+                                    <div class="mb-4">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Access Duration <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="space-y-4">
+                                            <label class="flex items-center p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition cursor-pointer"
+                                                   :class="{'border-primary-500 bg-primary-50': form.durationType === 'permanent'}">
+                                                <input type="radio" 
+                                                       :name="'user_forms['+index+'][duration_type]'" 
+                                                       value="permanent" 
+                                                       x-model="form.durationType"
+                                                       class="hidden" 
+                                                       required>
+                                                <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
+                                                     :class="{'bg-primary-100 text-primary-600': form.durationType === 'permanent'}">
+                                                    <i class='bx bx-check-circle text-xl' x-show="form.durationType === 'permanent'"></i>
+                                                    <i class='bx bx-circle text-xl' x-show="form.durationType !== 'permanent'"></i>
+                                                </div>
+                                                <span class="text-gray-700 text-lg" :class="{'text-primary-600 font-medium': form.durationType === 'permanent'}">Permanent</span>
+                                            </label>
+                                            
+                                            <div class="p-4 border border-gray-200 rounded-xl"
+                                                 :class="{'border-primary-500 bg-primary-50': form.durationType === 'temporary'}">
+                                                <div class="flex flex-wrap items-center gap-4">
+                                                    <label class="flex items-center">
+                                                        <input type="radio" 
+                                                               :name="'user_forms['+index+'][duration_type]'" 
+                                                               value="temporary" 
+                                                               x-model="form.durationType"
+                                                               class="hidden">
+                                                        <div class="w-10 h-10 mr-3 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"
+                                                             :class="{'bg-primary-100 text-primary-600': form.durationType === 'temporary'}">
+                                                            <i class='bx bx-check-circle text-xl' x-show="form.durationType === 'temporary'"></i>
+                                                            <i class='bx bx-circle text-xl' x-show="form.durationType !== 'temporary'"></i>
+                                                        </div>
+                                                        <span class="text-gray-700 text-lg" :class="{'text-primary-600 font-medium': form.durationType === 'temporary'}">Temporary</span>
+                                                    </label>
+                                                    
+                                                    <div class="flex-1 flex flex-wrap items-center gap-3 mt-2 md:mt-0" 
+                                                         x-show="form.durationType === 'temporary'"
+                                                         x-transition:enter="transition ease-out duration-300"
+                                                         x-transition:enter-start="opacity-0"
+                                                         x-transition:enter-end="opacity-100">
+                                                        <div class="relative">
+                                                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                                                <i class='bx bx-calendar'></i>
+                                                            </span>
+                                                            <input type="date" 
+                                                                   :name="'user_forms['+index+'][start_date]'"
+                                                                   x-model="form.startDate"
+                                                                   :min="minDate"
+                                                                   class="input-field pl-10"
+                                                                   :required="form.durationType === 'temporary'"
+                                                                   @change="validateDates(index)">
+                                                        </div>
+                                                        <span class="text-gray-700 text-lg mx-2">to</span>
+                                                        <div class="relative">
+                                                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                                                <i class='bx bx-calendar'></i>
+                                                            </span>
+                                                            <input type="date" 
+                                                                   :name="'user_forms['+index+'][end_date]'"
+                                                                   x-model="form.endDate"
+                                                                   :min="form.startDate || minDate"
+                                                                   class="input-field pl-10"
+                                                                   :required="form.durationType === 'temporary'"
+                                                                   @change="validateDates(index)">
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div x-show="form.dateError" class="mt-2 text-sm text-red-600" x-text="form.dateError"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Justification -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Justification <span class="text-red-500">*</span>
+                                        </label>
                                         <div class="relative">
-                                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                                                <i class='bx bx-calendar'></i>
+                                            <textarea :name="'user_forms['+index+'][justification]'"
+                                                      x-model="form.justification"
+                                                      placeholder="Please provide a detailed reason for this access request"
+                                                      required
+                                                      rows="3"
+                                                      class="input-field pl-10 resize-none"></textarea>
+                                            <span class="absolute top-3 left-3 text-gray-500">
+                                                <i class='bx bx-edit'></i>
                                             </span>
-                                            <input type="date" name="end_date" 
-                                                class="input-field pl-10" 
-                                                :disabled="durationType !== 'temporary'"
-                                                :required="durationType === 'temporary'"
-                                                x-model="endDate">
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Justification -->
-                    <div class="bg-white p-6 rounded-xl shadow-card border border-gray-100 transition-all duration-300 hover:shadow-lg" data-aos="fade-up" data-aos-duration="800">
-                        <h2 class="text-xl font-semibold text-gray-800 mb-5 pb-2 border-b border-gray-200 flex items-center">
-                            <i class='bx bx-comment-detail text-primary-500 text-2xl mr-2'></i>
-                            Justification for Access Request <span class="text-red-500">*</span>
-                        </h2>
-                        <div class="relative">
-                            <textarea name="justification" 
-                                placeholder="Please provide a detailed reason for this access request" 
-                                required rows="4" 
-                                class="input-field pl-10 resize-none"
-                                x-model="justification"></textarea>
-                            <span class="absolute top-3 left-3 text-gray-500">
-                                <i class='bx bx-edit'></i>
-                            </span>
-                            <div class="text-right text-xs text-gray-500 mt-2" x-text="`${justification.length} characters`"></div>
+                            </template>
                         </div>
                     </div>
 
@@ -884,27 +750,24 @@ try {
             endDate: '',
             roleAccessType: '',
             justification: '',
+            isGroupAccess: false,
+            groupUsernames: [],
+            userForms: [
+                {
+                    usernames: [''],
+                    accessType: '',
+                    accessLevel: '',
+                    selectedSystems: [],
+                    durationType: '',
+                    startDate: '',
+                    endDate: '',
+                    justification: ''
+                }
+            ],
             
             init() {
                 this.setupProgressBar();
                 this.setupDateTime();
-                
-                // Initialize Alpine store for sidebar state if Alpine.js is loaded
-                if (typeof Alpine !== 'undefined') {
-                    if (!Alpine.store) {
-                        // If Alpine.store is not available yet, wait for Alpine to initialize
-                        document.addEventListener('alpine:init', () => {
-                            Alpine.store('sidebar', {
-                                open: true
-                            });
-                        });
-                    } else {
-                        // If Alpine.store is already available
-                        Alpine.store('sidebar', {
-                            open: true
-                        });
-                    }
-                }
                 
                 // Initialize AOS
                 AOS.init({
@@ -918,16 +781,60 @@ try {
                 const options = { year: 'numeric', month: 'long', day: 'numeric' };
                 document.getElementById('current_date').value = today.toLocaleDateString('en-US', options);
                 
-                // Add direct event listener for System Application radio button
-                const systemApplicationRadio = document.querySelector('input[name="access_type"][value="System Application"]');
-                if (systemApplicationRadio) {
-                    systemApplicationRadio.addEventListener('click', () => {
-                        const systemApplicationSection = document.getElementById('systemApplicationSection');
-                        if (systemApplicationSection) {
-                            systemApplicationSection.classList.remove('hidden');
-                        }
-                    });
-                }
+                // Set minimum date for date inputs
+                this.minDate = today.toISOString().split('T')[0];
+                
+                // Initialize with one empty user form
+                this.userForms = [{
+                    usernames: [''],
+                    accessType: '',
+                    accessLevel: '',
+                    selectedSystems: [],
+                    durationType: '',
+                    startDate: '',
+                    endDate: '',
+                    justification: ''
+                }];
+
+                // Define access types with their icons
+                this.accessTypes = [
+                    { value: 'System Application', label: 'System Application', icon: 'bx bx-window-alt' },
+                    { value: 'PC Access - Network', label: 'PC Access - Network', icon: 'bx bx-desktop' },
+                    { value: 'Email Access', label: 'Email Access', icon: 'bx bx-envelope' },
+                    { value: 'Server Access', label: 'Server Access', icon: 'bx bx-server' },
+                    { value: 'Internet Access', label: 'Internet Access', icon: 'bx bx-globe' },
+                    { value: 'Printer Access', label: 'Printer Access', icon: 'bx bx-printer' },
+                    { value: 'Active Directory Access (MS ENTRA ID)', label: 'Active Directory Access', icon: 'bx bx-folder-open' },
+                    { value: 'Firewall Access', label: 'Firewall Access', icon: 'bx bx-shield-quarter' },
+                    { value: 'Wi-Fi/Access Point Access', label: 'Wi-Fi/Access Point Access', icon: 'bx bx-wifi' },
+                    { value: 'TNA Biometric Device Access', label: 'TNA Biometric Device Access', icon: 'bx bx-fingerprint' },
+                    { value: 'USB/PC-port Access', label: 'USB/PC-port Access', icon: 'bx bx-usb' },
+                    { value: 'CCTV Access', label: 'CCTV Access', icon: 'bx bx-cctv' }
+                ];
+
+                // Define access levels with their icons
+                this.accessLevels = [
+                    { value: 'read', label: 'Read Only', icon: 'bx bx-book-reader' },
+                    { value: 'full', label: 'Full Access', icon: 'bx bx-edit' },
+                    { value: 'admin', label: 'Administrator', icon: 'bx bx-cog' },
+                ];
+
+                // Define system types
+                this.systemTypes = [
+                    { value: 'Canvasing System', label: 'Canvasing System' },
+                    { value: 'ERP/NAV', label: 'ERP/NAV' },
+                    { value: 'Legacy Payroll', label: 'Legacy Payroll' },
+                    { value: 'HRIS', label: 'HRIS' },
+                    { value: 'Legacy Purchasing', label: 'Legacy Purchasing' },
+                    { value: 'Piece Rate Payroll System', label: 'Piece Rate Payroll System' },
+                    { value: 'Legacy Inventory', label: 'Legacy Inventory' },
+                    { value: 'Fresh Chilled Receiving System', label: 'Fresh Chilled Receiving System' },
+                    { value: 'Legacy Vouchering', label: 'Legacy Vouchering' },
+                    { value: 'Quickbooks', label: 'Quickbooks' },
+                    { value: 'Legacy Ledger System', label: 'Legacy Ledger System' },
+                    { value: 'Memorandum Receipt', label: 'Memorandum Receipt' },
+                    { value: 'ZankPOS', label: 'ZankPOS' }
+                ];
             },
             
             setupProgressBar() {
@@ -992,6 +899,16 @@ try {
                 this.endDate = '';
                 this.roleAccessType = '';
                 this.justification = '';
+                this.userForms = [{
+                    usernames: [''],
+                    accessType: '',
+                    accessLevel: '',
+                    selectedSystems: [],
+                    durationType: '',
+                    startDate: '',
+                    endDate: '',
+                    justification: ''
+                }];
                 
                 // Reset form
                 document.getElementById('accessRequestForm').reset();
@@ -1000,6 +917,64 @@ try {
                 const systemApplicationSection = document.getElementById('systemApplicationSection');
                 if (systemApplicationSection) {
                     systemApplicationSection.classList.add('hidden');
+                }
+            },
+            addUsername(formIndex) {
+                this.userForms[formIndex].usernames.push('');
+            },
+            removeUsername(formIndex, usernameIndex) {
+                this.userForms[formIndex].usernames.splice(usernameIndex, 1);
+            },
+            addUserForm() {
+                this.userForms.push({
+                    usernames: [''],
+                    accessType: '',
+                    accessLevel: '',
+                    selectedSystems: [],
+                    durationType: '',
+                    startDate: '',
+                    endDate: '',
+                    justification: ''
+                });
+            },
+            removeUserForm(index) {
+                this.userForms.splice(index, 1);
+            },
+            validateDates(index) {
+                const form = this.userForms[index];
+                if (form.durationType === 'temporary') {
+                    const startDate = new Date(form.startDate);
+                    const endDate = new Date(form.endDate);
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+
+                    // Clear previous error
+                    form.dateError = '';
+
+                    // Validate start date
+                    if (startDate < today) {
+                        form.dateError = 'Start date cannot be in the past';
+                        form.startDate = '';
+                        return;
+                    }
+
+                    // Validate end date
+                    if (endDate < startDate) {
+                        form.dateError = 'End date must be after start date';
+                        form.endDate = '';
+                        return;
+                    }
+
+                    // Calculate difference in days
+                    const diffTime = Math.abs(endDate - startDate);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+                    // Validate maximum duration (e.g., 90 days)
+                    if (diffDays > 90) {
+                        form.dateError = 'Temporary access cannot exceed 90 days';
+                        form.endDate = '';
+                        return;
+                    }
                 }
             }
         }
@@ -1074,57 +1049,107 @@ try {
         
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
-            // Basic validation
-            const accessTypes = form.querySelectorAll('input[name="access_type"]:checked');
-            if (accessTypes.length === 0) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Validation Error',
-                    text: 'Please select an Access Type',
-                    confirmButtonColor: '#0ea5e9'
+
+            // Validate each user form
+            const userFormContainers = form.querySelectorAll('[x-for="(form, index) in userForms"] > div');
+            for (let index = 0; index < userFormContainers.length; index++) {
+                const container = userFormContainers[index];
+                // Validate all usernames
+                const usernameInputs = container.querySelectorAll(`input[name^="user_forms[${index}][usernames]"]`);
+                let hasEmptyUsername = false;
+                usernameInputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        hasEmptyUsername = true;
+                    }
                 });
-                return;
-            }
-
-            // Validate system application specific fields
-            if (accessTypes[0].value === 'System Application') {
-                // Validate system types
-                const systemTypes = form.querySelectorAll('input[name="system_type[]"]:checked');
-                if (systemTypes.length === 0) {
+                if (hasEmptyUsername) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Validation Error',
-                        text: 'Please select at least one System/Application Type',
+                        text: `Please fill in all username fields for User Form #${index + 1}`,
                         confirmButtonColor: '#0ea5e9'
                     });
                     return;
                 }
-
-                // Validate access duration
-                const durationTypeSelected = form.querySelector('input[name="duration_type"]:checked');
-                if (!durationTypeSelected) {
+                // Validate access type
+                const accessType = container.querySelector(`input[name="user_forms[${index}][access_type]"]:checked`);
+                if (!accessType) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Validation Error',
-                        text: 'Please select an Access Duration',
+                        text: `Please select an access type for User Form #${index + 1}`,
                         confirmButtonColor: '#0ea5e9'
                     });
                     return;
                 }
-
-                if (durationTypeSelected.value === 'temporary') {
-                    const startDate = form.querySelector('input[name="start_date"]');
-                    const endDate = form.querySelector('input[name="end_date"]');
-                    if (!startDate.value || !endDate.value) {
+                // If System Application, validate access level and system type
+                if (accessType.value === 'System Application') {
+                    const accessLevel = container.querySelector(`input[name="user_forms[${index}][access_level]"]:checked`);
+                    if (!accessLevel) {
                         Swal.fire({
                             icon: 'error',
                             title: 'Validation Error',
-                            text: 'Please enter both start and end dates',
+                            text: `Please select an access level for User Form #${index + 1}`,
                             confirmButtonColor: '#0ea5e9'
                         });
                         return;
                     }
+                    const systemTypes = container.querySelectorAll(`input[name="user_forms[${index}][system_type][]"]:checked`);
+                    if (systemTypes.length === 0) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            text: `Please select at least one system/application type for User Form #${index + 1}`,
+                            confirmButtonColor: '#0ea5e9'
+                        });
+                        return;
+                    }
+                }
+                // Validate duration type
+                const durationType = container.querySelector(`input[name="user_forms[${index}][duration_type]"]:checked`);
+                if (!durationType) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: `Please select a duration type for User Form #${index + 1}`,
+                        confirmButtonColor: '#0ea5e9'
+                    });
+                    return;
+                }
+                // If temporary, validate dates
+                if (durationType.value === 'temporary') {
+                    const startDate = container.querySelector(`input[name="user_forms[${index}][start_date]"]`);
+                    const endDate = container.querySelector(`input[name="user_forms[${index}][end_date]"]`);
+                    if (!startDate.value || !endDate.value) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            text: `Please enter both start and end dates for User Form #${index + 1}`,
+                            confirmButtonColor: '#0ea5e9'
+                        });
+                        return;
+                    }
+                    // Additional date logic (already handled by Alpine, but double check)
+                    if (new Date(startDate.value) > new Date(endDate.value)) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Validation Error',
+                            text: `End date must be after start date for User Form #${index + 1}`,
+                            confirmButtonColor: '#0ea5e9'
+                        });
+                        return;
+                    }
+                }
+                // Validate justification
+                const justification = container.querySelector(`textarea[name="user_forms[${index}][justification]"]`);
+                if (!justification || !justification.value.trim()) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: `Please provide a justification for User Form #${index + 1}`,
+                        confirmButtonColor: '#0ea5e9'
+                    });
+                    return;
                 }
             }
 
