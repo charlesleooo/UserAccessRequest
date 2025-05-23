@@ -25,8 +25,12 @@ $query = "SELECT ah.*, admin.username as admin_username
 $params = [':requestor_name' => $username];
 
 if ($statusFilter !== 'all') {
-    $query .= " AND ah.action = :status";
-    $params[':status'] = $statusFilter;
+    if ($statusFilter === 'history') {
+        $query .= " AND ah.action IN ('approved', 'rejected', 'cancelled')";
+    } else {
+        $query .= " AND ah.action = :status";
+        $params[':status'] = $statusFilter;
+    }
 }
 
 if ($dateFilter !== 'all') {
@@ -64,7 +68,8 @@ try {
     $countStmt = $pdo->prepare("SELECT 
         COUNT(*) as total,
         SUM(action = 'approved') as approved,
-        SUM(action = 'rejected') as rejected
+        SUM(action = 'rejected') as rejected,
+        SUM(action = 'cancelled') as cancelled
         FROM approval_history
         WHERE requestor_name = ?");
     $countStmt->execute([$username]);
@@ -73,10 +78,11 @@ try {
     $total = $counts['total'] ?? 0;
     $approved = $counts['approved'] ?? 0;
     $rejected = $counts['rejected'] ?? 0;
+    $cancelled = $counts['cancelled'] ?? 0;
 } catch (PDOException $e) {
     error_log("Error fetching request history: " . $e->getMessage());
     $requests = [];
-    $total = $approved = $rejected = 0;
+    $total = $approved = $rejected = $cancelled = 0;
 }
 ?>
 
@@ -192,6 +198,9 @@ try {
         }
         .status-rejected {
             @apply bg-red-600 text-white border-2 border-red-700;
+        }
+        .status-cancelled {
+            @apply bg-gray-600 text-white border-2 border-gray-700;
         }
         
         [x-cloak] {
@@ -346,6 +355,8 @@ try {
                         <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All</option>
                         <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
                         <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                        <option value="cancelled" <?php echo $statusFilter === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                        <option value="history" <?php echo $statusFilter === 'history' ? 'selected' : ''; ?>>History (All Completed)</option>
                     </select>
                 </div>
                 <div>
@@ -415,6 +426,9 @@ try {
                                         } elseif ($status === 'rejected') {
                                             $statusClass = 'status-rejected';
                                             $bgClass = 'bg-red-100';
+                                        } elseif ($status === 'cancelled') {
+                                            $statusClass = 'status-cancelled';
+                                            $bgClass = 'bg-gray-100';
                                         }
                                         ?>
                                         <div class="flex justify-center items-center <?php echo $bgClass; ?> rounded-lg px-2 py-1">

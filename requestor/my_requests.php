@@ -381,25 +381,25 @@ try {
                 <table id="requestsTable" class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php foreach ($requests as $request): ?>
                         <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
-                                <?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                                <?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-sm text-gray-700"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                                <div class="flex items-center">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center text-sm text-gray-700">
                                     <?php 
                                     $iconClass = 'text-primary-500';
                                     $icon = 'bx-window-alt';
@@ -429,53 +429,55 @@ try {
                                     }
                                     ?>
                                     <i class='bx <?php echo $icon; ?> text-lg mr-2 <?php echo $iconClass; ?>'></i>
-                                    <?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?>
+                                    <span><?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?></span>
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <?php 
                                 $statusClass = '';
                                 $status = strtolower($request['status'] ?? 'pending');
+                                $adminReviewDate = $request['admin_review_date'] ?? null;
                                 
                                 if ($status === 'pending') {
-                                    $statusClass = 'status-pending';
-                                    $bgClass = 'bg-yellow-100';
+                                    $statusClass = 'bg-yellow-100 text-yellow-800';
                                 } elseif ($status === 'approved') {
-                                    $statusClass = 'status-approved';
-                                    $bgClass = 'bg-green-100';
+                                    $statusClass = 'bg-green-100 text-green-800';
                                 } elseif ($status === 'rejected') {
-                                    $statusClass = 'status-rejected';
-                                    $bgClass = 'bg-red-100';
+                                    $statusClass = 'bg-red-100 text-red-800';
                                 } elseif ($status === 'pending_testing') {
-                                    $statusClass = 'status-testing';
-                                    $bgClass = 'bg-blue-100';
+                                    $statusClass = 'bg-blue-100 text-blue-800';
+                                } elseif ($status === 'cancelled') {
+                                    $statusClass = 'bg-gray-100 text-gray-800';
                                 }
                                 ?>
-                                <div class="flex justify-center items-center <?php echo $bgClass; ?> rounded-lg px-2 py-1">
-                                    <span class="status-badge <?php echo $statusClass; ?>">
-                                        <?php echo $status === 'pending_testing' ? 'Pending Testing' : ucfirst($status); ?>
-                                    </span>
-                                </div>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <?php echo $statusClass; ?>">
+                                    <?php echo $status === 'pending_testing' ? 'Pending Testing' : ucfirst($status); ?>
+                                </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-gray-700">
-                                <?php 
-                                $date = new DateTime($request['submission_date'] ?? 'now');
-                                echo $date->format('M d, Y'); 
-                                ?>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="text-sm text-gray-700">
+                                    <?php 
+                                    $date = new DateTime($request['submission_date'] ?? 'now');
+                                    echo $date->format('M d, Y'); 
+                                    ?>
+                                </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                <a href="view_request.php?id=<?php echo $request['id']; ?>" class="text-primary-600 hover:text-primary-800 mr-3">
-                                    <i class='bx bx-show'></i> View
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                <a href="view_request.php?id=<?php echo $request['id']; ?>" 
+                                   class="inline-flex items-center px-3 py-1.5 text-primary-600 hover:text-primary-800 transition-colors">
+                                    <i class='bx bx-show mr-1'></i> View
                                 </a>
                                 <?php if ($status === 'pending_testing' && $request['testing_status'] === 'pending'): ?>
-                                <a href="testing_status.php?id=<?php echo $request['id']; ?>" class="text-blue-600 hover:text-blue-800 mr-3">
-                                    <i class='bx bx-test-tube'></i> Test
+                                <a href="testing_status.php?id=<?php echo $request['id']; ?>" 
+                                   class="inline-flex items-center px-3 py-1.5 text-blue-600 hover:text-blue-800 transition-colors">
+                                    <i class='bx bx-test-tube mr-1'></i> Test
                                 </a>
                                 <?php endif; ?>
-                                <?php if ($status === 'pending'): ?>
-                                <a href="#" class="text-red-600 hover:text-red-800 cancel-request" data-id="<?php echo $request['id']; ?>">
-                                    <i class='bx bx-x'></i> Cancel
-                                </a>
+                                <?php if ($status === 'pending' || ($status !== 'approved' && $status !== 'rejected' && !$adminReviewDate)): ?>
+                                <button onclick="cancelRequest(<?php echo $request['id']; ?>)"
+                                        class="inline-flex items-center px-3 py-1.5 text-red-600 hover:text-red-800 transition-colors">
+                                    <i class='bx bx-x mr-1'></i> Cancel
+                                </button>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -521,6 +523,35 @@ try {
         // Initialize AOS animation library
         AOS.init();
         
+        // Show success/error messages
+        <?php if (isset($_GET['success']) && $_GET['success'] === 'cancelled'): ?>
+        Swal.fire({
+            title: 'Success!',
+            text: 'Your request has been cancelled successfully.',
+            icon: 'success',
+            timer: 3000,
+            showConfirmButton: false
+        });
+        <?php endif; ?>
+        
+        <?php if (isset($_GET['error'])): ?>
+        Swal.fire({
+            title: 'Error!',
+            text: <?php 
+                $errorMsg = 'An error occurred. Please try again.';
+                if ($_GET['error'] === 'not_found') {
+                    $errorMsg = 'Request not found.';
+                } elseif ($_GET['error'] === 'cannot_cancel') {
+                    $errorMsg = 'This request cannot be cancelled.';
+                } elseif ($_GET['error'] === 'invalid_request') {
+                    $errorMsg = 'Invalid request.';
+                }
+                echo json_encode($errorMsg);
+            ?>,
+            icon: 'error'
+        });
+        <?php endif; ?>
+        
         // Setup cancel request buttons
         document.querySelectorAll('.cancel-request').forEach(button => {
             button.addEventListener('click', function(e) {
@@ -529,16 +560,59 @@ try {
                 
                 Swal.fire({
                     title: 'Cancel Request',
-                    text: 'Are you sure you want to cancel this request?',
+                    html: `
+                        <div class="mb-4">
+                            <label for="reason" class="block text-sm font-medium text-gray-700 mb-2 text-left">
+                                Please provide a reason for cancellation
+                            </label>
+                            <textarea id="reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                rows="4" placeholder="Enter your reason for cancellation..."></textarea>
+                        </div>
+                    `,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
                     confirmButtonText: 'Yes, cancel it!',
-                    cancelButtonText: 'No, keep it'
+                    cancelButtonText: 'No, keep it',
+                    preConfirm: () => {
+                        const reason = document.getElementById('reason').value;
+                        if (!reason) {
+                            Swal.showValidationMessage('Please provide a cancellation reason');
+                            return false;
+                        }
+                        return reason;
+                    }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        window.location.href = 'cancel_request.php?id=' + requestId;
+                        // Show loading modal
+                        Swal.fire({
+                            title: 'Processing Cancellation',
+                            html: `
+                                <div class="text-center">
+                                    <div class="mb-4">
+                                        <i class="bx bx-loader-alt bx-spin text-4xl text-primary-600"></i>
+                                    </div>
+                                    <p class="text-gray-600">Please wait while your request is being cancelled...</p>
+                                </div>
+                            `,
+                            allowOutsideClick: false,
+                            showConfirmButton: false
+                        });
+
+                        // Create a form and submit it
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = 'cancel_request.php?id=' + requestId;
+                        
+                        const reasonInput = document.createElement('input');
+                        reasonInput.type = 'hidden';
+                        reasonInput.name = 'reason';
+                        reasonInput.value = result.value;
+                        
+                        form.appendChild(reasonInput);
+                        document.body.appendChild(form);
+                        form.submit();
                     }
                 });
             });
@@ -613,6 +687,66 @@ try {
         updateTime();
         setInterval(updateTime, 1000);
     });
+
+    function cancelRequest(requestId) {
+        Swal.fire({
+            title: 'Cancel Request',
+            html: `
+                <div class="mb-4">
+                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-2 text-left">
+                        Please provide a reason for cancellation
+                    </label>
+                    <textarea id="reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows="4" placeholder="Enter your reason for cancellation..."></textarea>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, cancel it!',
+            cancelButtonText: 'No, keep it',
+            preConfirm: () => {
+                const reason = document.getElementById('reason').value;
+                if (!reason) {
+                    Swal.showValidationMessage('Please provide a cancellation reason');
+                    return false;
+                }
+                return reason;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading modal
+                Swal.fire({
+                    title: 'Processing Cancellation',
+                    html: `
+                        <div class="text-center">
+                            <div class="mb-4">
+                                <i class="bx bx-loader-alt bx-spin text-4xl text-primary-600"></i>
+                            </div>
+                            <p class="text-gray-600">Please wait while your request is being cancelled...</p>
+                        </div>
+                    `,
+                    allowOutsideClick: false,
+                    showConfirmButton: false
+                });
+
+                // Create a form and submit it
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = 'cancel_request.php?id=' + requestId;
+                
+                const reasonInput = document.createElement('input');
+                reasonInput.type = 'hidden';
+                reasonInput.name = 'reason';
+                reasonInput.value = result.value;
+                
+                form.appendChild(reasonInput);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
 </script>
 </body>
 </html> 
