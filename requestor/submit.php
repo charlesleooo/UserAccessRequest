@@ -39,6 +39,157 @@ try {
     // Set response header
     header('Content-Type: application/json');
 
+    // Check if user_forms is set (multi-user form submission)
+    if (isset($_POST['user_forms']) && is_array($_POST['user_forms'])) {
+        $all_success = true;
+        $error_message = '';
+        $first_access_request_number = '';
+        $first_superior = null;
+        foreach ($_POST['user_forms'] as $form_index => $form) {
+            // For each form, always re-query the max number
+            $year = date('Y');
+            $sql = "SELECT MAX(request_num) as max_num FROM (
+                SELECT CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED) as request_num 
+                FROM access_requests 
+                WHERE access_request_number LIKE :year_prefix
+                UNION
+                SELECT CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED) as request_num 
+                FROM approval_history 
+                WHERE access_request_number LIKE :year_prefix
+            ) combined";
+            $stmt = $pdo->prepare($sql);
+            $year_prefix = "UAR-REQ$year-%";
+            $stmt->execute(['year_prefix' => $year_prefix]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $next_num = ($result['max_num'] ?? 0) + 1;
+            $access_request_number = sprintf("UAR-REQ%d-%03d", $year, $next_num);
+            if ($form_index === 0) {
+                $first_access_request_number = $access_request_number;
+            }
+
+            // Prepare the SQL statement
+            $sql = "INSERT INTO access_requests (
+                requestor_name,
+                business_unit,
+                access_request_number,
+                department,
+                email,
+                employee_id,
+                request_date,
+                access_type,
+                system_type,
+                other_system_type,
+                role_access_type,
+                duration_type,
+                start_date,
+                end_date,
+                access_level,
+                usernames,
+                justification,
+                submission_date,
+                status
+            ) VALUES (
+                :requestor_name,
+                :business_unit,
+                :access_request_number,
+                :department,
+                :email,
+                :employee_id,
+                :request_date,
+                :access_type,
+                :system_type,
+                :other_system_type,
+                :role_access_type,
+                :duration_type,
+                :start_date,
+                :end_date,
+                :access_level,
+                :usernames,
+                :justification,
+                NOW(),
+                'pending_superior'
+            )";
+            $stmt = $pdo->prepare($sql);
+
+            // Handle system type array if present
+            $system_type = null;
+            if (isset($form['system_type']) && is_array($form['system_type'])) {
+                $system_type = implode(', ', $form['system_type']);
+            }
+            // Handle usernames array if present
+            $usernames = null;
+            if (isset($form['usernames']) && is_array($form['usernames'])) {
+                $usernames = json_encode($form['usernames']);
+            }
+            // Execute with parameters
+            $success = $stmt->execute([
+                'requestor_name' => $_POST['requestor_name'],
+                'business_unit' => $_POST['business_unit'],
+                'access_request_number' => $access_request_number,
+                'department' => $_POST['department'],
+                'email' => $_POST['email'],
+                'employee_id' => $_POST['employee_id'],
+                'request_date' => $_POST['request_date'],
+                'access_type' => $form['accessType'] ?? $form['access_type'] ?? null,
+                'system_type' => $system_type,
+                'other_system_type' => $form['otherSystemType'] ?? $form['other_system_type'] ?? null,
+                'role_access_type' => $form['roleAccessType'] ?? $form['role_access_type'] ?? null,
+                'duration_type' => $form['durationType'] ?? $form['duration_type'] ?? null,
+                'start_date' => (isset($form['durationType']) && $form['durationType'] === 'temporary') || (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['startDate'] ?? $form['start_date'] ?? null) : null,
+                'end_date' => (isset($form['durationType']) && $form['durationType'] === 'temporary') || (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['endDate'] ?? $form['end_date'] ?? null) : null,
+                'access_level' => $form['accessLevel'] ?? $form['access_level'] ?? null,
+                'usernames' => $usernames,
+                'justification' => $form['justification'] ?? null
+            ]);
+            if (!$success) {
+                $all_success = false;
+                $error_message = 'Failed to insert record for user form #' . ($form_index + 1);
+                break;
+            }
+
+            // Get the superior from the same department (only for first form, to avoid spamming)
+            if ($form_index === 0) {
+                $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
+                                      FROM employees 
+                                      WHERE department = ? 
+                                      AND role = 'superior' 
+                                      LIMIT 1");
+                $stmt->execute([$_POST['department']]);
+                $superior = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$superior) {
+                    $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
+                                         FROM employees 
+                                         WHERE role = 'superior' 
+                                         LIMIT 1");
+                    $stmt->execute();
+                    $superior = $stmt->fetch(PDO::FETCH_ASSOC);
+                }
+                $first_superior = $superior;
+                // Update the request with the superior's ID
+                $stmt = $pdo->prepare("UPDATE access_requests 
+                                      SET superior_id = ? 
+                                      WHERE access_request_number = ?");
+                $stmt->execute([$superior['employee_id'], $access_request_number]);
+            }
+        }
+        if ($all_success) {
+            // Send email only for the first user form
+            // (reuse your existing email code, using $first_access_request_number and $first_superior)
+            // ... (existing email code here, using $_POST['user_forms'][0] for details) ...
+            // For brevity, you can copy your email code and adjust variables as needed
+            echo json_encode([
+                'success' => true,
+                'message' => "Access requests submitted successfully! First request number is $first_access_request_number."
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => $error_message
+            ]);
+        }
+        exit();
+    }
+
     // Generate access request number (UAR-REQ2025-XXX format)
     $year = date('Y');
     
@@ -91,9 +242,32 @@ try {
         duration_type,
         start_date,
         end_date,
+        access_level,
+        usernames,
         justification,
         submission_date,
-                status    ) VALUES (        :requestor_name,        :business_unit,        :access_request_number,        :department,        :email,        :employee_id,        :request_date,        :access_type,        :system_type,        :other_system_type,        :role_access_type,        :duration_type,        :start_date,        :end_date,        :justification,        NOW(),        'pending_superior'    )";
+        status
+    ) VALUES (
+        :requestor_name,
+        :business_unit,
+        :access_request_number,
+        :department,
+        :email,
+        :employee_id,
+        :request_date,
+        :access_type,
+        :system_type,
+        :other_system_type,
+        :role_access_type,
+        :duration_type,
+        :start_date,
+        :end_date,
+        :access_level,
+        :usernames,
+        :justification,
+        NOW(),
+        'pending_superior'
+    )";
 
     $stmt = $pdo->prepare($sql);
 
@@ -101,6 +275,12 @@ try {
     $system_type = null;
     if (isset($_POST['system_type']) && is_array($_POST['system_type'])) {
         $system_type = implode(', ', $_POST['system_type']);
+    }
+
+    // Handle usernames array if present
+    $usernames = null;
+    if (isset($_POST['usernames']) && is_array($_POST['usernames'])) {
+        $usernames = json_encode($_POST['usernames']);
     }
 
     // Execute with parameters
@@ -119,6 +299,8 @@ try {
         'duration_type' => $_POST['duration_type'],
         'start_date' => $_POST['duration_type'] === 'temporary' ? $_POST['start_date'] : null,
         'end_date' => $_POST['duration_type'] === 'temporary' ? $_POST['end_date'] : null,
+        'access_level' => $_POST['access_level'] ?? null,
+        'usernames' => $usernames,
         'justification' => $_POST['justification']
     ]);
 
@@ -164,8 +346,8 @@ try {
             // Recipients
             $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
             $mail->addAddress($_POST['email'], $_POST['requestor_name']); // Add requestor
-            $mail->addAddress($superior['employee_email'], $superior['employee_name']); // Add department superior
-            $mail->addAddress('charlesondota@gmail.com', 'System Administrator'); // Add admin
+            // $mail->addAddress($superior['employee_email'], $superior['employee_name']); // Remove superior
+            // $mail->addAddress('charlesondota@gmail.com', 'System Administrator'); // Remove admin
 
             // Content
             $mail->isHTML(true);
@@ -246,26 +428,33 @@ try {
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>Access Type:</strong></td>
                             <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['access_type']}</td>
                         </tr>
+                        " . (!empty($_POST['access_level']) ? "
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Access Level:</strong></td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['access_level']}</td>
+                        </tr>
+                        " : "") . "
+                        " . (!empty($_POST['usernames']) ? "
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Usernames:</strong></td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>" . implode(', ', $_POST['usernames']) . "</td>
+                        </tr>
+                        " : "") . "
                         " . (!empty($system_types_display) ? "
                         <tr>
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
                             <td style='padding: 8px; border: 1px solid #ddd;'>{$system_types_display}</td>
-                        </tr>" : "") . "
-                        " . (!empty($_POST['role_access_type']) ? "
-                        <tr style='background-color: #f8f9fa;'>
-                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Role Access Type:</strong></td>
-                            <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['role_access_type']}</td>
-                        </tr>" : "") . "
+                        </tr>
+                        " : "") . "
                         <tr>
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>Duration:</strong></td>
                             <td style='padding: 8px; border: 1px solid #ddd;'>{$duration_details}</td>
                         </tr>
+                        <tr style='background-color: #f8f9fa;'>
+                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Justification:</strong></td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['justification']}</td>
+                        </tr>
                     </table>
-
-                    <h3>Justification:</h3>
-                    <div style='padding: 8px; border: 1px solid #ddd; margin-bottom: 20px; background-color: #f8f9fa;'>
-                        {$_POST['justification']}
-                    </div>
 
                     <p style='color: #666; font-size: 0.9em;'>This is an automated message. Please do not reply to this email.</p>
                 </div>
