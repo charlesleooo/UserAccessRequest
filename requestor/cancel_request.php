@@ -24,6 +24,35 @@ $requestId = intval($_GET['id']);
 $cancellationReason = $_POST['reason'] ?? '';
 
 try {
+    // Check if cancelled_requests table exists, create it if it doesn't
+    $checkTableSql = "SHOW TABLES LIKE 'cancelled_requests'"; 
+    $tableExists = $pdo->query($checkTableSql)->rowCount() > 0;
+    
+    if (!$tableExists) {
+        // Create the cancelled_requests table
+        $createTableSql = "CREATE TABLE `cancelled_requests` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `access_request_number` varchar(20) NOT NULL,
+            `requestor_name` varchar(255) NOT NULL,
+            `business_unit` varchar(50) NOT NULL,
+            `department` varchar(100) NOT NULL,
+            `email` varchar(255) NOT NULL,
+            `employee_id` varchar(20) NOT NULL,
+            `access_type` varchar(50) NOT NULL,
+            `system_type` varchar(255) DEFAULT NULL,
+            `other_system_type` varchar(255) DEFAULT NULL,
+            `justification` text NOT NULL,
+            `duration_type` varchar(20) DEFAULT NULL,
+            `start_date` date DEFAULT NULL,
+            `end_date` date DEFAULT NULL,
+            `cancellation_reason` text NOT NULL,
+            `cancelled_at` timestamp NOT NULL DEFAULT current_timestamp(),
+            PRIMARY KEY (`id`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
+        
+        $pdo->exec($createTableSql);
+    }
+    
     // Start transaction
     $pdo->beginTransaction();
     
@@ -112,13 +141,13 @@ try {
         throw new PDOException("Failed to insert into cancelled_requests");
     }
     
-    // Delete from access_requests
-    $deleteSql = "DELETE FROM access_requests WHERE id = :request_id";
-    $deleteStmt = $pdo->prepare($deleteSql);
-    $deleteResult = $deleteStmt->execute([':request_id' => $requestId]);
+    // Update access_requests status to cancelled
+    $updateSql = "UPDATE access_requests SET status = 'cancelled' WHERE id = :request_id";
+    $updateStmt = $pdo->prepare($updateSql);
+    $updateResult = $updateStmt->execute([':request_id' => $requestId]);
     
-    if (!$deleteResult) {
-        throw new PDOException("Failed to delete request");
+    if (!$updateResult) {
+        throw new PDOException("Failed to update request status");
     }
     
     // Send email notification
