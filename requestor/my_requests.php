@@ -200,19 +200,82 @@ try {
             @apply bg-blue-500 text-white border-2 border-blue-600;
         }
         
+        /* Responsive table */
+        @media (max-width: 768px) {
+            .responsive-table thead {
+                display: none;
+            }
+            
+            .responsive-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                background-color: white;
+            }
+            
+            .responsive-table td {
+                display: flex;
+                padding: 0.75rem 1rem;
+                border-bottom: 1px solid #e5e7eb;
+                text-align: left !important;
+                justify-content: flex-start !important;
+            }
+            
+            .responsive-table td:before {
+                content: attr(data-label);
+                font-weight: 600;
+                width: 120px;
+                flex-shrink: 0;
+                margin-right: 1rem;
+            }
+            
+            .responsive-table td:last-child {
+                border-bottom: none;
+            }
+            
+            .dataTables_wrapper .dataTables_paginate .paginate_button {
+                padding: 0.3em 0.8em;
+            }
+            
+            .dataTables_wrapper .dataTables_filter input {
+                width: 120px;
+            }
+            
+            /* Ensure proper spacing for status badges */
+            .status-badge {
+                display: inline-block;
+                margin-left: auto;
+            }
+            
+            /* Adjust filter section for mobile */
+            .filter-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .filter-section > div {
+                margin-bottom: 0.5rem;
+            }
+        }
+        
         [x-cloak] {
             display: none !important;
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans">
-<!-- Progress bar -->
+<body class="bg-gray-50 font-sans" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
+<!-- Progress bar at the top of the page -->
+<div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
 <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" x-data="{open: true}">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card sidebar-transition md:translate-x-0" 
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
             <img src="../logo.png" alt="Logo" class="w-48 mx-auto transition-all duration-300 hover:scale-105">
@@ -275,7 +338,26 @@ try {
 </div>
 
 <!-- Main Content -->
-<div class="ml-0 md:ml-72 transition-all duration-300">
+<!-- Mobile menu toggle -->
+<div class="fixed bottom-4 right-4 z-50 md:hidden">
+    <button @click="sidebarOpen = !sidebarOpen" 
+            class="flex items-center justify-center w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 focus:outline-none transition-all duration-300 transform hover:scale-105">
+        <i class='bx bx-menu text-2xl' x-show="!sidebarOpen"></i>
+        <i class='bx bx-x text-2xl' x-show="sidebarOpen"></i>
+    </button>
+</div>
+
+<!-- Mobile header with menu toggle -->
+<div class="bg-white sticky top-0 z-20 shadow-sm md:hidden">
+    <div class="flex justify-between items-center px-4 py-2">
+        <img src="../logo.png" alt="Logo" class="h-10">
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg hover:bg-gray-100">
+            <i class='bx bx-menu text-2xl'></i>
+        </button>
+    </div>
+</div>
+
+<div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
@@ -367,7 +449,7 @@ try {
             </div>
             <div class="overflow-x-auto">
                 <?php if (!empty($requests)): ?>
-                <table id="requestsTable" class="min-w-full divide-y divide-gray-200">
+                <table id="requestsTable" class="min-w-full divide-y divide-gray-200 responsive-table">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
@@ -381,13 +463,13 @@ try {
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php foreach ($requests as $request): ?>
                         <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap" data-label="Request No.">
                                 <span class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap" data-label="Business Unit">
                                 <span class="text-sm text-gray-700"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap" data-label="Access Type">
                                 <div class="flex items-center text-sm text-gray-700">
                                     <?php 
                                     $iconClass = 'text-primary-500';
@@ -421,7 +503,7 @@ try {
                                     <span><?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?></span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap" data-label="Status">
                                 <?php 
                                 $statusClass = '';
                                 $status = strtolower($request['status'] ?? 'pending');
@@ -443,7 +525,7 @@ try {
                                     <?php echo $status === 'pending_testing' ? 'Pending Testing' : ucfirst($status); ?>
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4 whitespace-nowrap" data-label="Date">
                                 <span class="text-sm text-gray-700">
                                     <?php 
                                     $date = new DateTime($request['submission_date'] ?? 'now');
@@ -451,7 +533,7 @@ try {
                                     ?>
                                 </span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                            <td class="px-6 py-4 whitespace-nowrap text-right" data-label="Actions">
                                 <a href="view_request.php?id=<?php echo $request['id']; ?>" 
                                    class="inline-flex items-center px-3 py-1.5 text-primary-600 hover:text-primary-800 transition-colors">
                                     <i class='bx bx-show mr-1'></i> View
@@ -490,7 +572,28 @@ try {
 </div>
 
 <script>
+    // Set sidebar state based on screen size
+    function checkScreenSize() {
+        if (window.innerWidth < 768) {
+            Alpine.store('app').sidebarOpen = false;
+        } else {
+            Alpine.store('app').sidebarOpen = true;
+        }
+    }
+    
+    // Check on resize and on load
+    window.addEventListener('resize', checkScreenSize);
     document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkScreenSize, 50);
+        
+        // Progress bar functionality
+        window.onscroll = function() {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+        };
+        
         // Initialize AOS animation library
         AOS.init();
         

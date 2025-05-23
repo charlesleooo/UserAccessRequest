@@ -234,14 +234,17 @@ try {
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans" x-data="formHandler()">
-<!-- Progress bar -->
+<body class="bg-gray-50 font-sans" x-data="formHandler()" x-init="$store.app = { sidebarOpen: true }">
+
+<!-- Progress bar at the top of the page -->
 <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
 </div>
+<!-- Progress bar -->
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card transform transition-transform duration-300 overflow-hidden" x-data="{open: true}">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card sidebar-transition md:translate-x-0" 
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
             <img src="../logo.png" alt="Logo" class="w-48 mx-auto transition-all duration-300 hover:scale-105">
@@ -296,14 +299,26 @@ try {
     </div>
 </div>
 
-<!-- Mobile menu toggle -->
-<div class="fixed top-4 left-4 z-50 md:hidden">
-    <button type="button" class="p-2 bg-white rounded-lg shadow-md text-gray-700" @click="open = !open">
-        <i class='bx bx-menu text-2xl'></i>
-    </button>
+<!-- Mobile header with menu toggle -->
+<div class="bg-white sticky top-0 z-20 shadow-sm md:hidden">
+    <div class="flex justify-between items-center px-4 py-2">
+        <img src="../logo.png" alt="Logo" class="h-10">
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg hover:bg-gray-100">
+            <i class='bx bx-menu text-2xl'></i>
+        </button>
+    </div>
 </div>
 
 <!-- Main Content -->
+<!-- Mobile menu toggle -->
+<div class="fixed bottom-4 right-4 z-50 md:hidden">
+    <button @click="sidebarOpen = !sidebarOpen" 
+            class="flex items-center justify-center w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 focus:outline-none transition-all duration-300 transform hover:scale-105">
+        <i class='bx bx-menu text-2xl' x-show="!sidebarOpen"></i>
+        <i class='bx bx-x text-2xl' x-show="sidebarOpen"></i>
+    </button>
+</div>
+
 <div class="ml-0 md:ml-72 transition-all duration-300">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
@@ -344,7 +359,7 @@ try {
                             <i class='bx bx-user-circle text-primary-500 text-2xl mr-2'></i>
                             Requestor Information
                         </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                             <div class="form-group">
                                 <label class="block text-sm font-medium text-gray-700 mb-2">
                                     Requestor Name <span class="text-red-500">*</span>
@@ -493,7 +508,7 @@ try {
                                         <label class="block text-sm font-medium text-gray-700 mb-2">
                                             Access Type <span class="text-red-500">*</span>
                                         </label>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                                             <template x-for="accessType in accessTypes" :key="accessType.value">
                                                 <label class="radio-card" :class="{'border-primary-500 bg-primary-50': form.accessType === accessType.value}">
                                                     <input type="radio" 
@@ -523,7 +538,7 @@ try {
                                         <label class="block text-sm font-medium text-gray-700 mb-2">
                                             Access Level <span class="text-red-500">*</span>
                                         </label>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                                             <template x-for="level in accessLevels" :key="level.value">
                                                 <label class="radio-card" :class="{'border-primary-500 bg-primary-50': form.accessLevel === level.value}">
                                                     <input type="radio" 
@@ -769,6 +784,10 @@ try {
                 this.setupProgressBar();
                 this.setupDateTime();
                 
+                // Set sidebar state based on screen size
+                this.checkScreenSize();
+                window.addEventListener('resize', this.checkScreenSize);
+                
                 // Initialize AOS
                 AOS.init({
                     once: true,
@@ -844,6 +863,14 @@ try {
                     const scrolled = (winScroll / height) * 100;
                     document.getElementById("progressBar").style.width = scrolled + "%";
                 };
+            },
+            
+            checkScreenSize() {
+                if (window.innerWidth < 768) {
+                    this.sidebarOpen = false;
+                } else {
+                    this.sidebarOpen = true;
+                }
             },
             
             setupDateTime() {

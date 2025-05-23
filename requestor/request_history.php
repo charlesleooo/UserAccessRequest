@@ -55,8 +55,8 @@ if (!empty($searchQuery)) {
     $params[':search'] = "%$searchQuery%";
 }
 
-// Add sorting
-$query .= " ORDER BY ah.created_at DESC";
+// Sort by access request number in descending order (newest first)
+$query .= " ORDER BY ah.access_request_number DESC";
 
 try {
     // Prepare and execute the query
@@ -199,6 +199,55 @@ try {
         .status-rejected {
             @apply bg-red-600 text-white border-2 border-red-700;
         }
+        
+        /* Responsive table */
+        @media (max-width: 768px) {
+            .responsive-table thead {
+                display: none;
+            }
+            
+            .responsive-table tr {
+                display: block;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                background-color: white;
+            }
+            
+            .responsive-table td {
+                display: flex;
+                padding: 0.75rem 1rem;
+                border-bottom: 1px solid #e5e7eb;
+                text-align: left !important;
+                justify-content: flex-start !important;
+            }
+            
+            .responsive-table td:before {
+                content: attr(data-label);
+                font-weight: 600;
+                width: 120px;
+                flex-shrink: 0;
+                margin-right: 1rem;
+            }
+            
+            .responsive-table td:last-child {
+                border-bottom: none;
+            }
+            
+            .dataTables_wrapper .dataTables_paginate .paginate_button {
+                padding: 0.3em 0.8em;
+            }
+            
+            .dataTables_wrapper .dataTables_filter input {
+                width: 120px;
+            }
+            
+            /* Ensure proper spacing for status badges */
+            .status-badge {
+                display: inline-block;
+                margin-left: auto;
+            }
+        }
         .status-cancelled {
             @apply bg-gray-600 text-white border-2 border-gray-700;
         }
@@ -222,15 +271,20 @@ try {
         }
     </style>
 </head>
-<body class="bg-gray-50 font-sans" x-data="{ sidebarOpen: true }">
+<body class="bg-gray-50" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
+
+<!-- Progress bar at the top of the page -->
+<div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
 <!-- Progress bar -->
 <div class="progress-container">
     <div class="progress-bar" id="progressBar"></div>
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card sidebar-transition" 
-    :class="sidebarOpen ? 'sidebar-open' : 'sidebar-closed'">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card sidebar-transition md:translate-x-0" 
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
             <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
@@ -288,7 +342,26 @@ try {
 <!-- Mobile menu toggle removed -->
 
 <!-- Main Content -->
-<div class="sidebar-transition" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
+<!-- Mobile menu toggle -->
+<div class="fixed bottom-4 right-4 z-50 md:hidden">
+    <button @click="sidebarOpen = !sidebarOpen" 
+            class="flex items-center justify-center w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 focus:outline-none transition-all duration-300 transform hover:scale-105">
+        <i class='bx bx-menu text-2xl' x-show="!sidebarOpen"></i>
+        <i class='bx bx-x text-2xl' x-show="sidebarOpen"></i>
+    </button>
+</div>
+
+<!-- Mobile header with menu toggle -->
+<div class="bg-white sticky top-0 z-20 shadow-sm md:hidden">
+    <div class="flex justify-between items-center px-4 py-2">
+        <img src="../logo.png" alt="Logo" class="h-10">
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg hover:bg-gray-100">
+            <i class='bx bx-menu text-2xl'></i>
+        </button>
+    </div>
+</div>
+
+<div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
@@ -383,7 +456,7 @@ try {
         <!-- Request History Table -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200">
             <div class="overflow-hidden">
-                <table id="requests-table" class="min-w-full divide-y divide-gray-200">
+                <table id="requests-table" class="min-w-full divide-y divide-gray-200 responsive-table">
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
@@ -398,12 +471,12 @@ try {
                         <?php if(count($requests) > 0): ?>
                             <?php foreach($requests as $request): ?>
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Request No.">
                                         <div class="text-sm font-medium text-gray-900">
                                             <?php echo htmlspecialchars($request['access_request_number']); ?>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Access Type">
                                         <div class="text-sm text-gray-900">
                                             <?php echo htmlspecialchars($request['access_type']); ?>
                                             <?php if(!empty($request['system_type'])): ?>
@@ -411,11 +484,11 @@ try {
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Department">
                                         <div class="text-sm text-gray-900"><?php echo htmlspecialchars($request['department']); ?></div>
                                         <div class="text-xs text-gray-500"><?php echo htmlspecialchars($request['business_unit']); ?></div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Status">
                                         <?php 
                                         $statusClass = '';
                                         $status = strtolower($request['action'] ?? '');
@@ -437,13 +510,13 @@ try {
                                             </span>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap text-gray-700" data-label="Processed Date">
                                         <?php 
                                         $date = new DateTime($request['created_at'] ?? 'now');
                                         echo $date->format('M d, Y'); 
                                         ?>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
+                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Actions">
                                         <a href="view_history_detail.php?id=<?php echo $request['history_id']; ?>" class="inline-flex items-center px-3 py-1.5 text-sm bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors">
                                             <i class='bx bx-show mr-1'></i> View
                                         </a>
@@ -461,62 +534,90 @@ try {
     </div>
 </div>
 
-<script>
-// Initialize DataTables with custom styling
-$(document).ready(function() {
-    // Initialize Alpine store for sidebar state if Alpine.js is loaded
-    if (typeof Alpine !== 'undefined') {
-        if (!Alpine.store) {
-            // If Alpine.store is not available yet, wait for Alpine to initialize
-            document.addEventListener('alpine:init', () => {
+    <script>
+    // Set sidebar state based on screen size
+    function checkScreenSize() {
+        if (window.innerWidth < 768) {
+            Alpine.store('app').sidebarOpen = false;
+        } else {
+            Alpine.store('app').sidebarOpen = true;
+        }
+    }
+    
+    // Check on resize and on load
+    window.addEventListener('resize', checkScreenSize);
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(checkScreenSize, 50);
+        
+        // Progress bar functionality
+        window.onscroll = function() {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+        };
+    });
+    
+    // Initialize DataTables with custom styling
+    $(document).ready(function() {
+        // Initialize Alpine store for sidebar state if Alpine.js is loaded
+        if (typeof Alpine !== 'undefined') {
+            if (!Alpine.store) {
+                // If Alpine.store is not available yet, wait for Alpine to initialize
+                document.addEventListener('alpine:init', () => {
+                    Alpine.store('sidebar', {
+                        open: true
+                    });
+                });
+            } else {
+                // If Alpine.store is already available
                 Alpine.store('sidebar', {
                     open: true
                 });
-            });
-        } else {
-            // If Alpine.store is already available
-            Alpine.store('sidebar', {
-                open: true
-            });
+            }
         }
-    }
-    
-    $('#requests-table').DataTable({
-        responsive: true,
-        lengthMenu: [10, 25, 50, 100],
-        pageLength: 10,
-        dom: 'Bfrtip',
-        buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
-        language: {
-            search: "_INPUT_",
-            searchPlaceholder: "Search...",
-            emptyTable: '<div class="flex flex-col items-center justify-center py-6"><i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i><p>No request history found</p><p class="text-sm mt-1">Try adjusting your filters or create new access requests</p></div>'
-        }
-    });
-    
-    // Initialize AOS
-    AOS.init();
-    
-    // Display current time
-    function updateTime() {
-        const now = new Date();
-        document.getElementById('current_time').textContent = now.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
+        
+        $('#requests-table').DataTable({
+            responsive: true,
+            lengthMenu: [15, 25, 50, 100],
+            pageLength: 15,
+            dom: 'Bfrtip',
+            buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Search...",
+                emptyTable: '<div class="flex flex-col items-center justify-center py-6"><i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i><p>No request history found</p><p class="text-sm mt-1">Try adjusting your filters or create new access requests</p></div>'
+            },
+            order: [], // Disable initial client-side sorting
+            ordering: false, // Disable column sorting
+            searching: true, // Keep search functionality
+            paging: true, // Keep pagination
+            info: true // Keep table information
         });
-    }
-    updateTime();
-    setInterval(updateTime, 1000);
-    
-    // Progress bar on scroll
-    window.onscroll = function() {
-        let winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-        let height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-        let scrolled = (winScroll / height) * 100;
-        document.getElementById("progressBar").style.width = scrolled + "%";
-    };
-});
-</script>
+        
+        // Initialize AOS
+        AOS.init();
+        
+        // Display current time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current_time').textContent = now.toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+        
+        // Progress bar on scroll
+        window.onscroll = function() {
+            let winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            let height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            let scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+        };
+    });
+    </script>
 </body>
 </html> 

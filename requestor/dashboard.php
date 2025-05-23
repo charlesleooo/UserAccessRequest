@@ -77,21 +77,100 @@ try {
             transition-duration: 300ms;
         }
         
-        @media (max-width: 768px) {
-            .sidebar-open {
-                transform: translateX(0);
+        /* Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background-color: #e2e8f0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 999;
+        }
+        
+        .progress-bar {
+            height: 4px;
+            background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+        
+        /* Responsive table */
+        @media (max-width: 640px) {
+            .responsive-table-card {
+                display: block;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                overflow: hidden;
             }
-            .sidebar-closed {
-                transform: translateX(-100%);
+            
+            .responsive-table-card td {
+                display: flex;
+                padding: 0.75rem 1rem;
+                border-bottom: 1px solid #e5e7eb;
+            }
+            
+            .responsive-table-card td:before {
+                content: attr(data-label);
+                font-weight: 600;
+                width: 40%;
+                margin-right: 1rem;
+            }
+            
+            .responsive-table-card thead {
+                display: none;
+            }
+            
+            .responsive-table-card tr {
+                display: block;
+                margin-bottom: 1rem;
+                border-radius: 0.5rem;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                overflow: hidden;
+                background-color: white;
             }
         }
     </style>
 </head>
-<body class="bg-gray-100" x-data="{ sidebarOpen: true }">
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
+
+<!-- Progress bar at the top of the page -->
+<div class="progress-container">
+    <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<!-- Mobile menu toggle -->
+<div class="fixed bottom-4 right-4 z-50 md:hidden">
+    <button @click="sidebarOpen = !sidebarOpen" 
+            class="flex items-center justify-center w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 focus:outline-none transition-all duration-300 transform hover:scale-105">
+        <i class='bx bx-menu text-2xl' x-show="!sidebarOpen"></i>
+        <i class='bx bx-x text-2xl' x-show="sidebarOpen"></i>
+    </button>
+</div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg sidebar-transition"
-     :class="sidebarOpen ? 'sidebar-open' : 'sidebar-closed'">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg sidebar-transition md:translate-x-0"
+     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
     <div class="flex flex-col h-full">
         <div class="text-center mt-4 flex justify-center items-center">
             <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
@@ -146,10 +225,18 @@ try {
     </div>
 </div>
 
-<!-- Mobile menu toggle removed -->
+<!-- Mobile header with menu toggle -->
+<div class="bg-white sticky top-0 z-20 shadow-sm md:hidden">
+    <div class="flex justify-between items-center px-4 py-2">
+        <img src="../logo.png" alt="Logo" class="h-10">
+        <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg hover:bg-gray-100">
+            <i class='bx bx-menu text-2xl'></i>
+        </button>
+    </div>
+</div>
 
 <!-- Main Content -->
-<div class="sidebar-transition" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
+<div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
     <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-8 py-4">
@@ -164,7 +251,7 @@ try {
 
     <div class="p-8">
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
             <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center">
                 <div class="bg-blue-50 p-3 rounded-lg">
                     <i class='bx bx-folder text-2xl text-blue-500'></i>
@@ -301,7 +388,7 @@ try {
                 <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                     <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
                         <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                            <table class="min-w-full divide-y divide-gray-200">
+                            <table class="min-w-full divide-y divide-gray-200 responsive-table">
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -324,10 +411,10 @@ try {
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php foreach ($requests as $request): ?>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Request Number">
                                             <?php echo htmlspecialchars($request['access_request_number']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Access Type">
                                             <?php echo htmlspecialchars($request['access_type']); ?>
                                             <?php if ($request['system_type']): ?>
                                             <div class="text-xs text-gray-500"><?php echo htmlspecialchars($request['system_type']); ?></div>
@@ -381,10 +468,10 @@ try {
                                             </span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Access Type">
                                             <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" data-label="Actions">
                                             <div class="flex justify-end gap-2">
                                                 <button onclick="viewRequest(<?php echo $request['id']; ?>)" 
                                                         class="inline-flex items-center px-3 py-1 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100">
@@ -512,6 +599,47 @@ function updateTestingStatus(requestId, status) {
 function viewRequest(requestId) {
     window.location.href = `view_request.php?id=${requestId}`;
 }
+</script>
+
+<script>
+    // Initialize AOS animation library
+    document.addEventListener('DOMContentLoaded', function() {
+        AOS.init();
+        
+        // Progress bar functionality
+        window.onscroll = function() {
+            const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+            const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (winScroll / height) * 100;
+            document.getElementById("progressBar").style.width = scrolled + "%";
+        };
+
+        // Set sidebar state based on screen size
+        function checkScreenSize() {
+            const app = Alpine.store('app') || document.querySelector('[x-data]').__x.$data;
+            if (window.innerWidth < 768) {
+                app.sidebarOpen = false;
+            } else {
+                app.sidebarOpen = true;
+            }
+        }
+
+        // Check on resize
+        window.addEventListener('resize', checkScreenSize);
+        
+        // Initial check
+        setTimeout(checkScreenSize, 50);
+    });
+
+    function viewRequest(requestId) {
+        window.location.href = `view_request.php?id=${requestId}`;
+    }
+
+    function cancelRequest(requestId) {
+        if (confirm("Are you sure you want to cancel this request? This action cannot be undone.")) {
+            window.location.href = `cancel_request.php?id=${requestId}`;
+        }
+    }
 </script>
 
 </body>
