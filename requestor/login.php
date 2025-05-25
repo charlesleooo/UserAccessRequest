@@ -391,7 +391,7 @@ function generateOTP($length = 6) {
         
         <div class="p-8 bg-white">
             <div class="text-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">Requestor Portal</h1>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">User Access Request System (UAR)</h1>
                 <p class="text-gray-600 text-sm">Sign in to access your dashboard</p>
             </div>
 
@@ -438,7 +438,8 @@ function generateOTP($length = 6) {
 
                 <!-- Remember Me and Forgot Password -->
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center">                        <input type="checkbox" id="remember-me" name="remember-me"
+                    <div class="flex items-center">                        
+                        <input type="checkbox" id="remember-me" name="remember-me"
                             class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
                         <label for="remember-me" class="ml-2 text-sm text-gray-700">Remember me</label>
                     </div>                    <a href="forgot_password.php" class="text-sm text-primary hover:text-secondary">
@@ -446,12 +447,14 @@ function generateOTP($length = 6) {
                     </a>
                 </div>
 
-                <!-- Sign In Button -->                <button type="submit" name="send_otp" value="1"
+                <!-- Sign In Button -->                
+                 <button type="submit" name="send_otp" value="1"
                         class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     Sign In
                 </button>
 
-                <!-- Sign Up     Button -->                <div class="mt-4 text-center">
+                <!-- Sign Up     Button -->                
+                 <div class="mt-4 text-center">
                     <span class="text-gray-600">Don't have an account?</span>
                     <a href="signup.php" class="ml-1 text-primary hover:text-secondary font-medium">
                         Sign up
@@ -460,7 +463,8 @@ function generateOTP($length = 6) {
             </form>
 
             <!-- Back to Home Page -->
-            <div class="mt-6 text-center">                <a href="../index.php" class="inline-flex items-center text-sm text-gray-600 hover:text-primary">
+            <div class="mt-6 text-center">                
+                <a href="../index.php" class="inline-flex items-center text-sm text-gray-600 hover:text-primary">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                     </svg>
