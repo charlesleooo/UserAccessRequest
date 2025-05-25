@@ -391,7 +391,7 @@ function generateOTP($length = 6) {
         
         <div class="p-8 bg-white">
             <div class="text-center mb-6">
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">User Access Request System (UAR)</h1>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">User Access Request (UAR)</h1>
                 <p class="text-gray-600 text-sm">Sign in to access your dashboard</p>
             </div>
 
