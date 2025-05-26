@@ -9,14 +9,39 @@ if (!isset($_SESSION['requestor_id'])) {
 
 $requestorId = $_SESSION['requestor_id'];
 $username = $_SESSION['username'] ?? 'User';
-?>
-<?php
-require_once '../config.php';
 
+// Debug session data
+error_log("Session data: " . json_encode($_SESSION));
+error_log("Requestor ID: " . $requestorId);
+error_log("Username: " . $username);
 
-
-$requestorId = $_SESSION['requestor_id'];
-$username = $_SESSION['username'] ?? 'User';
+// Fetch requestor's complete information
+try {
+    $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_id = ?");
+    $stmt->execute([$requestorId]);
+    $requestorInfo = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if ($requestorInfo) {
+        // Set requestor details
+        $fullName = $requestorInfo['employee_name'] ?? $username;
+        $businessUnit = $requestorInfo['company'] ?? ''; // Using company field as business unit
+        $departmentName = $requestorInfo['department'] ?? '';
+        
+        // For debugging
+        error_log("Retrieved user info: " . json_encode($requestorInfo));
+    } else {
+        // No employee record found with this ID
+        error_log("No employee record found for ID: " . $requestorId);
+        $fullName = $username;
+        $businessUnit = '';
+        $departmentName = '';
+    }
+} catch (PDOException $e) {
+    error_log("Error fetching requestor info: " . $e->getMessage());
+    $fullName = $username;
+    $businessUnit = '';
+    $departmentName = '';
+}
 
 $businessUnits = [
     'AAC' => 'AAC',
@@ -170,6 +195,12 @@ try {
                 </span>
                 <span class="ml-3">My Requests</span>
             </a>
+            <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                    <i class='bx bx-history text-xl'></i>
+                </span>
+                <span class="ml-3">Request History</span>
+            </a>
         </nav>
 
         <div class="p-4 border-t border-gray-100">
@@ -214,26 +245,21 @@ try {
             <div class="mb-8 w-full">
                 <table class="w-full border-collapse mb-6 shadow-sm table-fixed">
                     <tr>
-                        <td class="border border-gray-200 p-4 w-1/12"><strong><span class="after:content-['*'] after:text-red-500 after:ml-1">Name</span></strong>
-                        <td class="border border-gray-200 p-4 w-5/12"><input type="text" name="name" class="w-full p-3 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition shadow-inner" placeholder="Enter your full name" required></td>
+                        <td class="border border-gray-200 p-4 w-1/12"><strong>Name</strong>
+                        <td class="border border-gray-200 p-4 w-5/12"><input type="text" name="name" value="<?php echo htmlspecialchars($fullName); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly></td>
                         <td class="border border-gray-200 p-4 w-1/12"><strong><span class="after:content-['*'] after:text-red-500 after:ml-1">Date</span></strong></td>
                         <td class="border border-gray-200 p-4 w-5/12"><input type="text" name="date" value="<?php echo date('Y-m-d'); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly></td>
                     </tr>
                     <tr class="bg-gray-50">
-                        <td class="border border-gray-200 p-4"><strong><span class="after:content-['*'] after:text-red-500 after:ml-1">Business Unit Entity</span></strong></td>
+                        <td class="border border-gray-200 p-4"><strong>Business Unit Entity</strong></td>
                         <td class="border border-gray-200 p-4">
-                            <select name="business_unit" id="business_unit" class="w-full p-3 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition shadow-inner" required>
-                                <option value="">Select Business Unit Entity</option>
-                                <?php foreach ($businessUnits as $key => $value): ?>
-                                    <option value="<?php echo $key; ?>"><?php echo $value; ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                            <input type="text" name="business_unit" id="business_unit" value="<?php echo htmlspecialchars($businessUnit); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly>
+                            <input type="hidden" name="business_unit_value" value="<?php echo htmlspecialchars($businessUnit); ?>">
                         </td>
-                        <td class="border border-gray-200 p-4"><strong><span class="after:content-['*'] after:text-red-500 after:ml-1">Department</span></strong></td>
+                        <td class="border border-gray-200 p-4"><strong>Department</strong></td>
                         <td class="border border-gray-200 p-4">
-                            <select name="department" id="department" class="w-full p-3 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition shadow-inner" required>
-                                <option value="">Select Department</option>
-                            </select>
+                            <input type="text" name="department" id="department" value="<?php echo htmlspecialchars($departmentName); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly>
+                            <input type="hidden" name="department_value" value="<?php echo htmlspecialchars($departmentName); ?>">
                         </td>
                     </tr>
                 </table>
@@ -889,22 +915,7 @@ try {
         setupApplicationSelects();
     }
 
-    // Handle Business Unit change
-    $('#business_unit').change(function() {
-        const selectedUnit = this.value;
-        const deptSelect = $('#department');
-        
-        deptSelect.empty().append('<option value="">Select Department</option>');
-        
-        if (selectedUnit && businessUnitDepartments[selectedUnit]) {
-            businessUnitDepartments[selectedUnit].forEach(dept => {
-                deptSelect.append(`<option value="${dept}">${dept}</option>`);
-            });
-            deptSelect.prop('disabled', false);
-        } else {
-            deptSelect.prop('disabled', true);
-        }
-    });
+    // Business Unit and Department fields are now auto-filled with user information
 
     // Toggle required attribute based on access type selection
     $('input[name="access_type"]').change(function() {
