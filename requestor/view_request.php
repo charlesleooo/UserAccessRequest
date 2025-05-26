@@ -245,6 +245,16 @@ try {
                         <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['system_type'] ?? 'N/A'); ?></span>
                     </div>
                     <?php endif; ?>
+
+                    <?php if (!empty($request['application_system'])): ?>
+                        <div class="mb-4">
+                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                <h3 class="text-sm font-medium text-gray-600 mb-1">Application System</h3>
+                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['application_system'] ?? 'N/A'); ?></span>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <?php if (!empty($request['access_level'])): ?>
                     <div class="flex justify-between">
                         <span class="text-gray-600">Access Level:</span>

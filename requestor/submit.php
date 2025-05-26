@@ -104,6 +104,7 @@ try {
                 request_date,
                 access_type,
                 system_type,
+                application_system,
                 other_system_type,
                 role_access_type,
                 duration_type,
@@ -125,6 +126,7 @@ try {
                 :request_date,
                 :access_type,
                 :system_type,
+                :application_system,
                 :other_system_type,
                 :role_access_type,
                 :duration_type,
@@ -160,6 +162,7 @@ try {
                 'request_date' => $_POST['request_date'],
                 'access_type' => $form['accessType'] ?? $form['access_type'] ?? null,
                 'system_type' => $system_type,
+                'application_system' => $form['application_system'] ?? null,
                 'other_system_type' => $form['otherSystemType'] ?? $form['other_system_type'] ?? null,
                 'role_access_type' => $form['roleAccessType'] ?? $form['role_access_type'] ?? null,
                 'duration_type' => $form['durationType'] ?? $form['duration_type'] ?? null,
@@ -266,6 +269,7 @@ try {
         request_date,
         access_type,
         system_type,
+        application_system,
         other_system_type,
         role_access_type,
         duration_type,
@@ -287,6 +291,7 @@ try {
         :request_date,
         :access_type,
         :system_type,
+        :application_system,
         :other_system_type,
         :role_access_type,
         :duration_type,
@@ -325,6 +330,7 @@ try {
         'request_date' => $_POST['request_date'],
         'access_type' => $_POST['access_type'],
         'system_type' => $system_type,
+        'application_system' => $_POST['application_system'] ?? null,
         'other_system_type' => $_POST['other_system_type'] ?? null,
         'role_access_type' => $_POST['role_access_type'] ?? null,
         'duration_type' => $_POST['duration_type'],
@@ -476,6 +482,12 @@ try {
                         <tr>
                             <td style='padding: 8px; border: 1px solid #ddd;'><strong>System/Application Type:</strong></td>
                             <td style='padding: 8px; border: 1px solid #ddd;'>{$system_types_display}</td>
+                        </tr>
+                        " : "") . "
+                        " . (!empty($_POST['application_system']) ? "
+                        <tr>
+                            <td style='padding: 8px; border: 1px solid #ddd;'><strong>Application System:</strong></td>
+                            <td style='padding: 8px; border: 1px solid #ddd;'>{$_POST['application_system']}</td>
                         </tr>
                         " : "") . "
                         <tr>

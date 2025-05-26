@@ -288,6 +288,7 @@ try {
                                             <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <input type="hidden" name="ind_application_system[]" value="">
                                 </td>
                                 <td class="border border-gray-200 p-2">
                                     <select name="ind_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
@@ -355,13 +356,13 @@ try {
                             <tr class="application-row" data-app-id="1">
                                 <td class="border border-gray-200 p-2">
                                     <div class="flex gap-2 items-center">
-                                        <select name="grp_application[]" class="app-select flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition">
-                                        <option value="">Select Application</option>
-                                        <?php foreach ($systemApplications as $app): ?>
-                                            <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                        
+                                        <select name="grp_application[]" class="app-select flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                                            <option value="">Select Application</option>
+                                            <?php foreach ($systemApplications as $app): ?>
+                                                <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <input type="hidden" name="grp_application_system[]" value="">
                                     </div>
                                 </td>
                                 <td class="border border-gray-200 p-2">
@@ -647,6 +648,28 @@ try {
         row.remove();
     }
 
+    // Add event listeners to update application_system when application changes
+    function setupApplicationSelects() {
+        // For individual application selects
+        document.querySelectorAll('select[name="ind_application[]"]').forEach(function(select, index) {
+            select.addEventListener('change', function() {
+                const hiddenInput = document.getElementsByName('ind_application_system[]')[index];
+                hiddenInput.value = this.value;
+            });
+        });
+        
+        // For group application selects
+        document.querySelectorAll('select[name="grp_application[]"]').forEach(function(select, index) {
+            select.addEventListener('change', function() {
+                const hiddenInput = document.getElementsByName('grp_application_system[]')[index];
+                hiddenInput.value = this.value;
+            });
+        });
+    }
+    
+    // Setup initially
+    setupApplicationSelects();
+
     // Function to add new row for individual access
     function addRow(tableId) {
         const table = document.getElementById(tableId);
@@ -674,6 +697,7 @@ try {
                             <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <input type="hidden" name="ind_application_system[]" value="">
                 </td>
                 <td class="border border-gray-200 p-2">
                     <select name="ind_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
@@ -738,13 +762,16 @@ try {
                                 <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
                             <?php endforeach; ?>
                         </select>
+                        <input type="hidden" name="grp_application_system[]" value="">
+                    </div>
+                </td>
+                <td class="border border-gray-200 p-2">
+                    <div class="flex items-center gap-2">
+                        <input type="text" placeholder="User Name" name="grp_username[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
                         <button type="button" class="bg-primary hover:bg-primary-dark text-white p-2 rounded transition flex-shrink-0" onclick="addUserRow(this)" title="Add User">
                             <i class="fa fa-user-plus"></i>
                         </button>
                     </div>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <input type="text" placeholder="User Name" name="grp_username[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
                 </td>
                 <td class="border border-gray-200 p-2">
                     <select name="grp_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
@@ -783,6 +810,9 @@ try {
             tbody.appendChild(newRow);
             setupJustificationInputs();
         }
+        
+        // After adding the row, set up the application selects again
+        setupApplicationSelects();
     }
 
     // Function to add new user row under an application
@@ -805,6 +835,7 @@ try {
             <td class="border border-gray-200 p-2 bg-gray-50">
                 ${selectedApp}
                 <input type="hidden" name="grp_application[]" value="${selectedApp}">
+                <input type="hidden" name="grp_application_system[]" value="${selectedApp}">
             </td>
             <td class="border border-gray-200 p-2">
                 <input type="text" placeholder="User Name" name="grp_username[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
@@ -853,6 +884,9 @@ try {
                 toggleDateFields(this);
             });
         }
+        
+        // After adding the user row, set up the application selects again
+        setupApplicationSelects();
     }
 
     // Handle Business Unit change
@@ -931,12 +965,14 @@ try {
                 const endDate = $(this).find('input[name="ind_end_date[]"]').val();
                 const dateNeeded = $(this).find('input[name="ind_date_needed[]"]').val();
                 const justification = $(this).find('input[name="ind_justification[]"]').val();
+                const applicationSystem = $(this).find('input[name="ind_application_system[]"]').val();
                 
                 // For individual access, make sure username is also provided
                 if(app && accessType && durationType && dateNeeded && justification && username) {
                     userForms.push({
                         access_type: 'individual',
                         system_type: app,
+                        application_system: applicationSystem,
                         role_access_type: accessType,
                         duration_type: durationType,
                         start_date: startDate,
@@ -962,6 +998,7 @@ try {
                 const endDate = $(this).find('input[name="grp_end_date[]"]').val();
                 const dateNeeded = $(this).find('input[name="grp_date_needed[]"]').val();
                 const justification = $(this).find('input[name="grp_justification[]"]').val();
+                const applicationSystem = $(this).find('input[name="grp_application_system[]"]').val();
                 
                 if(app && username && accessType && durationType && dateNeeded && justification) {
                     // Find if there's already an entry for this application
@@ -975,6 +1012,7 @@ try {
                         userForms.push({
                             access_type: 'group',
                             system_type: app,
+                            application_system: applicationSystem,
                             role_access_type: accessType,
                             duration_type: durationType,
                             start_date: startDate,

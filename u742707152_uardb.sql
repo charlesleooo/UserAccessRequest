@@ -65,7 +65,8 @@ CREATE TABLE `access_requests` (
   `admin_notes` text DEFAULT NULL,
   `reviewed_by` int(11) DEFAULT NULL,
   `review_date` datetime DEFAULT NULL,
-  `review_notes` text DEFAULT NULL
+  `review_notes` text DEFAULT NULL,
+  `application_system` varchar(255) DEFAULT NULL COMMENT 'Stores application system information'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Add new columns to access_requests table if they don't exist
@@ -73,13 +74,21 @@ ALTER TABLE `access_requests`
 ADD COLUMN IF NOT EXISTS `access_level` varchar(20) DEFAULT NULL AFTER `end_date`,
 ADD COLUMN IF NOT EXISTS `usernames` json DEFAULT NULL AFTER `access_level`;
 
+-- Add application_system column to access_requests table
+ALTER TABLE `access_requests`
+ADD COLUMN IF NOT EXISTS `application_system` varchar(255) DEFAULT NULL COMMENT 'Stores application system information' AFTER `system_type`;
+
+-- Add date_needed column to access_requests table
+ALTER TABLE `access_requests`
+ADD COLUMN IF NOT EXISTS `date_needed` date DEFAULT NULL COMMENT 'Date when access is needed' AFTER `end_date`;
+
 --
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `access_level`, `usernames`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
-(42, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-009', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'ahahaa', 'ERP/NAV', NULL, '', 'permanent', NULL, NULL, 'pending_testing_review', 'success', 'qwe', 'qwe', '2025-05-18 16:02:28', 6, '2025-05-18 16:05:48', 'qwe', 9, '2025-05-18 16:24:39', 'qwe', 10, '2025-05-18 16:06:09', 'qwe', 3, '2025-05-18 16:06:19', 'qwe', NULL, NULL, NULL),
-(43, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-010', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'newly hired', 'Legacy Inventory', NULL, '', 'permanent', NULL, NULL, 'pending_testing_review', 'success', 'qwe', 'qweqwe', '2025-05-18 16:11:07', 6, '2025-05-18 16:11:19', 'qwe', 9, '2025-05-18 16:18:52', 'qwe', 10, '2025-05-18 16:11:42', 'qwe', 3, '2025-05-18 16:11:58', 'qwe', NULL, NULL, NULL);
+INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `access_level`, `usernames`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`, `application_system`) VALUES
+(42, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-009', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'ahahaa', 'ERP/NAV', NULL, '', 'permanent', NULL, NULL, 'pending_testing_review', 'success', 'qwe', 'qwe', '2025-05-18 16:02:28', 6, '2025-05-18 16:05:48', 'qwe', 9, '2025-05-18 16:24:39', 'qwe', 10, '2025-05-18 16:06:09', 'qwe', 3, '2025-05-18 16:06:19', 'qwe', NULL, NULL, NULL, NULL),
+(43, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-010', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '0000-00-00', 'System Application', 'newly hired', 'Legacy Inventory', NULL, '', 'permanent', NULL, NULL, 'pending_testing_review', 'success', 'qwe', 'qweqwe', '2025-05-18 16:11:07', 6, '2025-05-18 16:11:19', 'qwe', 9, '2025-05-18 16:18:52', 'qwe', 10, '2025-05-18 16:11:42', 'qwe', 3, '2025-05-18 16:11:58', 'qwe', NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
