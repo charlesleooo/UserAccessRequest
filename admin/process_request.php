@@ -258,7 +258,7 @@ try {
             }
             
             // Verify that the user exists and has the correct role
-            $userStmt = $pdo->prepare("SELECT employee_id, role FROM employees WHERE employee_id = :user_id");
+            $userStmt = $pdo->prepare("SELECT id as employee_id, role FROM admin_users WHERE id = :user_id");
             $userStmt->execute(['user_id' => $user_id]);
             $targetUser = $userStmt->fetch(PDO::FETCH_ASSOC);
             
@@ -621,7 +621,7 @@ try {
         $destination = ($forward_to === 'technical') ? 'Technical Support' : 'Process Owner';
         
         // Get the name of the user it's being forwarded to
-        $userStmt = $pdo->prepare("SELECT employee_name FROM employees WHERE employee_id = :user_id");
+        $userStmt = $pdo->prepare("SELECT username FROM admin_users WHERE id = :user_id");
         $userStmt->execute(['user_id' => $user_id]);
         $userName = $userStmt->fetchColumn();
         

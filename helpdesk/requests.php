@@ -685,54 +685,54 @@ try {
                 });
             } else {
                 // Handle decline case (existing code)
-                Swal.fire({
+            Swal.fire({
                     title: 'Decline Request?',
-                    input: 'textarea',
+                input: 'textarea',
                     inputLabel: 'Review Notes',
                     inputPlaceholder: 'Enter your review notes...',
-                    inputAttributes: {
+                inputAttributes: {
                         'aria-label': 'Review notes'
-                    },
-                    showCancelButton: true,
+                },
+                showCancelButton: true,
                     confirmButtonText: 'Decline',
                     confirmButtonColor: '#EF4444',
-                    showLoaderOnConfirm: true,
-                    preConfirm: (notes) => {
-                        if (!notes) {
+                showLoaderOnConfirm: true,
+                preConfirm: (notes) => {
+                    if (!notes) {
                             Swal.showValidationMessage('Please enter review notes');
-                            return false;
-                        }
-                        
-                        return fetch('../admin/process_request.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (!data.success) {
-                                throw new Error(data.message || 'Error processing request');
-                            }
-                            return data;
-                        })
-                        .catch(error => {
-                            Swal.showValidationMessage(error.message);
-                        });
-                    },
-                    allowOutsideClick: () => !Swal.isLoading()
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire({
-                            title: 'Success!',
-                            text: result.value.message,
-                            icon: 'success'
-                        }).then(() => {
-                            window.location.reload();
-                        });
+                        return false;
                     }
-                });
+                    
+                    return fetch('../admin/process_request.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.success) {
+                            throw new Error(data.message || 'Error processing request');
+                        }
+                        return data;
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(error.message);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: result.value.message,
+                        icon: 'success'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                }
+            });
             }
         }
 
