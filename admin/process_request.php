@@ -9,7 +9,7 @@ header('Content-Type: application/json');
 $transaction_active = false;
 
 // Check if user is logged in and has appropriate role
-if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['superior', 'technical', 'technical_support', 'process_owner', 'admin'])) {
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['superior', 'help_desk', 'technical', 'technical_support', 'process_owner', 'admin'])) {
     echo json_encode([
         'success' => false,
         'message' => 'Unauthorized access'
@@ -236,10 +236,60 @@ try {
             if ($current_status !== 'pending_superior') {
                 throw new Exception('This request is not pending superior review');
             }
-            $new_status = ($action === 'approve') ? 'pending_technical' : 'rejected';
+            $new_status = ($action === 'approve') ? 'pending_help_desk' : 'rejected';
             $id_field = 'superior_id';
             $notes_field = 'superior_notes';
             $date_field = 'superior_review_date';
+            break;
+
+        case 'help_desk':
+            if ($current_status !== 'pending_help_desk') {
+                throw new Exception('This request is not pending help desk review');
+            }
+            
+            // Determine where to forward the request based on the forward_to parameter
+            $forward_to = $_POST['forward_to'] ?? 'technical';
+            
+            // Get the specific user ID to forward to
+            $user_id = $_POST['user_id'] ?? null;
+            
+            if (empty($user_id)) {
+                throw new Exception('User ID is required for forwarding');
+            }
+            
+            // Verify that the user exists and has the correct role
+            $userStmt = $pdo->prepare("SELECT employee_id, role FROM employees WHERE employee_id = :user_id");
+            $userStmt->execute(['user_id' => $user_id]);
+            $targetUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$targetUser) {
+                throw new Exception('Selected user not found');
+            }
+            
+            $expectedRole = $forward_to === 'technical' ? 'technical_support' : 'process_owner';
+            if ($targetUser['role'] !== $expectedRole) {
+                throw new Exception('Selected user does not have the required role');
+            }
+            
+            if ($action === 'approve') {
+                if ($forward_to === 'technical') {
+                    $new_status = 'pending_technical';
+                    // Set the technical_id field to the selected user
+                    $technical_id = $user_id;
+                } else if ($forward_to === 'process_owner') {
+                    $new_status = 'pending_process_owner';
+                    // Set the process_owner_id field to the selected user
+                    $process_owner_id = $user_id;
+                } else {
+                    throw new Exception('Invalid forward_to value');
+                }
+            } else {
+                $new_status = 'rejected';
+            }
+            
+            $id_field = 'help_desk_id';
+            $notes_field = 'help_desk_notes';
+            $date_field = 'help_desk_review_date';
             break;
 
         case 'technical':
@@ -451,6 +501,16 @@ try {
             $notes_field = :review_notes,
             $date_field = NOW()";
     
+    // If help desk is forwarding to technical support, set technical_id
+    if ($role === 'help_desk' && $action === 'approve' && $forward_to === 'technical') {
+        $sql .= ", technical_id = :technical_id";
+    }
+    
+    // If help desk is forwarding to process owner, set process_owner_id
+    if ($role === 'help_desk' && $action === 'approve' && $forward_to === 'process_owner') {
+        $sql .= ", process_owner_id = :process_owner_id";
+    }
+    
     // If it's an admin and the new status is approved or rejected, add the fields needed for the trigger
     if ($role === 'admin' && ($new_status === 'approved' || $new_status === 'rejected')) {
         $sql .= ",
@@ -461,13 +521,25 @@ try {
     
     $sql .= " WHERE id = :request_id";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
+    $params = [
         ':new_status' => $new_status,
         ':admin_id' => $admin_id,
         ':review_notes' => $review_notes,
         ':request_id' => $request_id
-    ]);
+    ];
+    
+    // Add technical_id parameter if forwarding to technical
+    if ($role === 'help_desk' && $action === 'approve' && $forward_to === 'technical') {
+        $params[':technical_id'] = $technical_id;
+    }
+    
+    // Add process_owner_id parameter if forwarding to process owner
+    if ($role === 'help_desk' && $action === 'approve' && $forward_to === 'process_owner') {
+        $params[':process_owner_id'] = $process_owner_id;
+    }
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute($params);
 
     // If request is approved or rejected by NON-admins, move it to approval_history
     // For admin approvals, the database trigger will handle this
@@ -541,9 +613,28 @@ try {
     $pdo->commit();
     $transaction_active = false;
     
+    // Create a more descriptive message for help desk forwarding
+    $message = 'Request has been ' . ($action === 'approve' ? 'approved' : 'declined') . ' successfully';
+    
+    // If help desk is forwarding, make the message more specific
+    if ($role === 'help_desk' && $action === 'approve') {
+        $destination = ($forward_to === 'technical') ? 'Technical Support' : 'Process Owner';
+        
+        // Get the name of the user it's being forwarded to
+        $userStmt = $pdo->prepare("SELECT employee_name FROM employees WHERE employee_id = :user_id");
+        $userStmt->execute(['user_id' => $user_id]);
+        $userName = $userStmt->fetchColumn();
+        
+        if ($userName) {
+            $message = "Request has been forwarded to $destination ($userName) successfully";
+        } else {
+            $message = "Request has been forwarded to $destination successfully";
+        }
+    }
+    
     echo json_encode([
         'success' => true,
-        'message' => 'Request has been ' . ($action === 'approve' ? 'approved' : 'declined') . ' successfully'
+        'message' => $message
     ]);
 
 } catch (Exception $e) {

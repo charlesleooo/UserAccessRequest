@@ -2,16 +2,16 @@
 session_start();
 require_once '../config.php';
 
-// Check if technical support is logged in
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') {
+// Check if help desk is logged in
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'help_desk') {
     header('Location: ../admin/login.php');
     exit();
 }
 
-$technical_id = $_SESSION['admin_id'];
+$help_desk_id = $_SESSION['admin_id'];
 
 try {
-    // Get requests reviewed by this technical support
+    // Get requests reviewed by this help desk
     $stmt = $pdo->prepare("
         SELECT 
             ar.access_request_number,
@@ -20,8 +20,8 @@ try {
             ar.business_unit,
             ar.access_type,
             ar.system_type,
-            ar.technical_review_date as review_date,
-            ar.technical_notes as review_notes,
+            ar.help_desk_review_date as review_date,
+            ar.help_desk_notes as review_notes,
             ar.status,
             ar.justification,
             ar.employee_id,
@@ -31,13 +31,13 @@ try {
             ar.start_date,
             ar.end_date,
             CASE 
-                WHEN ar.status = 'rejected' AND ar.technical_id = :technical_id THEN 'Rejected'
+                WHEN ar.status = 'rejected' AND ar.help_desk_id = :help_desk_id THEN 'Rejected'
                 ELSE 'Approved/Forwarded'
             END as action
         FROM 
             access_requests ar
         WHERE 
-            ar.technical_id = :technical_id AND ar.technical_review_date IS NOT NULL
+            ar.help_desk_id = :help_desk_id AND ar.help_desk_review_date IS NOT NULL
         UNION
         SELECT 
             ah.access_request_number,
@@ -47,7 +47,7 @@ try {
             ah.access_type,
             ah.system_type,
             ah.created_at as review_date,
-            ah.technical_notes as review_notes,
+            ah.help_desk_notes as review_notes,
             ah.action as status,
             ah.justification,
             ah.employee_id,
@@ -57,18 +57,18 @@ try {
             ah.start_date,
             ah.end_date,
             CASE 
-                WHEN ah.action = 'rejected' AND ah.technical_id = :technical_id THEN 'Rejected'
+                WHEN ah.action = 'rejected' AND ah.help_desk_id = :help_desk_id THEN 'Rejected'
                 ELSE 'Approved/Forwarded'
             END as action
         FROM 
             approval_history ah
         WHERE 
-            ah.technical_id = :technical_id
+            ah.help_desk_id = :help_desk_id
         ORDER BY 
             review_date DESC
     ");
     
-    $stmt->execute(['technical_id' => $technical_id]);
+    $stmt->execute(['help_desk_id' => $_SESSION['admin_id']]);
     $reviewed_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching review history: " . $e->getMessage();
@@ -81,7 +81,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Technical Support - Review History</title>
+    <title>Help Desk - Review History</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -138,7 +138,7 @@ try {
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
-                        <span class="ml-3">Technical Reviews</span>
+                        <span class="ml-3">Help Desk Reviews</span>
                     </a>
                     
                     <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
@@ -172,7 +172,7 @@ try {
                                 <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
                             </p>
                             <p class="text-xs text-gray-500 truncate">
-                                Technical Support
+                                Help Desk
                             </p>
                         </div>
                     </div>

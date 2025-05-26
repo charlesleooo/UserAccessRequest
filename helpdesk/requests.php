@@ -2,8 +2,8 @@
 session_start();
 require_once '../config.php';
 
-// Check if technical support is logged in
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') {
+// Check if help desk is logged in
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'help_desk') {
     header('Location: ../admin/login.php');
     exit();
 }
@@ -13,7 +13,8 @@ try {
     $sql = "SELECT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
-                WHEN ar.status = 'pending_technical' THEN 'Pending Your Review'
+                WHEN ar.status = 'pending_help_desk' THEN 'Pending Your Review'
+                WHEN ar.status = 'pending_technical' THEN 'Pending Technical Review'
                 WHEN ar.status = 'pending_testing_setup' THEN 'Pending Testing Setup'
                 WHEN ar.status = 'pending_testing_review' THEN 'Pending Testing Review'
                 WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
@@ -23,7 +24,7 @@ try {
                 ELSE ar.status
             END as status_display
             FROM access_requests ar 
-            WHERE ar.status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')
+            WHERE ar.status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
             
     $stmt = $pdo->prepare($sql);
@@ -64,7 +65,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Technical Support - Pending Reviews</title>
+    <title>Help Desk - Pending Reviews</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -121,7 +122,7 @@ try {
                         <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
-                        <span class="ml-3 font-medium">Technical Reviews</span>
+                        <span class="ml-3 font-medium">Help Desk Reviews</span>
                     </a>
                     
                     <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
@@ -155,7 +156,7 @@ try {
                                 <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
                             </p>
                             <p class="text-xs text-gray-500 truncate">
-                                Technical Support
+                                Help Desk
                             </p>
                         </div>
                     </div>
@@ -168,8 +169,8 @@ try {
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Technical Reviews</h1>
-                    <p class="text-gray-600 mt-1">Review and assess technical feasibility of access requests</p>
+                    <h1 class="text-2xl font-bold text-gray-800">Help Desk Reviews</h1>
+                    <p class="text-gray-600 mt-1">Review and process access requests from superiors</p>
                 </div>
             </div>
 
@@ -215,7 +216,18 @@ try {
                                                     <i class='bx bx-show align-middle'></i>
                                                     <span class="ml-1.5">View</span>
                                                 </button>
-                                                <?php if ($request['status'] === 'pending_technical'): ?>
+                                                <?php if ($request['status'] === 'pending_help_desk'): ?>
+                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'approve')"
+                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                                    <i class='bx bx-share align-middle'></i>
+                                                    <span class="ml-1.5">Forward</span>
+                                                </button>
+                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'decline')"
+                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                    <i class='bx bx-x align-middle'></i>
+                                                    <span class="ml-1.5">Decline</span>
+                                                </button>
+                                                <?php elseif ($request['status'] === 'pending_technical'): ?>
                                                 <button onclick="handleRequest(<?php echo $request['id']; ?>, 'approve')"
                                                         class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                                                     <i class='bx bx-check align-middle'></i>
@@ -596,54 +608,195 @@ try {
         }
 
         function handleRequest(requestId, action) {
-            Swal.fire({
-                title: action === 'approve' ? 'Recommend Request?' : 'Decline Request?',
-                input: 'textarea',
-                inputLabel: 'Technical Review Notes',
-                inputPlaceholder: 'Enter your technical review notes...',
-                inputAttributes: {
-                    'aria-label': 'Technical review notes'
-                },
-                showCancelButton: true,
-                confirmButtonText: action === 'approve' ? 'Recommend' : 'Decline',
-                confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
-                showLoaderOnConfirm: true,
-                preConfirm: (notes) => {
-                    if (!notes) {
-                        Swal.showValidationMessage('Please enter technical review notes');
-                        return false;
-                    }
-                    
-                    return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
+            if (action === 'approve') {
+                Swal.fire({
+                    title: 'Forward Request',
+                    html: `
+                        <div class="mb-4">
+                            <label for="forward-to" class="block text-sm font-medium text-gray-700 mb-1">Forward to:</label>
+                            <select id="forward-to" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="updateUserDropdown()">
+                                <option value="technical">Technical Support</option>
+                                <option value="process_owner">Process Owner</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="user-id" class="block text-sm font-medium text-gray-700 mb-1">Select User:</label>
+                            <select id="user-id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent">
+                                <option value="">Loading users...</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="review-notes" class="block text-sm font-medium text-gray-700 mb-1">Review Notes:</label>
+                            <textarea id="review-notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" placeholder="Enter your review notes..."></textarea>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Forward Request',
+                    confirmButtonColor: '#10B981',
+                    showLoaderOnConfirm: true,
+                    didOpen: () => {
+                        // Load technical support users by default
+                        updateUserDropdown();
+                    },
+                    preConfirm: () => {
+                        const forwardTo = document.getElementById('forward-to').value;
+                        const userId = document.getElementById('user-id').value;
+                        const notes = document.getElementById('review-notes').value;
+                        
+                        if (!notes) {
+                            Swal.showValidationMessage('Please enter review notes');
+                            return false;
                         }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: result.value.message,
-                        icon: 'success'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
+                        
+                        if (!userId) {
+                            Swal.showValidationMessage('Please select a user');
+                            return false;
+                        }
+                        
+                        return fetch('../admin/process_request.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}&forward_to=${forwardTo}&user_id=${userId}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Error processing request');
+                            }
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: result.value.message,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    }
+                });
+            } else {
+                // Handle decline case (existing code)
+                Swal.fire({
+                    title: 'Decline Request?',
+                    input: 'textarea',
+                    inputLabel: 'Review Notes',
+                    inputPlaceholder: 'Enter your review notes...',
+                    inputAttributes: {
+                        'aria-label': 'Review notes'
+                    },
+                    showCancelButton: true,
+                    confirmButtonText: 'Decline',
+                    confirmButtonColor: '#EF4444',
+                    showLoaderOnConfirm: true,
+                    preConfirm: (notes) => {
+                        if (!notes) {
+                            Swal.showValidationMessage('Please enter review notes');
+                            return false;
+                        }
+                        
+                        return fetch('../admin/process_request.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Error processing request');
+                            }
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: result.value.message,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    }
+                });
+            }
+        }
+
+        // Function to update the user dropdown based on the selected role
+        function updateUserDropdown() {
+            const forwardTo = document.getElementById('forward-to').value;
+            const userDropdown = document.getElementById('user-id');
+            
+            // Set loading state
+            userDropdown.innerHTML = '<option value="">Loading users...</option>';
+            
+            // Determine the role to fetch
+            const role = forwardTo === 'technical' ? 'technical_support' : 'process_owner';
+            
+            console.log('Fetching users with role:', role);
+            
+            // Fetch users with the selected role
+            fetch(`fetch_users_by_role.php?role=${role}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log('API response:', data);
+                    
+                    if (data.success) {
+                        // Clear dropdown
+                        userDropdown.innerHTML = '';
+                        
+                        // Add a default option
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = `Select a ${forwardTo === 'technical' ? 'Technical Support' : 'Process Owner'} user...`;
+                        userDropdown.appendChild(defaultOption);
+                        
+                        // Add user options
+                        if (data.users && data.users.length > 0) {
+                            console.log('Users found:', data.users.length);
+                            data.users.forEach(user => {
+                                console.log('Adding user:', user);
+                                if (user && user.employee_id && user.employee_name) {
+                                    const option = document.createElement('option');
+                                    option.value = user.employee_id;
+                                    option.textContent = user.employee_name;
+                                    userDropdown.appendChild(option);
+                                } else {
+                                    console.warn('Skipping invalid user data:', user);
+                                }
+                            });
+                        } else {
+                            // No users found
+                            console.log('No users found with role:', role);
+                            const noUsersOption = document.createElement('option');
+                            noUsersOption.value = '';
+                            noUsersOption.textContent = `No ${forwardTo === 'technical' ? 'Technical Support' : 'Process Owner'} users found`;
+                            userDropdown.appendChild(noUsersOption);
+                        }
+                    } else {
+                        // Error fetching users
+                        console.error('Error from API:', data.message);
+                        userDropdown.innerHTML = `<option value="">Error loading users: ${data.message}</option>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching users:', error);
+                    userDropdown.innerHTML = '<option value="">Error loading users</option>';
+                });
         }
 
         function showActionModal(requestId, action) {

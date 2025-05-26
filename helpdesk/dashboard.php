@@ -12,7 +12,7 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'help_desk') {
 // Get quick stats for the dashboard
 try {
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review')");
     $pendingRequests = $stmt->fetchColumn();
     
     // Get today's technical reviews count
@@ -22,7 +22,7 @@ try {
     $technicalReviewsToday = $stmt->fetchColumn();
     
     // Get recent requests
-    $stmt = $pdo->query("SELECT * FROM access_requests WHERE status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review') ORDER BY submission_date DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT * FROM access_requests WHERE status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review') ORDER BY submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
@@ -38,7 +38,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Technical Support Dashboard - UAR System</title>
+    <title>Help Desk Dashboard - UAR System</title>
 
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -96,7 +96,7 @@ try {
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
-                        <span class="ml-3">Technical Reviews</span>
+                        <span class="ml-3">Help Desk Reviews</span>
                     </a>
                     
                     <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
@@ -130,7 +130,7 @@ try {
                                 <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
                             </p>
                             <p class="text-xs text-gray-500 truncate">
-                                Technical Support
+                                Help Desk
                             </p>
                         </div>
                     </div>
@@ -143,7 +143,7 @@ try {
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Technical Support Dashboard</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">Help Desk Dashboard</h1>
                     <p class="text-gray-600 mt-1">Welcome back, <?php echo htmlspecialchars($_SESSION['admin_username']); ?></p>
                 </div>
             </div>

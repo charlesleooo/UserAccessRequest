@@ -30,7 +30,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         error_log("Admin login attempt for: " . $username);
         
         // Fetch user by email
-        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
+        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner', 'help_desk')");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
@@ -142,6 +142,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                     case 'process_owner':
                         $redirect = '../process_owner/dashboard.php';
                         break;
+                    case 'help_desk':
+                        $redirect = '../helpdesk/dashboard.php';
+                        break;
                 }
 
                 echo json_encode(['status' => 'success', 'redirect' => $redirect]);
@@ -221,7 +224,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         error_log("Login attempt for username: " . $username);
           try {
             // Check employees table for users with admin roles
-            $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
+            $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner', 'help_desk')");
             $stmt->execute([$username]);
             $user = $stmt->fetch();
             
@@ -272,6 +275,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                         break;
                     case 'process_owner':
                         header('Location: ../process_owner/dashboard.php');
+                        break;
+                    case 'help_desk':
+                        header('Location: ../helpdesk/dashboard.php');
                         break;
                     default:
                         header('Location: dashboard.php');
