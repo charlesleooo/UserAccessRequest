@@ -279,7 +279,7 @@ try {
                         <tbody>
                             <tr>
                                 <td class="border border-gray-200 p-2">
-                                    <input type="text" placeholder="User Name" name="ind_username" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                                    <input type="text" placeholder="User Name" name="ind_username" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition">
                                 </td>
                                 <td class="border border-gray-200 p-2">
                                     <select name="ind_application[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
@@ -355,7 +355,7 @@ try {
                             <tr class="application-row" data-app-id="1">
                                 <td class="border border-gray-200 p-2">
                                     <div class="flex gap-2 items-center">
-                                        <select name="grp_application[]" class="app-select flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                                        <select name="grp_application[]" class="app-select flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition">
                                         <option value="">Select Application</option>
                                         <?php foreach ($systemApplications as $app): ?>
                                             <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
@@ -748,7 +748,7 @@ try {
                 </td>
                 <td class="border border-gray-200 p-2">
                     <select name="grp_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                        <option value="">Select Access Type</option>
+                        <option value=""></option>
                         <option value="full">Full</option>
                         <option value="read">Read</option>
                         <option value="admin">Admin</option>
@@ -756,7 +756,7 @@ try {
                 </td>
                 <td class="border border-gray-200 p-2">
                     <select name="grp_duration_type[]" class="duration-select w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required onchange="toggleDateFields(this)">
-                        <option value="">Select Duration</option>
+                        <option value=""></option>
                         <option value="permanent">Permanent</option>
                         <option value="temporary">Temporary</option>
                     </select>
@@ -872,28 +872,186 @@ try {
         }
     });
 
+    // Toggle required attribute based on access type selection
+    $('input[name="access_type"]').change(function() {
+        const accessType = $(this).val();
+        
+        if (accessType === 'individual') {
+            // Remove required attribute from group fields
+            $('#groupTable').find('[required]').prop('required', false);
+            // Add required attribute to individual fields
+            $('#individualTable').find('select, input[type="text"], input[type="date"]').not('.start-date, .end-date').prop('required', true);
+        } else {
+            // Remove required attribute from individual fields
+            $('#individualTable').find('[required]').prop('required', false);
+            // Add required attribute to group fields
+            $('#groupTable').find('select, input[type="text"], input[type="date"]').not('.start-date, .end-date').prop('required', true);
+        }
+    });
+    
+    // Trigger change event on page load to set initial required attributes
+    $('input[name="access_type"]:checked').trigger('change');
+
     // Form submission handler
     $('#uarForm').submit(function(e) {
         e.preventDefault();
-        const formData = new FormData(this);
-        fetch('submit.php', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                document.getElementById('modalMessage').textContent = data.message;
-                document.getElementById('successModal').classList.remove('hidden');
-                form.reset();
-                resetFormSections();
-            } else {
-                alert(data.message || 'An error occurred while submitting the form.');
+        
+        // Validate form
+        let isValid = true;
+        const formData = new FormData();
+        
+        // Get basic request info
+        const name = $('input[name="name"]').val();
+        const businessUnit = $('#business_unit').val();
+        const department = $('#department').val();
+        const accessType = $('input[name="access_type"]:checked').val();
+        const date = $('input[name="date"]').val();
+        
+        // Add basic request data
+        formData.append('requestor_name', name);
+        formData.append('business_unit', businessUnit);
+        formData.append('department', department);
+        formData.append('request_date', date);
+        formData.append('employee_id', <?php echo json_encode($requestorId); ?>);
+        formData.append('email', <?php echo isset($_SESSION['email']) ? json_encode($_SESSION['email']) : '""'; ?>);
+        
+        // Prepare array to hold all access requests
+        const userForms = [];
+        
+        if(accessType === 'individual') {
+            // Process individual access requests
+            const username = $('input[name="ind_username"]').val();
+            
+            // Get all rows from individual table
+            $('#individualTable tbody tr').each(function(index) {
+                const app = $(this).find('select[name="ind_application[]"]').val();
+                const accessType = $(this).find('select[name="ind_access_type[]"]').val();
+                const durationType = $(this).find('select[name="ind_duration_type[]"]').val();
+                const startDate = $(this).find('input[name="ind_start_date[]"]').val();
+                const endDate = $(this).find('input[name="ind_end_date[]"]').val();
+                const dateNeeded = $(this).find('input[name="ind_date_needed[]"]').val();
+                const justification = $(this).find('input[name="ind_justification[]"]').val();
+                
+                // For individual access, make sure username is also provided
+                if(app && accessType && durationType && dateNeeded && justification && username) {
+                    userForms.push({
+                        access_type: 'individual',
+                        system_type: app,
+                        role_access_type: accessType,
+                        duration_type: durationType,
+                        start_date: startDate,
+                        end_date: endDate,
+                        date_needed: dateNeeded,
+                        justification: justification,
+                        usernames: [username]
+                    });
+                } else {
+                    isValid = false;
+                }
+            });
+        } else {
+            // Process group access requests
+            $('#groupTable tbody tr').each(function(index) {
+                const app = $(this).find('select[name="grp_application[]"]').val() || 
+                           $(this).find('input[name="grp_application[]"]').val();
+                           
+                const username = $(this).find('input[name="grp_username[]"]').val();
+                const accessType = $(this).find('select[name="grp_access_type[]"]').val();
+                const durationType = $(this).find('select[name="grp_duration_type[]"]').val();
+                const startDate = $(this).find('input[name="grp_start_date[]"]').val();
+                const endDate = $(this).find('input[name="grp_end_date[]"]').val();
+                const dateNeeded = $(this).find('input[name="grp_date_needed[]"]').val();
+                const justification = $(this).find('input[name="grp_justification[]"]').val();
+                
+                if(app && username && accessType && durationType && dateNeeded && justification) {
+                    // Find if there's already an entry for this application
+                    const existingAppIndex = userForms.findIndex(form => form.system_type === app);
+                    
+                    if(existingAppIndex !== -1) {
+                        // Add username to existing application
+                        userForms[existingAppIndex].usernames.push(username);
+                    } else {
+                        // Create new entry for this application
+                        userForms.push({
+                            access_type: 'group',
+                            system_type: app,
+                            role_access_type: accessType,
+                            duration_type: durationType,
+                            start_date: startDate,
+                            end_date: endDate,
+                            date_needed: dateNeeded,
+                            justification: justification,
+                            usernames: [username]
+                        });
+                    }
+                } else {
+                    isValid = false;
+                }
+            });
+        }
+        
+        // Check if we have at least one valid request
+        if(userForms.length === 0) {
+            alert('Please add at least one valid access request.');
+            return;
+        }
+        
+        // Check if form is valid
+        if(!isValid) {
+            alert('Please fill out all required fields.');
+            return;
+        }
+        
+        // Validate basic form fields
+        if(!name || !businessUnit || !department || !date) {
+            alert('Please fill out all required fields in the Requestor Information section.');
+            return;
+        }
+        
+        // Add user forms to formData
+        formData.append('user_forms', JSON.stringify(userForms));
+        
+        // Debug: Log the data being sent
+        console.log('Form data:');
+        for (let pair of formData.entries()) {
+            console.log(pair[0] + ': ' + pair[1]);
+        }
+        
+        // Show loading indicator
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.html();
+        submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> Submitting...');
+        submitBtn.prop('disabled', true);
+        
+        // Submit form
+        $.ajax({
+            url: 'submit.php',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                submitBtn.html(originalText);
+                submitBtn.prop('disabled', false);
+                
+                if(response.success) {
+                    alert(response.message || 'Request submitted successfully!');
+                    // Reset form
+                    $('#uarForm').trigger('reset');
+                    // Redirect to my requests page after 2 seconds
+                    setTimeout(function() {
+                        window.location.href = 'my_requests.php';
+                    }, 2000);
+                } else {
+                    alert(response.message || 'An error occurred while submitting the form.');
+                }
+            },
+            error: function(xhr, status, error) {
+                submitBtn.html(originalText);
+                submitBtn.prop('disabled', false);
+                alert('An error occurred while submitting the form. Please try again.');
+                console.error(error);
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred while submitting the form.');
         });
     });
 

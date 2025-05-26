@@ -4,6 +4,9 @@ session_start();
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
+// Debug: Log POST data
+error_log("POST data received: " . print_r($_POST, true));
+
 // Check if user is logged in
 if (!isset($_SESSION['requestor_id'])) {
     echo json_encode([
@@ -40,12 +43,35 @@ try {
     header('Content-Type: application/json');
 
     // Check if user_forms is set (multi-user form submission)
-    if (isset($_POST['user_forms']) && is_array($_POST['user_forms'])) {
+    if (isset($_POST['user_forms'])) {
+        // Debug: Log user_forms data
+        error_log("user_forms received: " . $_POST['user_forms']);
+        
+        // Safely decode JSON
+        $userForms = json_decode($_POST['user_forms'], true);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error parsing form data: ' . json_last_error_msg()
+            ]);
+            exit();
+        }
+        
         $all_success = true;
         $error_message = '';
         $first_access_request_number = '';
         $first_superior = null;
-        foreach ($_POST['user_forms'] as $form_index => $form) {
+        
+        // Make sure user_forms is an array
+        if (!is_array($userForms)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Invalid form data structure'
+            ]);
+            exit();
+        }
+        
+        foreach ($userForms as $form_index => $form) {
             // For each form, always re-query the max number
             $year = date('Y');
             $sql = "SELECT MAX(request_num) as max_num FROM (
@@ -83,6 +109,7 @@ try {
                 duration_type,
                 start_date,
                 end_date,
+                date_needed,
                 access_level,
                 usernames,
                 justification,
@@ -103,6 +130,7 @@ try {
                 :duration_type,
                 :start_date,
                 :end_date,
+                :date_needed,
                 :access_level,
                 :usernames,
                 :justification,
@@ -137,6 +165,7 @@ try {
                 'duration_type' => $form['durationType'] ?? $form['duration_type'] ?? null,
                 'start_date' => (isset($form['durationType']) && $form['durationType'] === 'temporary') || (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['startDate'] ?? $form['start_date'] ?? null) : null,
                 'end_date' => (isset($form['durationType']) && $form['durationType'] === 'temporary') || (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['endDate'] ?? $form['end_date'] ?? null) : null,
+                'date_needed' => $form['date_needed'] ?? null,
                 'access_level' => $form['accessLevel'] ?? $form['access_level'] ?? null,
                 'usernames' => $usernames,
                 'justification' => $form['justification'] ?? null
@@ -175,7 +204,7 @@ try {
         if ($all_success) {
             // Send email only for the first user form
             // (reuse your existing email code, using $first_access_request_number and $first_superior)
-            // ... (existing email code here, using $_POST['user_forms'][0] for details) ...
+            // ... (existing email code here, using $userForms[0] for details) ...
             // For brevity, you can copy your email code and adjust variables as needed
             echo json_encode([
                 'success' => true,
@@ -242,6 +271,7 @@ try {
         duration_type,
         start_date,
         end_date,
+        date_needed,
         access_level,
         usernames,
         justification,
@@ -262,6 +292,7 @@ try {
         :duration_type,
         :start_date,
         :end_date,
+        :date_needed,
         :access_level,
         :usernames,
         :justification,
@@ -299,6 +330,7 @@ try {
         'duration_type' => $_POST['duration_type'],
         'start_date' => $_POST['duration_type'] === 'temporary' ? $_POST['start_date'] : null,
         'end_date' => $_POST['duration_type'] === 'temporary' ? $_POST['end_date'] : null,
+        'date_needed' => $_POST['date_needed'] ?? null,
         'access_level' => $_POST['access_level'] ?? null,
         'usernames' => $usernames,
         'justification' => $_POST['justification']
