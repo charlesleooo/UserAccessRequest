@@ -107,7 +107,13 @@ try {
 
         case 'technical_support':
             $can_handle = ($current_status === 'pending_technical');
-            $next_status = ($action === 'approve') ? 'pending_process_owner' : 'rejected';
+            // Check if this request came from process owner by checking if process_owner_id is set
+            $stmt = $pdo->prepare("SELECT process_owner_id FROM access_requests WHERE id = ?");
+            $stmt->execute([$request_id]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $came_from_process_owner = !empty($result['process_owner_id']);
+            
+            $next_status = ($action === 'approve') ? ($came_from_process_owner ? 'pending_admin' : 'pending_admin') : 'rejected';
             $id_field = 'technical_id';
             $date_field = 'technical_review_date';
             $notes_field = 'technical_notes';
@@ -115,7 +121,7 @@ try {
 
         case 'process_owner':
             $can_handle = ($current_status === 'pending_process_owner');
-            $next_status = ($action === 'approve') ? 'pending_admin' : 'rejected';
+            $next_status = ($action === 'approve') ? 'pending_help_desk' : 'rejected';
             $id_field = 'process_owner_id';
             $date_field = 'process_owner_review_date';
             $notes_field = 'process_owner_notes';
