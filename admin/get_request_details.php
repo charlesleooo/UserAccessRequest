@@ -6,7 +6,7 @@ require_once '../config.php';
 header('Content-Type: application/json');
 
 // Check if user is logged in and has appropriate role
-if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['superior', 'technical', 'technical_support', 'process_owner', 'admin'])) {
+if (!isset($_SESSION['admin_id']) || !in_array($_SESSION['role'], ['superior', 'technical', 'technical_support', 'process_owner', 'admin', 'help_desk'])) {
     echo json_encode([
         'success' => false,
         'message' => 'Unauthorized access'

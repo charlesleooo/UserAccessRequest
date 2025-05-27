@@ -169,8 +169,18 @@ try {
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg sidebar-transition md:translate-x-0"
-     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+<div 
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg"
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    x-show="sidebarOpen"
+    x-transition:enter="transition-transform ease-in-out duration-400"
+    x-transition:enter-start="-translate-x-full"
+    x-transition:enter-end="translate-x-0"
+    x-transition:leave="transition-transform ease-in-out duration-300"
+    x-transition:leave-start="translate-x-0"
+    x-transition:leave-end="-translate-x-full"
+    aria-hidden="false"
+>
     <div class="flex flex-col h-full">
         <div class="text-center mt-4 flex justify-center items-center">
             <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
@@ -235,14 +245,36 @@ try {
     </div>
 </div>
 
+<!-- Sidebar Overlay for mobile/tablet -->
+<div 
+    x-show="sidebarOpen" 
+    @click="sidebarOpen = false" 
+    class="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden" 
+    x-transition:enter="transition-opacity ease-in-out duration-300" 
+    x-transition:enter-start="opacity-0" 
+    x-transition:enter-end="opacity-100" 
+    x-transition:leave="transition-opacity ease-in-out duration-200" 
+    x-transition:leave-start="opacity-100" 
+    x-transition:leave-end="opacity-0" 
+    aria-hidden="true">
+</div>
+
 <!-- Main Content -->
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="bg-blue-200 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-8 py-4">
             <div class="flex items-center">
+                <!-- Hamburger button for toggling sidebar -->
+                <button 
+                    @click="sidebarOpen = !sidebarOpen"
+                    class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
+                    aria-label="Toggle sidebar"
+                >
+                    <i class='bx bx-menu text-2xl'></i>
+                </button>
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800">User Access Request System</h2>
+                    <h2 class="text-4xl font-bold text-gray-800">User Access Request System</h2>
                     <p class="text-gray-600 text-xl mt-1">Welcome back <?php echo htmlspecialchars($username); ?></p>
                 </div>
             </div>
@@ -252,7 +284,7 @@ try {
     <div class="p-8">
         <!-- Stats Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center">
+            <div class="bg-blue-50 rounded-xl border border-gray-200 p-6 flex items-center">
                 <div class="bg-blue-50 p-3 rounded-lg">
                     <i class='bx bx-folder text-2xl text-blue-500'></i>
                 </div>
@@ -261,7 +293,7 @@ try {
                     <h4 class="text-2xl font-bold text-gray-900"><?php echo $total; ?></h4>
                 </div>
             </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center">
+            <div class="bg-green-50 rounded-xl border border-gray-200 p-6 flex items-center">
                 <div class="bg-green-50 p-3 rounded-lg">
                     <i class='bx bx-check-circle text-2xl text-green-500'></i>
                 </div>
@@ -270,7 +302,7 @@ try {
                     <h4 class="text-2xl font-bold text-gray-900"><?php echo $approved; ?></h4>
                 </div>
             </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center">
+            <div class="bg-yellow-50 rounded-xl border border-gray-200 p-6 flex items-center">
                 <div class="bg-yellow-50 p-3 rounded-lg">
                     <i class='bx bx-time text-2xl text-yellow-500'></i>
                 </div>
@@ -279,7 +311,7 @@ try {
                     <h4 class="text-2xl font-bold text-gray-900"><?php echo $pending; ?></h4>
                 </div>
             </div>
-            <div class="bg-white rounded-xl border border-gray-200 p-6 flex items-center">
+            <div class="bg-red-50 rounded-xl border border-gray-200 p-6 flex items-center">
                 <div class="bg-red-50 p-3 rounded-lg">
                     <i class='bx bx-x-circle text-2xl text-red-500'></i>
                 </div>

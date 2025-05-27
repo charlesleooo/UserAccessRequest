@@ -274,8 +274,16 @@ try {
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card sidebar-transition md:translate-x-0" 
-    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card"
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    x-show="sidebarOpen"
+    x-transition:enter="transition-transform ease-in-out duration-500"
+    x-transition:enter-start="-translate-x-full"
+    x-transition:enter-end="translate-x-0"
+    x-transition:leave="transition-transform ease-in-out duration-500"
+    x-transition:leave-start="translate-x-0"
+    x-transition:leave-end="-translate-x-full"
+    aria-hidden="false">
     <div class="flex flex-col h-full">
         <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
             <img src="../logo.png" alt="Logo" class="w-48 mx-auto transition-all duration-300 hover:scale-105">
@@ -357,25 +365,49 @@ try {
     </div>
 </div>
 
+<!-- Sidebar Overlay for mobile/tablet -->
+<div 
+    x-show="sidebarOpen" 
+    @click="sidebarOpen = false" 
+    class="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden" 
+    x-transition:enter="transition-opacity ease-in-out duration-300" 
+    x-transition:enter-start="opacity-0" 
+    x-transition:enter-end="opacity-100" 
+    x-transition:leave="transition-opacity ease-in-out duration-200" 
+    x-transition:leave-start="opacity-100" 
+    x-transition:leave-end="opacity-0" 
+    aria-hidden="true">
+</div>
+
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="bg-blue-200 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
-            <div data-aos="fade-right" data-aos-duration="800">
-                <h2 class="text-2xl font-bold text-gray-800">
-                    <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
-                        Request History
-                    <?php else: ?>
-                        My Access Requests
-                    <?php endif; ?>
-                </h2>
-                <p class="text-gray-600 text-lg mt-1">
-                    <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
-                        View your previously approved and rejected requests
-                    <?php else: ?>
-                        Track and manage your submitted access requests
-                    <?php endif; ?>
-                </p>
+            <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
+                <!-- Hamburger button for toggling sidebar -->
+                <button 
+                    @click="sidebarOpen = !sidebarOpen"
+                    class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
+                    aria-label="Toggle sidebar"
+                >
+                    <i class='bx bx-menu text-2xl'></i>
+                </button>
+                <div>
+                    <h2 class="text-4xl font-bold text-gray-800">
+                        <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
+                            Request History
+                        <?php else: ?>
+                            My Access Requests
+                        <?php endif; ?>
+                    </h2>
+                    <p class="text-gray-600 text-lg mt-1">
+                        <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
+                            View your previously approved and rejected requests
+                        <?php else: ?>
+                            Track and manage your submitted access requests
+                        <?php endif; ?>
+                    </p>
+                </div>
             </div>
             <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
                 <div class="flex items-center space-x-2 text-sm bg-primary-50 text-primary-700 px-4 py-2 rounded-lg">

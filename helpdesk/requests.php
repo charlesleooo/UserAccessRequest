@@ -347,40 +347,14 @@ try {
                                     Request Overview
                                 </h3>
                                 <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Request Number:</span>
-                                        <span class="font-medium text-gray-900">${data.access_request_number}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-gray-600">Status:</span>
-                                        <div class="flex items-center ${
-                                            data.status.includes('pending') ? 'bg-yellow-50' : 
-                                            (data.status === 'approved' ? 'bg-green-50' : 'bg-red-50')
-                                        } rounded-lg px-2 py-1">
-                                            <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                                data.status.includes('pending') ? 'bg-yellow-100 text-yellow-700' : 
-                                                (data.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
-                                            }">
-                                                ${data.status_display}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Submitted:</span>
-                                        <span class="font-medium text-gray-900">
-                                            ${new Date(data.submission_date).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Duration:</span>
-                                        <span class="font-medium text-gray-900">
-                                            ${data.duration_type === 'permanent' ? 'Permanent' : 
-                                            `${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}`}
-                                        </span>
-                                    </div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Request Number:</span><span class="font-medium text-gray-900">${data.access_request_number}</span></div>
+                                    <div class="flex justify-between items-center"><span class="text-gray-600">Status:</span><div class="flex items-center ${data.status.includes('pending') ? 'bg-yellow-50' : (data.status === 'approved' ? 'bg-green-50' : 'bg-red-50')} rounded-lg px-2 py-1"><span class="px-3 py-1 text-xs font-medium rounded-full ${data.status.includes('pending') ? 'bg-yellow-100 text-yellow-700' : (data.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}">${data.status_display}</span></div></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Submitted:</span><span class="font-medium text-gray-900">${new Date(data.submission_date).toLocaleString()}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Request Date:</span><span class="font-medium text-gray-900">${data.request_date ? new Date(data.request_date).toLocaleDateString() : 'N/A'}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Date Needed:</span><span class="font-medium text-gray-900">${data.date_needed ? new Date(data.date_needed).toLocaleDateString() : 'N/A'}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Duration:</span><span class="font-medium text-gray-900">${data.duration_type === 'permanent' ? 'Permanent' : (data.start_date && data.end_date ? `${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}` : 'N/A')}</span></div>
                                 </div>
                             </div>
-                            
                             <!-- Requestor Info -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
@@ -388,29 +362,13 @@ try {
                                     Requestor Information
                                 </h3>
                                 <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Name:</span>
-                                        <span class="font-medium text-gray-900">${data.requestor_name}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Business Unit:</span>
-                                        <span class="font-medium text-gray-900">${data.business_unit}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Department:</span>
-                                        <span class="font-medium text-gray-900">${data.department}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Email:</span>
-                                        <span class="font-medium text-gray-900">${data.email}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Employee ID:</span>
-                                        <span class="font-medium text-gray-900">${data.employee_id}</span>
-                                    </div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Name:</span><span class="font-medium text-gray-900">${data.requestor_name}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Business Unit:</span><span class="font-medium text-gray-900">${data.business_unit}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Department:</span><span class="font-medium text-gray-900">${data.department}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Email:</span><span class="font-medium text-gray-900">${data.email}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Employee ID:</span><span class="font-medium text-gray-900">${data.employee_id}</span></div>
                                 </div>
                             </div>
-                            
                             <!-- Access Details -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
@@ -418,32 +376,49 @@ try {
                                     Access Details
                                 </h3>
                                 <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Access Type:</span>
-                                        <span class="font-medium text-gray-900">${data.access_type}</span>
-                                    </div>
-                                    ${data.system_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">System Type:</span>
-                                        <span class="font-medium text-gray-900">${data.system_type}</span>
-                                    </div>
-                                    ` : ''}
-                                    ${data.other_system_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Other System:</span>
-                                        <span class="font-medium text-gray-900">${data.other_system_type}</span>
-                                    </div>
-                                    ` : ''}
-                                    ${data.role_access_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Role Access Type:</span>
-                                        <span class="font-medium text-gray-900">${data.role_access_type}</span>
-                                    </div>
-                                    ` : ''}
+                                    <div class="flex justify-between"><span class="text-gray-600">Access Type:</span><span class="font-medium text-gray-900">${data.access_type}</span></div>
+                                    ${data.system_type ? `<div class="flex justify-between"><span class="text-gray-600">System Type:</span><span class="font-medium text-gray-900">${data.system_type}</span></div>` : ''}
+                                    ${data.application_system ? `<div class="flex justify-between"><span class="text-gray-600">Application System:</span><span class="font-medium text-gray-900 ${(() => {
+                                        const highlightList = [
+                                            'Canvassing',
+                                            'ERP/NAV/SAP',
+                                            'Legacy Inventory',
+                                            'HRIS',
+                                            'Piece Rate Payroll System',
+                                            'Legacy Ledger System',
+                                            'Legacy Payroll',
+                                            'Legacy Purchasing',
+                                            'Legacy Vouchering',
+                                            'Fresh Chilled Receiving System',
+                                            'ZankPOS',
+                                            'Quickbooks'
+                                        ];
+                                        return highlightList.map(s => s.toLowerCase()).includes((data.application_system || '').toLowerCase())
+                                            ? 'bg-green-100 text-green-800 px-2 py-1 rounded'
+                                            : 'bg-red-100 text-red-800 px-2 py-1 rounded';
+                                    })()}">${data.application_system}</span></div>` : ''}
+                                    ${data.other_system_type ? `<div class="flex justify-between"><span class="text-gray-600">Other System:</span><span class="font-medium text-gray-900">${data.other_system_type}</span></div>` : ''}
+                                    ${data.role_access_type ? `<div class="flex justify-between"><span class="text-gray-600">Role Access Type:</span><span class="font-medium text-gray-900">${data.role_access_type}</span></div>` : ''}
+                                    ${data.access_level ? `<div class="flex justify-between"><span class="text-gray-600">Access Level:</span><span class="font-medium text-gray-900">${data.access_level}</span></div>` : ''}
+                                    ${data.usernames ? `<div class="flex justify-between"><span class="text-gray-600">Usernames:</span><span class="font-medium text-gray-900">${(() => {
+                                        if (Array.isArray(data.usernames)) {
+                                            return data.usernames.join(', ');
+                                        } else if (typeof data.usernames === 'string') {
+                                            try {
+                                                const arr = JSON.parse(data.usernames);
+                                                if (Array.isArray(arr)) return arr.join(', ');
+                                                return data.usernames;
+                                            } catch {
+                                                // Remove brackets and quotes if present
+                                                return data.usernames.replace(/\[|\]|"/g, '');
+                                            }
+                                        } else {
+                                            return data.usernames;
+                                        }
+                                    })()}</span></div>` : ''}
                                 </div>
                             </div>
                         </div>
-                        
                         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                             <!-- Justification -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -451,25 +426,34 @@ try {
                                     <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
                                     Justification
                                 </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.justification || 'No justification provided.'}
-                                </div>
+                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">${data.justification || 'No justification provided.'}</div>
                             </div>
-                        
                             <!-- Superior's Comments (if any) -->
-                            ${superiorComments ? `
+                            ${superiorComments ? `<div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6"><h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center"><i class='bx bx-message-detail text-primary-600 text-xl mr-2'></i>Superior's Comments</h3><div class="bg-gray-50 p-4 rounded-lg text-gray-700">${data.superior_review_notes}</div></div>` : ''}
+                        </div>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                            <!-- Additional Details -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-message-detail text-primary-600 text-xl mr-2'></i>
-                                    Superior's Comments
+                                    <i class='bx bx-detail text-primary-600 text-xl mr-2'></i>
+                                    Additional Details
                                 </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.superior_review_notes}
+                                <div class="space-y-3">
+                                    ${data.contact_number ? `<div class='flex justify-between'><span class='text-gray-600'>Contact Number:</span><span class='font-medium text-gray-900'>${data.contact_number}</span></div>` : ''}
+                                    ${data.testing_status ? `<div class='flex justify-between'><span class='text-gray-600'>Testing Status:</span><span class='font-medium text-gray-900'>${data.testing_status}</span></div>` : ''}
+                                    ${data.testing_notes ? `<div class='flex justify-between'><span class='text-gray-600'>Testing Notes:</span><span class='font-medium text-gray-900'>${data.testing_notes}</span></div>` : ''}
+                                    ${data.testing_instructions ? `<div class='flex justify-between'><span class='text-gray-600'>Testing Instructions:</span><span class='font-medium text-gray-900'>${data.testing_instructions}</span></div>` : ''}
+                                    ${data.superior_id ? `<div class='flex justify-between'><span class='text-gray-600'>Superior ID:</span><span class='font-medium text-gray-900'>${data.superior_id}</span></div>` : ''}
+                                    ${data.help_desk_id ? `<div class='flex justify-between'><span class='text-gray-600'>Help Desk ID:</span><span class='font-medium text-gray-900'>${data.help_desk_id}</span></div>` : ''}
+                                    ${data.technical_id ? `<div class='flex justify-between'><span class='text-gray-600'>Technical ID:</span><span class='font-medium text-gray-900'>${data.technical_id}</span></div>` : ''}
+                                    ${data.process_owner_id ? `<div class='flex justify-between'><span class='text-gray-600'>Process Owner ID:</span><span class='font-medium text-gray-900'>${data.process_owner_id}</span></div>` : ''}
+                                    ${data.admin_id ? `<div class='flex justify-between'><span class='text-gray-600'>Admin ID:</span><span class='font-medium text-gray-900'>${data.admin_id}</span></div>` : ''}
+                                    ${data.reviewed_by ? `<div class='flex justify-between'><span class='text-gray-600'>Reviewed By:</span><span class='font-medium text-gray-900'>${data.reviewed_by}</span></div>` : ''}
+                                    ${data.review_date ? `<div class='flex justify-between'><span class='text-gray-600'>Review Date:</span><span class='font-medium text-gray-900'>${data.review_date}</span></div>` : ''}
+                                    ${data.review_notes ? `<div class='flex justify-between'><span class='text-gray-600'>Review Notes:</span><span class='font-medium text-gray-900'>${data.review_notes}</span></div>` : ''}
                                 </div>
                             </div>
-                            ` : ''}
                         </div>
-                        
                         ${data.review_history && data.review_history.length > 0 ? `
                         <!-- Review History -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
@@ -485,10 +469,7 @@ try {
                                             <span class="text-sm text-gray-500">${new Date(review.date).toLocaleString()}</span>
                                         </div>
                                         <div class="flex items-center mb-2">
-                                            <span class="text-sm font-medium ${
-                                                review.action === 'Declined' ? 'text-red-600' : 
-                                                (review.action === 'Approved' ? 'text-green-600' : 'text-primary-600')
-                                            }">${review.action}</span>
+                                            <span class="text-sm font-medium ${review.action === 'Declined' ? 'text-red-600' : (review.action === 'Approved' ? 'text-green-600' : 'text-primary-600')}">${review.action}</span>
                                         </div>
                                         <p class="text-gray-700 text-sm">${review.note}</p>
                                     </div>
@@ -496,7 +477,6 @@ try {
                             </div>
                         </div>
                         ` : ''}
-                        
                         ${data.testing_status ? `
                         <!-- Testing Status -->
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
@@ -506,22 +486,9 @@ try {
                             </h3>
                             <div class="flex items-center justify-between">
                                 <span class="text-gray-600">Status:</span>
-                                <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                    data.testing_status === 'success' ? 'bg-green-100 text-green-700' :
-                                    data.testing_status === 'failed' ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                }">
-                                    ${data.testing_status.charAt(0).toUpperCase() + data.testing_status.slice(1)}
-                                </span>
+                                <span class="px-3 py-1 text-xs font-medium rounded-full ${data.testing_status === 'success' ? 'bg-green-100 text-green-700' : data.testing_status === 'failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}">${data.testing_status.charAt(0).toUpperCase() + data.testing_status.slice(1)}</span>
                             </div>
-                            ${data.testing_notes ? `
-                            <div class="mt-4">
-                                <span class="text-gray-600">Testing Notes:</span>
-                                <div class="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.testing_notes}
-                                </div>
-                            </div>
-                            ` : ''}
+                            ${data.testing_notes ? `<div class="mt-4"><span class="text-gray-600">Testing Notes:</span><div class="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">${data.testing_notes}</div></div>` : ''}
                         </div>
                         ` : ''}
                     `;
@@ -615,8 +582,8 @@ try {
                         <div class="mb-4">
                             <label for="forward-to" class="block text-sm font-medium text-gray-700 mb-1">Forward to:</label>
                             <select id="forward-to" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="updateUserDropdown()">
-                                <option value="technical">Technical Support</option>
-                                <option value="process_owner">Process Owner</option>
+                                <option  value="technical">Technical Support</option>
+                                <option  value="process_owner">Process Owner</option>
                             </select>
                         </div>
                         <div class="mb-4">

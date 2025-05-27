@@ -56,10 +56,10 @@ $businessUnits = [
 
 $systemApplications = [
     'Active Directory Access',
-    'Canvasing',
+    'Canvassing',
     'CCTV Access',
     'Email Access',
-    'ERP/NAV',
+    'ERP/NAV/SAP',
     'Firewall Access',
     'Fresh Chilled Receiving System',
     'HRIS',
@@ -168,10 +168,21 @@ try {
         }
     </script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300">
+<div 
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg"
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    x-show="sidebarOpen"
+    x-transition:enter="transition-transform ease-in-out duration-500"
+    x-transition:enter-start="-translate-x-full"
+    x-transition:enter-end="translate-x-0"
+    x-transition:leave="transition-transform ease-in-out duration-500"
+    x-transition:leave-start="translate-x-0"
+    x-transition:leave-end="-translate-x-full"
+    aria-hidden="false"
+>
     <div class="flex flex-col h-full">
         <div class="text-center mt-4">
             <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
@@ -226,14 +237,38 @@ try {
     </div>
 </div>
 
+<!-- Sidebar Overlay for mobile/tablet -->
+<div 
+    x-show="sidebarOpen" 
+    @click="sidebarOpen = false" 
+    class="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden" 
+    x-transition:enter="transition-opacity ease-in-out duration-300" 
+    x-transition:enter-start="opacity-0" 
+    x-transition:enter-end="opacity-100" 
+    x-transition:leave="transition-opacity ease-in-out duration-200" 
+    x-transition:leave-start="opacity-100" 
+    x-transition:leave-end="opacity-0" 
+    aria-hidden="true">
+</div>
+
 <!-- Main Content -->
-<div class="flex-1 ml-72">
+<div class="flex-1 ml-72 transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="bg-blue-200 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-8 py-4">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800">Create New Request</h2>
-                <p class="text-gray-600 text-xl mt-1">Fill out the form below to submit a new access request</p>
+            <div class="flex items-center">
+                <!-- Hamburger button for toggling sidebar -->
+                <button 
+                    @click="sidebarOpen = !sidebarOpen"
+                    class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
+                    aria-label="Toggle sidebar"
+                >
+                    <i class='bx bx-menu text-2xl'></i>
+                </button>
+                <div>
+                    <h2 class="text-4xl font-bold text-gray-800">Create New Request</h2>
+                    <p class="text-gray-600 text-xl mt-1">Fill out the form below to submit a new access request</p>
+                </div>
             </div>
         </div>
     </div>
