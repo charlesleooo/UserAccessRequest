@@ -100,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         switch ($admin_role) {
             case 'superior':
                 $can_handle = ($current_status === 'pending_superior');
-                $next_status = ($action === 'approve') ? 'pending_technical' : 'rejected';
+                $next_status = ($action === 'approve') ? 'pending_help_desk' : 'rejected';
                 $id_field = 'superior_id';
                 $date_field = 'superior_review_date';
                 $notes_field = 'superior_notes';

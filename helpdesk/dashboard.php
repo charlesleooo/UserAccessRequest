@@ -21,14 +21,46 @@ try {
     $stmt->execute([':today' => $todayDate]);
     $technicalReviewsToday = $stmt->fetchColumn();
     
+    // Get pending reviews count
+    $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM access_requests WHERE status = 'pending_help_desk'");
+    $stmt->execute();
+    $pendingCount = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+
+    // Get reviews completed today
+    $stmt = $pdo->prepare("
+        SELECT COUNT(*) as count 
+        FROM access_requests 
+        WHERE help_desk_id = ? 
+        AND DATE(help_desk_review_date) = CURDATE()
+    ");
+    $stmt->execute([$_SESSION['admin_id']]);
+    $reviewsToday = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
+    
     // Get recent requests
-    $stmt = $pdo->query("SELECT * FROM access_requests WHERE status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review') ORDER BY submission_date DESC LIMIT 5");
+    $stmt = $pdo->prepare("
+        SELECT ar.*, 
+        CASE 
+            WHEN ar.status = 'pending_help_desk' THEN 'Pending Your Review'
+            WHEN ar.status = 'pending_technical' THEN 'Forwarded to Technical'
+            WHEN ar.status = 'pending_process_owner' THEN 'Forwarded to Process Owner'
+            WHEN ar.status = 'approved' THEN 'Approved'
+            WHEN ar.status = 'rejected' THEN 'Rejected'
+            ELSE ar.status
+        END as status_display
+        FROM access_requests ar 
+        WHERE ar.status = 'pending_help_desk'
+        ORDER BY ar.submission_date DESC 
+        LIMIT 10
+    ");
+    $stmt->execute();
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
     error_log("Dashboard data fetch error: " . $e->getMessage());
     $pendingRequests = 0;
     $technicalReviewsToday = 0;
+    $pendingCount = 0;
+    $reviewsToday = 0;
     $recentRequests = [];
 }
 ?>

@@ -13,6 +13,7 @@ try {
     $sql = "SELECT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Your Review'
+                WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'
                 WHEN ar.status = 'pending_technical' THEN 'Pending Technical Review'
                 WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
                 WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'

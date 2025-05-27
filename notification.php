@@ -96,54 +96,150 @@ function sendConfirmationEmail($formData) {
     }
 }
 
+function sendHelpDeskNotification($requestData) {
+    $mail = new PHPMailer(true);
+
+    try {
+        // SMTP Configuration
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.gmail.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'charlesondota@gmail.com';
+        $mail->Password   = 'crpf bbcb vodv xbjk';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+
+        // Email content preparation
+        $mail->setFrom('charlesondota@gmail.com', 'Alsons Agribusiness Unit');
+        
+        // Add help desk recipients
+        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
+        $stmt = $pdo->prepare("SELECT username as email, username FROM admin_users WHERE role = 'help_desk'");
+        $stmt->execute();
+        $helpDeskUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($helpDeskUsers)) {
+            error_log("No help desk users found to notify");
+            return false;
+        }
+        
+        foreach ($helpDeskUsers as $user) {
+            if (!empty($user['email'])) {
+                $mail->addAddress($user['email'], $user['username']);
+            }
+        }
+
+        $mail->isHTML(true);
+        $mail->Subject = 'New Access Request Forwarded - ' . $requestData['access_request_number'];
+
+        // Create a detailed HTML email body
+        $emailBody = "
+        <html>
+        <body style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+            <h2>New Access Request Forwarded</h2>
+            <p>A new access request has been forwarded by a superior and requires your review.</p>
+            
+            <h3>Request Details</h3>
+            <table style='width:100%; border-collapse: collapse;'>
+                <tr>
+                    <td style='border: 1px solid #ddd; padding: 8px;'><strong>Request Number:</strong></td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{$requestData['access_request_number']}</td>
+                </tr>
+                <tr>
+                    <td style='border: 1px solid #ddd; padding: 8px;'><strong>Requestor:</strong></td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{$requestData['requestor_name']}</td>
+                </tr>
+                <tr>
+                    <td style='border: 1px solid #ddd; padding: 8px;'><strong>Department:</strong></td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{$requestData['department']}</td>
+                </tr>
+                <tr>
+                    <td style='border: 1px solid #ddd; padding: 8px;'><strong>Access Type:</strong></td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{$requestData['access_type']}</td>
+                </tr>
+                <tr>
+                    <td style='border: 1px solid #ddd; padding: 8px;'><strong>Superior Notes:</strong></td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>{$requestData['superior_notes']}</td>
+                </tr>
+            </table>
+
+            <p>Please review this request as soon as possible by logging into the system.</p>
+            
+            <p style='margin-top: 20px;'>
+                <a href='http://localhost/UserAccessRequest/helpdesk/login.php' 
+                   style='background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>
+                    Review Request
+                </a>
+            </p>
+            
+            <p>Best regards,<br>IT Support System</p>
+        </body>
+        </html>";
+
+        $mail->Body = $emailBody;
+        $mail->AltBody = strip_tags($emailBody);
+
+        // Send email
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        // Log the error
+        error_log("Help Desk notification error: " . $mail->ErrorInfo);
+        return false;
+    }
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Sanitize and validate input
-    $formData = [
-        'requestor_name' => filter_input(INPUT_POST, 'requestor_name', FILTER_SANITIZE_STRING),
-        'business_unit' => filter_input(INPUT_POST, 'business_unit', FILTER_SANITIZE_STRING),
-        'access_request_number' => filter_input(INPUT_POST, 'access_request_number', FILTER_SANITIZE_NUMBER_INT),
-        'department' => filter_input(INPUT_POST, 'department', FILTER_SANITIZE_STRING),
-        'email' => filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL),
-        'contact_number' => filter_input(INPUT_POST, 'contact_number', FILTER_SANITIZE_STRING),
-        'access_type' => filter_input(INPUT_POST, 'access_type', FILTER_SANITIZE_STRING),
-        'duration_type' => filter_input(INPUT_POST, 'duration_type', FILTER_SANITIZE_STRING),
-        'start_date' => filter_input(INPUT_POST, 'start_date', FILTER_SANITIZE_STRING),
-        'end_date' => filter_input(INPUT_POST, 'end_date', FILTER_SANITIZE_STRING),
-        'justification' => filter_input(INPUT_POST, 'justification', FILTER_SANITIZE_STRING)
-    ];
+    // Only validate these fields for initial request submissions
+    if (isset($_POST['form_type']) && $_POST['form_type'] === 'initial_request') {
+        // Sanitize and validate input
+        $formData = [
+            'requestor_name' => filter_input(INPUT_POST, 'requestor_name', FILTER_SANITIZE_STRING),
+            'business_unit' => filter_input(INPUT_POST, 'business_unit', FILTER_SANITIZE_STRING),
+            'access_request_number' => filter_input(INPUT_POST, 'access_request_number', FILTER_SANITIZE_NUMBER_INT),
+            'department' => filter_input(INPUT_POST, 'department', FILTER_SANITIZE_STRING),
+            'email' => filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL),
+            'contact_number' => filter_input(INPUT_POST, 'contact_number', FILTER_SANITIZE_STRING),
+            'access_type' => filter_input(INPUT_POST, 'access_type', FILTER_SANITIZE_STRING),
+            'duration_type' => filter_input(INPUT_POST, 'duration_type', FILTER_SANITIZE_STRING),
+            'start_date' => filter_input(INPUT_POST, 'start_date', FILTER_SANITIZE_STRING),
+            'end_date' => filter_input(INPUT_POST, 'end_date', FILTER_SANITIZE_STRING),
+            'justification' => filter_input(INPUT_POST, 'justification', FILTER_SANITIZE_STRING)
+        ];
 
-    // Additional validations
-    $errors = [];
-    if (empty($formData['requestor_name'])) $errors[] = 'Requestor name is required';
-    if (empty($formData['email']) || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email address';
+        // Additional validations
+        $errors = [];
+        if (empty($formData['requestor_name'])) $errors[] = 'Requestor name is required';
+        if (empty($formData['email']) || !filter_var($formData['email'], FILTER_VALIDATE_EMAIL)) $errors[] = 'Invalid email address';
 
-    if (empty($errors)) {
-        // Attempt to send confirmation email
-        $emailSent = sendConfirmationEmail($formData);
+        if (empty($errors)) {
+            // Attempt to send confirmation email
+            $emailSent = sendConfirmationEmail($formData);
 
-        if ($emailSent) {
-            // Prepare response
-            $response = [
-                'success' => true,
-                'message' => 'Form submitted successfully. A confirmation email has been sent to ' . $formData['email']
-            ];
+            if ($emailSent) {
+                // Prepare response
+                $response = [
+                    'success' => true,
+                    'message' => 'Form submitted successfully. A confirmation email has been sent to ' . $formData['email']
+                ];
+            } else {
+                $response = [
+                    'success' => false,
+                    'message' => 'Form submitted, but there was an issue sending the confirmation email.'
+                ];
+            }
         } else {
             $response = [
                 'success' => false,
-                'message' => 'Form submitted, but there was an issue sending the confirmation email.'
+                'message' => implode(', ', $errors)
             ];
         }
-    } else {
-        $response = [
-            'success' => false,
-            'message' => implode(', ', $errors)
-        ];
-    }
 
-    // Send JSON response
-    header('Content-Type: application/json');
-    echo json_encode($response);
-    exit;
+        // Send JSON response
+        header('Content-Type: application/json');
+        echo json_encode($response);
+        exit;
+    }
 }
 ?>
