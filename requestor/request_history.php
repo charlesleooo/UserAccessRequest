@@ -283,56 +283,57 @@ try {
 </div>
 
 <!-- Sidebar -->
-<div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card sidebar-transition md:translate-x-0" 
-    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'">
+<div class="fixed inset-y-0 left-0 z-50 w-72 shadow-lg sidebar-transition md:translate-x-0"
+     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+     style="background-color: #00A6FB;">
     <div class="flex flex-col h-full">
-        <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
-            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
+        <div class="text-center mt-4 flex justify-center items-center">
+            <img src="../logo.png" alt="Logo" class="w-60 mx-auto shadow-lg">
         </div>
-        <nav class="flex-1 pt-4 px-3 space-y-1 overflow-y-auto">
-            <a href="dashboard.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
-                <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
+        <nav class="flex-1 pt-6 px-4 space-y-1 overflow-y-auto">
+            <a href="dashboard.php" class="flex items-center px-4 py-3 text-white rounded-xl transition hover:bg-white/20 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-white/10 text-white rounded-lg">
                     <i class='bx bxs-dashboard text-xl'></i>
                 </span>
-                <span class="font-medium">Dashboard</span>
+                <span class="ml-3 font-medium">Dashboard</span>
             </a>
-            <a href="create_request.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
-                <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
+            <a href="create_request.php" class="flex items-center px-4 py-3 text-white rounded-xl transition hover:bg-white/20 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-white/10 text-white rounded-lg">
                     <i class='bx bx-send text-xl'></i>
                 </span>
-                <span class="font-medium">Create Request</span>
+                <span class="ml-3">Create Request</span>
             </a>
-            <a href="my_requests.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
-                <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
+            <a href="my_requests.php" class="flex items-center px-4 py-3 text-white rounded-xl transition hover:bg-white/20 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-white/10 text-white rounded-lg">
                     <i class='bx bx-list-ul text-xl'></i>
                 </span>
-                <span class="font-medium">My Requests</span>
+                <span class="ml-3">My Requests</span>
             </a>
-            <a href="request_history.php" class="flex items-center p-3 text-primary-600 bg-primary-50 rounded-xl transition-all duration-200 group">
-                <span class="flex items-center justify-center w-10 h-10 bg-primary-100 text-primary-600 rounded-xl mr-3">
+            <a href="request_history.php" class="flex items-center px-4 py-3 text-white bg-white/10 rounded-xl transition hover:bg-white/20 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-white/10 text-white rounded-lg">
                     <i class='bx bx-history text-xl'></i>
                 </span>
-                <span class="font-medium">Request History</span>
+                <span class="ml-3 font-medium">Request History</span>
             </a>
         </nav>
 
-        <div class="p-3 mt-auto">
-            <a href="logout.php" class="flex items-center p-3 text-red-600 bg-red-50 rounded-xl transition-all duration-200 hover:bg-red-100 group">
-                <span class="flex items-center justify-center w-10 h-10 bg-red-100 text-red-600 rounded-xl mr-3">
+        <div class="p-4 border-t border-white/10">
+            <a href="logout.php" class="flex items-center px-4 py-3 text-white bg-red-500/10 rounded-xl transition hover:bg-red-500/20 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-red-500/20 text-white rounded-lg">
                     <i class='bx bx-log-out text-xl'></i>
                 </span>
-                <span class="font-medium">Logout</span>
+                <span class="ml-3 font-medium">Logout</span>
             </a>
         </div>
 
-        <div class="px-4 py-4 border-t border-gray-100">
+        <div class="px-4 py-4 border-t border-white/10">
             <div class="flex items-center space-x-3">
-                <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-600">
+                <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
                     <i class='bx bxs-user text-xl'></i>
                 </div>
                 <div>
-                    <p class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($username); ?></p>
-                    <p class="text-xs text-gray-500">Requestor</p>
+                    <p class="text-sm font-medium text-white"><?php echo htmlspecialchars($username); ?></p>
+                    <p class="text-xs text-white/70">Requestor</p>
                 </div>
             </div>
         </div>
@@ -363,11 +364,11 @@ try {
 
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="bg-blue-50 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4">
             <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Request History</h2>
+                    <h2 class="text-4xl font-bold text-gray-800">Request History</h2>
                     <p class="text-gray-600 text-lg mt-1">View all your previously processed requests</p>
                 </div>
             </div>
@@ -383,7 +384,7 @@ try {
     <div class="p-6" data-aos="fade-up" data-aos-duration="800">
         <!-- Stats Overview -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="bg-blue-50 rounded-xl shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 p-3 mr-4 bg-blue-100 rounded-full">
                         <i class='bx bx-folder text-2xl text-blue-600'></i>
@@ -394,7 +395,7 @@ try {
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="bg-green-50 rounded-xl shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 p-3 mr-4 bg-green-100 rounded-full">
                         <i class='bx bx-check-circle text-2xl text-green-600'></i>
@@ -405,7 +406,7 @@ try {
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="bg-red-50 rounded-xl shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 p-3 mr-4 bg-red-100 rounded-full">
                         <i class='bx bx-x-circle text-2xl text-red-600'></i>
@@ -419,7 +420,7 @@ try {
         </div>
 
         <!-- Filter Options -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="bg-blue-50 rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Options</h3>
             <form id="filter-form" method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
@@ -454,7 +455,7 @@ try {
         </div>
 
         <!-- Request History Table -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="bg-blue-50 rounded-xl shadow-sm border border-gray-200">
             <div class="overflow-hidden">
                 <table id="requests-table" class="min-w-full divide-y divide-gray-200 responsive-table">
                     <thead class="bg-gray-50">
@@ -467,7 +468,7 @@ try {
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-blue-50 divide-y divide-gray-200">
                         <?php if(count($requests) > 0): ?>
                             <?php foreach($requests as $request): ?>
                                 <tr class="hover:bg-gray-50">
