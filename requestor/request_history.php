@@ -294,8 +294,8 @@ try {
     x-transition:leave-end="-translate-x-full"
     aria-hidden="false">
     <div class="flex flex-col h-full">
-        <div class="text-center p-5 flex items-center justify-center border-b border-gray-100">
-            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
+        <div class="text-center mt-4">
+            <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
         </div>
         <nav class="flex-1 pt-4 px-3 space-y-1 overflow-y-auto">
             <a href="dashboard.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">

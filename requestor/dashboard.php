@@ -182,8 +182,8 @@ try {
     aria-hidden="false"
 >
     <div class="flex flex-col h-full">
-        <div class="text-center mt-4 flex justify-center items-center">
-            <img src="../logo.png" alt="Logo" class="w-40 mx-auto">
+        <div class="text-center mt-4">
+            <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
         </div>
         <nav class="flex-1 pt-6 px-4 space-y-1 overflow-y-auto">
             <a href="dashboard.php" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition hover:bg-indigo-100 group">
