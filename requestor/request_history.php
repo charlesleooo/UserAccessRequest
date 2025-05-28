@@ -385,8 +385,8 @@ try {
 
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-blue-200 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div class="flex justify-between items-center px-6 py-4">
+    <div class="bg-blue-600 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div class="flex justify-between items-center px-6 py-4" style = "padding-left: 0px;">
             <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
                 <!-- Hamburger button for toggling sidebar -->
                 <button 
@@ -394,11 +394,11 @@ try {
                     class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
                     aria-label="Toggle sidebar"
                 >
-                    <i class='bx bx-menu text-2xl'></i>
+                    <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
                 </button>
                 <div>
-                    <h2 class="text-4xl font-bold text-gray-800">Request History</h2>
-                    <p class="text-gray-600 text-lg mt-1">View all your previously processed requests</p>
+                    <h2 class="text-4xl font-bold text-white">Request History</h2>
+                    <p class="text-white text-lg mt-1">View all your previously processed requests</p>
                 </div>
             </div>
             <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
@@ -413,9 +413,9 @@ try {
     <div class="p-6" data-aos="fade-up" data-aos-duration="800">
         <!-- Stats Overview -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="bg-blue-200 rounded-xl shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 mr-4 bg-blue-100 rounded-full">
+                    <div class="flex-shrink-0 p-3 mr-4 bg-blue-300 rounded-full">
                         <i class='bx bx-folder text-2xl text-blue-600'></i>
                     </div>
                     <div>
@@ -424,9 +424,9 @@ try {
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="bg-green-200 rounded-xl shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 mr-4 bg-green-100 rounded-full">
+                    <div class="flex-shrink-0 p-3 mr-4 bg-green-300 rounded-full">
                         <i class='bx bx-check-circle text-2xl text-green-600'></i>
                     </div>
                     <div>
@@ -435,9 +435,9 @@ try {
                     </div>
                 </div>
             </div>
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="bg-red-200 rounded-xl shadow-sm border border-gray-200 p-4">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 mr-4 bg-red-100 rounded-full">
+                    <div class="flex-shrink-0 p-3 mr-4 bg-red-300 rounded-full">
                         <i class='bx bx-x-circle text-2xl text-red-600'></i>
                     </div>
                     <div>

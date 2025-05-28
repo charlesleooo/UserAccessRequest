@@ -254,8 +254,8 @@ try {
 <!-- Main Content -->
 <div class="flex-1 ml-72 transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-blue-200 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div class="flex justify-between items-center px-8 py-4">
+    <div class="bg-blue-600 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div class="flex justify-between items-center px-8 py-4" style = "padding-left: 0px;">
             <div class="flex items-center">
                 <!-- Hamburger button for toggling sidebar -->
                 <button 
@@ -263,11 +263,11 @@ try {
                     class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
                     aria-label="Toggle sidebar"
                 >
-                    <i class='bx bx-menu text-2xl'></i>
+                    <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
                 </button>
                 <div>
-                    <h2 class="text-4xl font-bold text-gray-800">Create New Request</h2>
-                    <p class="text-gray-600 text-xl mt-1">Fill out the form below to submit a new access request</p>
+                    <h2 class="text-4xl font-bold text-white">Create New Request</h2>
+                    <p class="text-white text-xl mt-1">Fill out the form below to submit a new access request</p>
                 </div>
             </div>
         </div>

@@ -53,6 +53,7 @@ try {
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -67,6 +68,13 @@ try {
                     }
                 }
             }
+        }
+    </script>
+    <script>
+        // Check for saved dark mode preference
+        if (localStorage.getItem('darkMode') === 'true' || 
+            (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
         }
     </script>
     <style>
@@ -88,6 +96,10 @@ try {
             z-index: 999;
         }
         
+        .dark .progress-container {
+            background-color: #1f2937;
+        }
+        
         .progress-bar {
             height: 4px;
             background: linear-gradient(90deg, #0ea5e9, #38bdf8);
@@ -105,13 +117,25 @@ try {
             border-radius: 10px;
         }
         
+        .dark ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        
         ::-webkit-scrollbar-thumb {
             background: #c1c1c1;
             border-radius: 10px;
         }
         
+        .dark ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+        }
+        
         ::-webkit-scrollbar-thumb:hover {
             background: #a1a1a1;
+        }
+        
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
         }
         
         /* Responsive table */
@@ -152,12 +176,17 @@ try {
         }
     </style>
 </head>
-<body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
+<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-200" x-data="{ sidebarOpen: true, darkMode: localStorage.getItem('darkMode') === 'true' }" x-init="$store.app = { sidebarOpen: true }">
 
-<!-- Progress bar at the top of the page -->
-<div class="progress-container">
-    <div class="progress-bar" id="progressBar"></div>
-</div>
+<!-- Dark mode toggle button -->
+<button 
+    @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode); $el.closest('html').classList.toggle('dark')"
+    class="fixed top-4 right-4 z-50 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
+    x-cloak
+>
+    <i class='bx bx-sun text-xl' x-show="!darkMode"></i>
+    <i class='bx bx-moon text-xl' x-show="darkMode"></i>
+</button>
 
 <!-- Mobile menu toggle -->
 <div class="fixed bottom-4 right-4 z-50 md:hidden">
@@ -170,7 +199,7 @@ try {
 
 <!-- Sidebar -->
 <div 
-    class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg"
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-lg"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     x-show="sidebarOpen"
     x-transition:enter="transition-transform ease-in-out duration-400"
@@ -186,14 +215,14 @@ try {
             <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
         </div>
         <nav class="flex-1 pt-6 px-4 space-y-1 overflow-y-auto">
-            <a href="dashboard.php" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition hover:bg-indigo-100 group">
-                <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg">
+            <a href="dashboard.php" class="flex items-center px-4 py-3 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 rounded-xl transition hover:bg-indigo-100 dark:hover:bg-indigo-900 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-lg">
                     <i class='bx bxs-dashboard text-xl'></i>
                 </span>
                 <span class="ml-3 font-medium">Dashboard</span>
             </a>
-            <a href="create_request.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
-                <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+            <a href="create_request.php" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-xl transition hover:bg-gray-50 dark:hover:bg-gray-700/50 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg">
                     <i class='bx bx-send text-xl'></i>
                 </span>
                 <span class="ml-3">Create Request</span>
@@ -262,8 +291,8 @@ try {
 <!-- Main Content -->
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-blue-200 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div class="flex justify-between items-center px-8 py-4">
+    <div class="bg-blue-600 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div class="flex justify-between items-center px-8 py-4" style = "padding-left: 0px;">
             <div class="flex items-center">
                 <!-- Hamburger button for toggling sidebar -->
                 <button 
@@ -271,11 +300,11 @@ try {
                     class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
                     aria-label="Toggle sidebar"
                 >
-                    <i class='bx bx-menu text-2xl'></i>
+                    <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
                 </button>
                 <div>
-                    <h2 class="text-4xl font-bold text-gray-800">User Access Request System</h2>
-                    <p class="text-gray-600 text-xl mt-1">Welcome back <?php echo htmlspecialchars($username); ?></p>
+                    <h2 class="text-4xl font-bold text-white">User Access Request System</h2>
+                    <p class="text-white text-xl mt-1">Welcome back <?php echo htmlspecialchars($username); ?></p>
                 </div>
             </div>
         </div>
@@ -284,8 +313,8 @@ try {
     <div class="p-8">
         <!-- Stats Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
-            <div class="bg-blue-50 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-blue-50 p-3 rounded-lg">
+            <div class="bg-blue-200 rounded-xl border border-gray-200 p-6 flex items-center">
+                <div class="bg-blue-300 p-3 rounded-full">
                     <i class='bx bx-folder text-2xl text-blue-500'></i>
                 </div>
                 <div class="ml-4">
@@ -293,8 +322,8 @@ try {
                     <h4 class="text-2xl font-bold text-gray-900"><?php echo $total; ?></h4>
                 </div>
             </div>
-            <div class="bg-green-50 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-green-50 p-3 rounded-lg">
+            <div class="bg-green-200 rounded-xl border border-gray-200 p-6 flex items-center">
+                <div class="bg-green-300 p-3 rounded-full">
                     <i class='bx bx-check-circle text-2xl text-green-500'></i>
                 </div>
                 <div class="ml-4">
@@ -302,8 +331,8 @@ try {
                     <h4 class="text-2xl font-bold text-gray-900"><?php echo $approved; ?></h4>
                 </div>
             </div>
-            <div class="bg-yellow-50 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-yellow-50 p-3 rounded-lg">
+            <div class="bg-yellow-200 rounded-xl border border-gray-200 p-6 flex items-center">
+                <div class="bg-yellow-300 p-3 rounded-full">
                     <i class='bx bx-time text-2xl text-yellow-500'></i>
                 </div>
                 <div class="ml-4">
@@ -311,8 +340,8 @@ try {
                     <h4 class="text-2xl font-bold text-gray-900"><?php echo $pending; ?></h4>
                 </div>
             </div>
-            <div class="bg-red-50 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-red-50 p-3 rounded-lg">
+            <div class="bg-red-200 rounded-xl border border-gray-200 p-6 flex items-center">
+                <div class="bg-red-300 p-3 rounded-full">
                     <i class='bx bx-x-circle text-2xl text-red-500'></i>
                 </div>
                 <div class="ml-4">
@@ -330,6 +359,8 @@ try {
                     <i class='bx bx-plus mr-2'></i> New Request
                 </a>
             </div>
+
+            
             
             <!-- Pending Testing Requests Section -->
             <?php
@@ -442,7 +473,7 @@ try {
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php foreach ($requests as $request): ?>
-                                    <tr>
+                                    <tr class="hover:bg-gray-50 cursor-pointer hover:shadow-md transition-all duration-200 hover:bg-gray-50 odd:bg-gray-100">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Request Number">
                                             <?php echo htmlspecialchars($request['access_request_number']); ?>
                                         </td>
@@ -534,57 +565,110 @@ try {
             </div>
         </div>
     </div>
-</div>
-
-<!-- Add a workflow diagram to show the request flow -->
-<div class="mt-8 p-4 bg-white shadow rounded-lg">
-    <h3 class="text-lg font-medium text-gray-900 mb-4">Request Workflow</h3>
-    <div class="flex items-center justify-between max-w-4xl mx-auto">
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <i class='bx bx-user text-yellow-600 text-xl'></i>
+    
+    <!-- Add a workflow diagram to show the request flow -->
+    <div class="mt-8 p-4 bg-green-50 shadow rounded-lg" style="margin-left: 32px; margin-right: 32px; margin-bottom: 32px;">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Request Workflow</h3>
+        <p class="mb-6 text-sm text-gray-700">There are two possible workflows depending on the request type:</p>
+        <div class="flex flex-col items-center space-y-8">
+            <!-- Common steps -->
+            <div class="flex items-center space-x-6">
+                <div class="flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                        <i class='bx bx-user text-gray-700 text-xl'></i>
+                    </div>
+                    <span class="mt-2 text-sm font-medium text-gray-700">Requestor</span>
+                </div>
+                <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                <div class="flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                        <i class='bx bx-user-check text-yellow-600 text-xl'></i>
+                    </div>
+                    <span class="mt-2 text-sm font-medium text-gray-700">Superior</span>
+                </div>
+                <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                <div class="flex flex-col items-center">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                        <i class='bx bx-support text-blue-600 text-xl'></i>
+                    </div>
+                    <span class="mt-2 text-sm font-medium text-gray-700">Help Desk</span>
+                </div>
             </div>
-            <span class="mt-2 text-sm font-medium text-gray-600">Superior</span>
-            <span class="text-xs text-gray-500">Initial Review</span>
-        </div>
-        <div class="flex-1 h-0.5 bg-gray-200 relative">
-            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <i class='bx bx-right-arrow-alt text-gray-400'></i>
+            <!-- Branching steps -->
+            <div class="flex w-full justify-center">
+                <!-- Branch 1: Process Owner Path -->
+                <div class="flex flex-col items-center w-1/2">
+                    <div class="flex items-center space-x-6">
+                        
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                                <i class='bx bx-briefcase text-indigo-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">Process Owner</span>
+                        </div>
+                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                                <i class='bx bx-support text-blue-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">Help Desk</span>
+                        </div>
+                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                                <i class='bx bx-wrench text-green-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">Technical Support</span>
+                        </div>
+                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                                <i class='bx bx-pencil text-green-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">Testing</span>
+                        </div>
+                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                                <i class='bx bx-shield text-purple-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">IT Leader</span>
+                        </div>
+                    </div>
+                    <span class="mt-2 text-xs text-gray-500 font-medium">If the request is Application related </span>
+                </div>
+                <!-- Branch 2: Technical Support Path -->
+                <div class="flex flex-col items-center w-1/2">
+                    <div class="flex items-center space-x-6">
+                        <i class='bx bx-down-arrow-alt text-gray-400 text-2xl opacity-0'></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                                <i class='bx bx-wrench text-green-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">Technical Support</span>
+                        </div>
+                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                                <i class='bx bx-pencil text-green-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">Testing</span>
+                        </div>
+                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
+                        <div class="flex flex-col items-center">
+                            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                                <i class='bx bx-shield text-purple-600 text-xl'></i>
+                            </div>
+                            <span class="mt-2 text-sm font-medium text-gray-700">IT Leader</span>
+                        </div>
+                    </div>
+                    <span class="mt-2 text-xs text-gray-500 font-medium">If the request is NOT Application related</span>
+                </div>
             </div>
-        </div>
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <i class='bx bx-wrench text-blue-600 text-xl'></i>
-            </div>
-            <span class="mt-2 text-sm font-medium text-gray-600">Technical</span>
-            <span class="text-xs text-gray-500">Technical Review</span>
-        </div>
-        <div class="flex-1 h-0.5 bg-gray-200 relative">
-            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <i class='bx bx-right-arrow-alt text-gray-400'></i>
-            </div>
-        </div>
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                <i class='bx bx-briefcase text-indigo-600 text-xl'></i>
-            </div>
-            <span class="mt-2 text-sm font-medium text-gray-600">Process Owner</span>
-            <span class="text-xs text-gray-500">Process Review</span>
-        </div>
-        <div class="flex-1 h-0.5 bg-gray-200 relative">
-            <div class="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                <i class='bx bx-right-arrow-alt text-gray-400'></i>
-            </div>
-        </div>
-        <div class="flex flex-col items-center">
-            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                <i class='bx bx-shield text-purple-600 text-xl'></i>
-            </div>
-            <span class="mt-2 text-sm font-medium text-gray-600">Admin</span>
-            <span class="text-xs text-gray-500">Final Approval</span>
         </div>
     </div>
 </div>
+
 
 <!-- Add JavaScript for handling testing status updates -->
 <script>
