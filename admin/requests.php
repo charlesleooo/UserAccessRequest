@@ -7,6 +7,19 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    header('Location: login.php');
+    exit();
+}
+
+// Check if the user needs to enter the encryption code
+if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] || 
+    (time() - $_SESSION['requests_verified_time'] > 1800)) { // Expire after 30 minutes
+    header('Location: requests_auth.php');
+    exit();
+}
+
 // Track if a transaction is active
 $transaction_active = false;
 
@@ -47,12 +60,6 @@ function generateRequestNumber($pdo) {
         }
         throw new Exception("Failed to generate request number: " . $e->getMessage());
     }
-}
-
-// Check if admin is logged in
-if (!isset($_SESSION['admin_id'])) {
-    header('Location: login.php');
-    exit();
 }
 
 // Handle approve/decline actions

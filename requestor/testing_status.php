@@ -46,19 +46,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         // Verify this request belongs to the current user and is in pending_testing status
         $sql = "SELECT * FROM access_requests 
                 WHERE id = :request_id 
-                AND employee_id = :employee_id 
+                AND testing_status = 'pending'
                 AND (status = 'pending_testing' OR status = 'pending_testing_setup')";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            'request_id' => $request_id,
-            'employee_id' => $requestor_id
+            'request_id' => $request_id
         ]);
+        
+        error_log("Checking request: ID=$request_id");
         
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
         error_log("Request data: " . print_r($request, true));
         
-        if (!$request) {
+        if (!$request || $request['employee_id'] !== $requestor_id) {
             throw new Exception('Invalid request or you do not have permission to update this request.');
         }
         
@@ -210,9 +211,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
 $request_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Check if testing has already been submitted
-$stmt = $pdo->prepare("SELECT testing_status FROM access_requests WHERE id = ? AND employee_id = ?");
-$stmt->execute([$request_id, $requestor_id]);
+$stmt = $pdo->prepare("SELECT testing_status FROM access_requests WHERE id = ?");
+$stmt->execute([$request_id]);
 $current_status = $stmt->fetchColumn();
+
+error_log("Current testing status for request $request_id: $current_status");
 
 if ($current_status && $current_status !== 'pending') {
     $_SESSION['info_message'] = "Testing results have already been submitted for this request.";
@@ -224,7 +227,6 @@ if ($current_status && $current_status !== 'pending') {
 try {
     $sql = "SELECT * FROM access_requests 
             WHERE id = :request_id 
-            AND employee_id = :employee_id 
             AND (status = 'pending_testing' OR status = 'pending_testing_setup')
             AND testing_status = 'pending'";
     
@@ -235,13 +237,12 @@ try {
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        'request_id' => $request_id,
-        'employee_id' => $requestor_id
+        'request_id' => $request_id
     ]);
     
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$request) {
+    if (!$request || $request['employee_id'] !== $requestor_id) {
         // Debug message for troubleshooting
         // echo "Request not found. Please check your query parameters.";
         // exit;
@@ -409,7 +410,7 @@ try {
     
     <script>
         // Show any success or error messages from session
-        <?php if (isset($_SESSION['success_message']) && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        <?php if (isset($_SESSION['success_message'])): ?>
         Swal.fire({
             title: 'Success!',
             text: '<?php echo addslashes($_SESSION['success_message']); ?>',
@@ -418,7 +419,7 @@ try {
         });
         <?php unset($_SESSION['success_message']); endif; ?>
         
-        <?php if (isset($_SESSION['error_message']) && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+        <?php if (isset($_SESSION['error_message'])): ?>
         Swal.fire({
             title: 'Error!',
             text: '<?php echo addslashes($_SESSION['error_message']); ?>',

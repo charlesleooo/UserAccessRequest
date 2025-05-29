@@ -8,6 +8,13 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
     exit();
 }
 
+// Check if the user needs to enter the encryption code
+if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] || 
+    (time() - $_SESSION['requests_verified_time'] > 1800)) { // Expire after 30 minutes
+    header('Location: requests_auth.php');
+    exit();
+}
+
 // Get all requests pending superior review
 try {
     $sql = "SELECT ar.*, 
@@ -104,6 +111,12 @@ try {
                             <i class='bx bx-history text-xl'></i>
                         </span>
                         <span class="ml-3">Review History</span>
+                    </a>
+                    <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                            <i class='bx bx-cog text-xl'></i>
+                        </span>
+                        <span class="ml-3">Settings</span>
                     </a>
                 </nav>
                 

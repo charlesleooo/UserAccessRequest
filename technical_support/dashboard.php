@@ -105,11 +105,18 @@ try {
                         </span>
                         <span class="ml-3">Review History</span>
                     </a>
+
+                    <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                            <i class='bx bx-cog text-xl'></i>
+                        </span>
+                        <span class="ml-3">Settings</span>
+                    </a>
                 </nav>
                 
                 <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
-                    <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
+                    <a href="../logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
                         <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
                             <i class='bx bx-log-out text-xl'></i>
                         </span>
