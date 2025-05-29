@@ -413,36 +413,36 @@ try {
     <div class="p-6" data-aos="fade-up" data-aos-duration="800">
         <!-- Stats Overview -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-blue-200 rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 mr-4 bg-blue-300 rounded-full">
+                    <div class="flex-shrink-0 p-3 mr-4 bg-gradient-to-br from-blue-500 via-white to-blue-300 rounded-full shadow-lg">
                         <i class='bx bx-folder text-2xl text-blue-600'></i>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-500">Total Processed</p>
-                        <p class="text-2xl font-bold text-gray-800"><?php echo $total; ?></p>
+                        <p class="text-sm text-white">Total Processed</p>
+                        <p class="text-2xl font-bold text-white"><?php echo $total; ?></p>
                     </div>
                 </div>
             </div>
-            <div class="bg-green-200 rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-green-500 via-green-400 to-green-300">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 mr-4 bg-green-300 rounded-full">
+                    <div class="flex-shrink-0 p-3 mr-4 bg-gradient-to-br from-green-500 via-white to-green-300 rounded-full shadow-lg">
                         <i class='bx bx-check-circle text-2xl text-green-600'></i>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-500">Approved</p>
-                        <p class="text-2xl font-bold text-gray-800"><?php echo $approved; ?></p>
+                        <p class="text-sm text-white">Approved</p>
+                        <p class="text-2xl font-bold text-white"><?php echo $approved; ?></p>
                     </div>
                 </div>
             </div>
-            <div class="bg-red-200 rounded-xl shadow-sm border border-gray-200 p-4">
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-red-500 via-red-400 to-red-300">
                 <div class="flex items-center">
-                    <div class="flex-shrink-0 p-3 mr-4 bg-red-300 rounded-full">
+                    <div class="flex-shrink-0 p-3 mr-4 bg-gradient-to-br from-red-500 via-white to-red-300 rounded-full shadow-lg">
                         <i class='bx bx-x-circle text-2xl text-red-600'></i>
                     </div>
                     <div>
-                        <p class="text-sm text-gray-500">Rejected</p>
-                        <p class="text-2xl font-bold text-gray-800"><?php echo $rejected; ?></p>
+                        <p class="text-sm text-white">Rejected</p>
+                        <p class="text-2xl font-bold text-white"><?php echo $rejected; ?></p>
                     </div>
                 </div>
             </div>

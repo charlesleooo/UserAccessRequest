@@ -428,7 +428,7 @@ try {
                 <div>
                     <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select id="status" name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Statuses</option>
+                        <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All Status</option>
                         <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
                         <option value="pending_testing" <?php echo $statusFilter === 'pending_testing' ? 'selected' : ''; ?>>Pending Testing</option>
                         <option value="approved" <?php echo $statusFilter === 'approved' || (is_array($statusFilter) && in_array('approved', $statusFilter)) ? 'selected' : ''; ?>>Approved</option>
@@ -494,7 +494,7 @@ try {
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php foreach ($requests as $request): ?>
-                        <tr class="hover:bg-gray-50 transition-colors">
+                        <tr class="hover:bg-gray-50 transition-colors odd:bg-gray-100">
                             <td class="px-6 py-4 whitespace-nowrap" data-label="Request No.">
                                 <span class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></span>
                             </td>
@@ -541,20 +541,46 @@ try {
                                 $status = strtolower($request['status'] ?? 'pending');
                                 $adminReviewDate = $request['admin_review_date'] ?? null;
                                 
-                                if ($status === 'pending') {
-                                    $statusClass = 'bg-yellow-100 text-yellow-800';
-                                } elseif ($status === 'approved') {
-                                    $statusClass = 'bg-green-100 text-green-800';
-                                } elseif ($status === 'rejected') {
-                                    $statusClass = 'bg-red-100 text-red-800';
-                                } elseif ($status === 'pending_testing') {
-                                    $statusClass = 'bg-blue-100 text-blue-800';
-                                } elseif ($status === 'cancelled') {
-                                    $statusClass = 'bg-gray-100 text-gray-800';
+                                switch ($status) {
+                                    case 'pending_superior':
+                                        $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+                                        $displayStatus = 'Pending Superior Review';
+                                        break;
+                                    case 'pending_technical':
+                                        $statusClass = 'bg-blue-100 text-blue-800 border border-blue-200';
+                                        $displayStatus = 'Pending Technical Review';
+                                        break;
+                                    case 'pending_process_owner':
+                                        $statusClass = 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+                                        $displayStatus = 'Pending Process Owner Review';
+                                        break;
+                                    case 'pending_admin':
+                                        $statusClass = 'bg-purple-100 text-purple-800 border border-purple-200';
+                                        $displayStatus = 'Pending Admin Review';
+                                        break;
+                                    case 'pending_testing':
+                                        $statusClass = 'bg-cyan-100 text-cyan-800 border border-cyan-200';
+                                        $displayStatus = 'Pending Testing';
+                                        break;
+                                    case 'approved':
+                                        $statusClass = 'bg-green-100 text-green-800 border border-green-200';
+                                        $displayStatus = 'Approved';
+                                        break;
+                                    case 'rejected':
+                                        $statusClass = 'bg-red-100 text-red-800 border border-red-200';
+                                        $displayStatus = 'Rejected';
+                                        break;
+                                    case 'cancelled':
+                                        $statusClass = 'bg-gray-100 text-gray-800 border border-gray-200';
+                                        $displayStatus = 'Cancelled';
+                                        break;
+                                    default:
+                                        $statusClass = 'bg-gray-100 text-gray-800 border border-gray-200';
+                                        $displayStatus = ucfirst($status);
                                 }
                                 ?>
                                 <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <?php echo $statusClass; ?>">
-                                    <?php echo $status === 'pending_testing' ? 'Pending Testing' : ucfirst($status); ?>
+                                    <?php echo $displayStatus; ?>
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap" data-label="Date">
@@ -728,6 +754,7 @@ try {
                 timeElement.textContent = now.toLocaleTimeString('en-US', { 
                     hour: '2-digit', 
                     minute: '2-digit',
+                    second: '2-digit',
                     hour12: true 
                 });
             }

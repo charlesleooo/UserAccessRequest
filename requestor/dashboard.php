@@ -51,32 +51,8 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- Alpine.js for interactions -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            DEFAULT: '#0084FF',
-                            dark: '#006ACC',
-                        },
-                        danger: {
-                            DEFAULT: '#dc3545',
-                            dark: '#c82333',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <script>
-        // Check for saved dark mode preference
-        if (localStorage.getItem('darkMode') === 'true' || 
-            (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        }
-    </script>
+    
+    
     <style>
         [x-cloak] { display: none !important; }
         
@@ -137,7 +113,110 @@ try {
         .dark ::-webkit-scrollbar-thumb:hover {
             background: #6b7280;
         }
-        
+
+        /* Enhanced Card Styles */
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .stat-card {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+            border: 1px solid rgba(31, 41, 55, 0.8);
+        }
+
+        /* Enhanced Table Styles */
+        .enhanced-table {
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        .enhanced-table thead {
+            background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+        }
+
+        .dark .enhanced-table thead {
+            background: linear-gradient(90deg, #1f2937 0%, #111827 100%);
+        }
+
+        .enhanced-table tr {
+            transition: all 0.2s ease;
+        }
+
+        .enhanced-table tr:hover {
+            background-color: rgba(241, 245, 249, 0.5);
+        }
+
+        .dark .enhanced-table tr:hover {
+            background-color: rgba(31, 41, 55, 0.5);
+        }
+
+        /* Status Badge Styles */
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .status-badge:hover {
+            transform: scale(1.05);
+        }
+
+        /* Button Styles */
+        .action-button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Workflow Diagram Styles */
+        .workflow-step {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .workflow-step:hover {
+            transform: translateY(-5px);
+        }
+
+        .workflow-step::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, #e2e8f0 0%, #cbd5e1 100%);
+            top: 50%;
+            left: 100%;
+            transform: translateY(-50%);
+        }
+
+        .dark .workflow-step::after {
+            background: linear-gradient(90deg, #374151 0%, #1f2937 100%);
+        }
+
+        .workflow-step:last-child::after {
+            display: none;
+        }
+
         /* Responsive table */
         @media (max-width: 640px) {
             .responsive-table-card {
@@ -176,17 +255,8 @@ try {
         }
     </style>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 transition-colors duration-200" x-data="{ sidebarOpen: true, darkMode: localStorage.getItem('darkMode') === 'true' }" x-init="$store.app = { sidebarOpen: true }">
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
 
-<!-- Dark mode toggle button -->
-<button 
-    @click="darkMode = !darkMode; localStorage.setItem('darkMode', darkMode); $el.closest('html').classList.toggle('dark')"
-    class="fixed top-4 right-4 z-50 p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
-    x-cloak
->
-    <i class='bx bx-sun text-xl' x-show="!darkMode"></i>
-    <i class='bx bx-moon text-xl' x-show="darkMode"></i>
-</button>
 
 <!-- Mobile menu toggle -->
 <div class="fixed bottom-4 right-4 z-50 md:hidden">
@@ -199,7 +269,7 @@ try {
 
 <!-- Sidebar -->
 <div 
-    class="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-gray-800 shadow-lg"
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     x-show="sidebarOpen"
     x-transition:enter="transition-transform ease-in-out duration-400"
@@ -215,14 +285,14 @@ try {
             <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
         </div>
         <nav class="flex-1 pt-6 px-4 space-y-1 overflow-y-auto">
-            <a href="dashboard.php" class="flex items-center px-4 py-3 text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/50 rounded-xl transition hover:bg-indigo-100 dark:hover:bg-indigo-900 group">
-                <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-400 rounded-lg">
+            <a href="dashboard.php" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition hover:bg-indigo-100 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg">
                     <i class='bx bxs-dashboard text-xl'></i>
                 </span>
                 <span class="ml-3 font-medium">Dashboard</span>
             </a>
-            <a href="create_request.php" class="flex items-center px-4 py-3 text-gray-700 dark:text-gray-300 rounded-xl transition hover:bg-gray-50 dark:hover:bg-gray-700/50 group">
-                <span class="flex items-center justify-center w-9 h-9 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg">
+            <a href="create_request.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
+                <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                     <i class='bx bx-send text-xl'></i>
                 </span>
                 <span class="ml-3">Create Request</span>
@@ -303,8 +373,14 @@ try {
                     <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
                 </button>
                 <div>
-                    <h2 class="text-4xl font-bold text-white">User Access Request System</h2>
+                    <h2 class="text-4xl font-bold text-white">User Access Request System (UAR)</h2>
                     <p class="text-white text-xl mt-1">Welcome back <?php echo htmlspecialchars($username); ?></p>
+                </div>
+            </div>
+            <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
+                <div class="flex items-center space-x-2 text-sm bg-white text-primary-700 px-4 py-2 rounded-lg">
+                    <i class='bx bx-time-five'></i>
+                    <span id="current_time"></span>
                 </div>
             </div>
         </div>
@@ -313,50 +389,50 @@ try {
     <div class="p-8">
         <!-- Stats Cards -->
         <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
-            <div class="bg-blue-200 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-blue-300 p-3 rounded-full">
-                    <i class='bx bx-folder text-2xl text-blue-500'></i>
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300">
+                <div class="bg-gradient-to-br from-blue-500 via-white to-blue-300 p-3 rounded-full shadow-lg">
+                    <i class='bx bx-folder text-2xl text-blue-600'></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm text-gray-500">Total Requests</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $total; ?></h4>
+                    <p class="text-sm text-white">Total Requests</p>
+                    <h4 class="text-2xl font-bold text-white"><?php echo $total; ?></h4>
                 </div>
             </div>
-            <div class="bg-green-200 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-green-300 p-3 rounded-full">
-                    <i class='bx bx-check-circle text-2xl text-green-500'></i>
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-green-500 via-green-400 to-green-300">
+                <div class="bg-gradient-to-br from-green-500 via-white to-green-300 p-3 rounded-full shadow-lg">
+                    <i class='bx bx-check-circle text-2xl text-green-600'></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm text-gray-500">Approved</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $approved; ?></h4>
+                    <p class="text-sm text-white">Approved</p>
+                    <h4 class="text-2xl font-bold text-white"><?php echo $approved; ?></h4>
                 </div>
             </div>
-            <div class="bg-yellow-200 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-yellow-300 p-3 rounded-full">
-                    <i class='bx bx-time text-2xl text-yellow-500'></i>
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-yellow-500 via-yellow-400 to-yellow-300">
+                <div class="bg-gradient-to-br from-yellow-500 via-white to-yellow-300 p-3 rounded-full shadow-lg">
+                    <i class='bx bx-time text-2xl text-yellow-600'></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm text-gray-500">Pending</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $pending; ?></h4>
+                    <p class="text-sm text-white">Pending</p>
+                    <h4 class="text-2xl font-bold text-white"><?php echo $pending; ?></h4>
                 </div>
             </div>
-            <div class="bg-red-200 rounded-xl border border-gray-200 p-6 flex items-center">
-                <div class="bg-red-300 p-3 rounded-full">
-                    <i class='bx bx-x-circle text-2xl text-red-500'></i>
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-red-500 via-red-400 to-red-300">
+                <div class="bg-gradient-to-br from-red-500 via-white to-red-300 p-3 rounded-full shadow-lg">
+                    <i class='bx bx-x-circle text-2xl text-red-600'></i>
                 </div>
                 <div class="ml-4">
-                    <p class="text-sm text-gray-500">Rejected</p>
-                    <h4 class="text-2xl font-bold text-gray-900"><?php echo $rejected; ?></h4>
+                    <p class="text-sm text-white">Rejected</p>
+                    <h4 class="text-2xl font-bold text-white"><?php echo $rejected; ?></h4>
                 </div>
             </div>
         </div>
 
         <!-- Requests Table -->
-        <div class="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+        <div class="bg-white rounded-xl shadow-sm overflow-hidden enhanced-table">
+            <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 flex justify-between items-center">
                 <h2 class="text-lg font-medium text-gray-800">My Access Requests</h2>
-                <a href="create_request.php" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                    <i class='bx bx-plus mr-2'></i> New Request
+                <a href="create_request.php" class="action-button bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700">
+                    <i class='bx bx-plus'></i> New Request
                 </a>
             </div>
 
@@ -522,7 +598,7 @@ try {
                                                     $displayStatus = ucfirst($status);
                                             }
                                             ?>
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
+                                            <span class="status-badge <?php echo $statusClass; ?>">
                                                 <?php echo $displayStatus; ?>
                                             </span>
                                             <?php if ($status === 'pending_testing'): ?>
@@ -537,20 +613,20 @@ try {
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" data-label="Actions">
                                             <div class="flex justify-end gap-2">
                                                 <button onclick="viewRequest(<?php echo $request['id']; ?>)" 
-                                                        class="inline-flex items-center px-3 py-1 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100">
+                                                        class="action-button bg-gray-100 text-gray-700 hover:bg-gray-200">
                                                     <i class='bx bx-info-circle'></i>
-                                                    <span class="ml-1">View</span>
+                                                    <span>View</span>
                                                 </button>
                                                 <?php if ($status === 'pending_testing' && $request['testing_status'] === 'pending'): ?>
                                                 <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'success')" 
-                                                        class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
+                                                        class="action-button bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700">
                                                     <i class='bx bx-check'></i>
-                                                    <span class="ml-1">Testing Success</span>
+                                                    <span>Testing Success</span>
                                                 </button>
                                                 <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'failed')" 
-                                                        class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
+                                                        class="action-button bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700">
                                                     <i class='bx bx-x'></i>
-                                                    <span class="ml-1">Testing Failed</span>
+                                                    <span>Testing Failed</span>
                                                 </button>
                                                 <?php endif; ?>
                                             </div>
@@ -567,31 +643,31 @@ try {
     </div>
     
     <!-- Add a workflow diagram to show the request flow -->
-    <div class="mt-8 p-4 bg-green-50 shadow rounded-lg" style="margin-left: 32px; margin-right: 32px; margin-bottom: 32px;">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Request Workflow</h3>
-        <p class="mb-6 text-sm text-gray-700">There are two possible workflows depending on the request type:</p>
-        <div class="flex flex-col items-center space-y-8">
+    <div class="mt-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg rounded-xl" style="margin-left: 32px; margin-right: 32px; margin-bottom: 32px;">
+        <h3 class="text-xl font-bold text-gray-900 mb-6">Request Workflow</h3>
+        <p class="mb-8 text-sm text-gray-700">There are two possible workflows depending on the request type:</p>
+        <div class="flex flex-col items-center space-y-12">
             <!-- Common steps -->
-            <div class="flex items-center space-x-6">
-                <div class="flex flex-col items-center">
-                    <div class="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                        <i class='bx bx-user text-gray-700 text-xl'></i>
+            <div class="flex items-center space-x-8">
+                <div class="workflow-step flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center shadow-lg">
+                        <i class='bx bx-user text-gray-700 text-2xl'></i>
                     </div>
-                    <span class="mt-2 text-sm font-medium text-gray-700">Requestor</span>
+                    <span class="mt-3 text-sm font-medium text-gray-700">Requestor</span>
                 </div>
-                <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                <div class="flex flex-col items-center">
-                    <div class="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                        <i class='bx bx-user-check text-yellow-600 text-xl'></i>
+                <i class='bx bx-right-arrow-alt text-gray-400 text-3xl'></i>
+                <div class="workflow-step flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-200 to-yellow-300 flex items-center justify-center shadow-lg">
+                        <i class='bx bx-user-check text-yellow-600 text-2xl'></i>
                     </div>
-                    <span class="mt-2 text-sm font-medium text-gray-700">Superior</span>
+                    <span class="mt-3 text-sm font-medium text-gray-700">Superior</span>
                 </div>
-                <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                <div class="flex flex-col items-center">
-                    <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                        <i class='bx bx-support text-blue-600 text-xl'></i>
+                <i class='bx bx-right-arrow-alt text-gray-400 text-3xl'></i>
+                <div class="workflow-step flex flex-col items-center">
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center shadow-lg">
+                        <i class='bx bx-support text-blue-600 text-2xl'></i>
                     </div>
-                    <span class="mt-2 text-sm font-medium text-gray-700">Help Desk</span>
+                    <span class="mt-3 text-sm font-medium text-gray-700">Help Desk</span>
                 </div>
             </div>
             <!-- Branching steps -->
@@ -756,6 +832,22 @@ function viewRequest(requestId) {
             window.location.href = `cancel_request.php?id=${requestId}`;
         }
     }
+     // Current time display
+     function updateTime() {
+            const now = new Date();
+            const timeElement = document.getElementById('current_time');
+            if (timeElement) {
+                timeElement.textContent = now.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true 
+                });
+            }
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
 </script>
 
 </body>

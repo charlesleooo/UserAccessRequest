@@ -266,8 +266,14 @@ try {
                     <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
                 </button>
                 <div>
-                    <h2 class="text-4xl font-bold text-white">Create New Request</h2>
+                    <h2 class="text-4xl font-bold text-white">Create New User Access Request (UAR)</h2>
                     <p class="text-white text-xl mt-1">Fill out the form below to submit a new access request</p>
+                </div>
+            </div>
+            <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
+                <div class="flex items-center space-x-2 text-sm bg-blue-50 text-primary-600 px-4 py-2 rounded-lg">
+                    <i class='bx bx-time-five'></i>
+                    <span id="current_time"></span>
                 </div>
             </div>
         </div>
@@ -495,6 +501,23 @@ try {
 </div>
 
 <script>
+    // Current time display
+    function updateTime() {
+            const now = new Date();
+            const timeElement = document.getElementById('current_time');
+            if (timeElement) {
+                timeElement.textContent = now.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true 
+                });
+            }
+        }
+        
+        updateTime();
+        setInterval(updateTime, 1000);
+
     const businessUnitDepartments = {
         'AAC': [
             'AFFILIATES',
