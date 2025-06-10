@@ -78,10 +78,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         $employee = $stmt->fetch(PDO::FETCH_ASSOC);
                         if (!$employee) {
-                            throw new Exception("Employee not found");
+                            throw new Exception("User not found");
                         }
                         
-                        // Insert into archive
+                        // Get the correct admin_id from admin_users table
+                        // When logging in, admin_id in session is set to employee_id, not the admin_users.id
+                        if (isset($_SESSION['admin_username'])) {
+                            $adminUsername = $_SESSION['admin_username'];
+                            $findAdmin = $pdo->prepare("SELECT id FROM admin_users WHERE username = ?");
+                            $findAdmin->execute([$_SESSION['admin_id']]);
+                            $adminData = $findAdmin->fetch(PDO::FETCH_ASSOC);
+                            
+                            if ($adminData) {
+                                $admin_id = $adminData['id'];
+                            } else {
+                                // Fallback to any admin user if the current admin is not found
+                                $get_admin = $pdo->query("SELECT id FROM admin_users LIMIT 1");
+                                $admin_record = $get_admin->fetch(PDO::FETCH_ASSOC);
+                                $admin_id = $admin_record ? $admin_record['id'] : null;
+                                
+                                if (!$admin_id) {
+                                    throw new Exception("No valid admin user found to perform this action");
+                                }
+                            }
+                        } else {
+                            // Fallback to any admin user if no admin is logged in
+                            $get_admin = $pdo->query("SELECT id FROM admin_users LIMIT 1");
+                            $admin_record = $get_admin->fetch(PDO::FETCH_ASSOC);
+                            $admin_id = $admin_record ? $admin_record['id'] : null;
+                            
+                            if (!$admin_id) {
+                                throw new Exception("No valid admin user found to perform this action");
+                            }
+                        }
+                        
+                        // Insert into archive with verified admin_id
                         $stmt = $pdo->prepare("INSERT INTO employees_archive (employee_id, company, employee_name, department, employee_email, archived_by, archive_reason) VALUES (?, ?, ?, ?, ?, ?, ?)");
                         if (!$stmt->execute([
                             $employee['employee_id'],
@@ -89,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $employee['employee_name'],
                             $employee['department'],
                             $employee['employee_email'],
-                            $_SESSION['admin_id'],
+                            $admin_id,
                             $archive_reason
                         ])) {
                             throw new Exception("Failed to archive employee");
@@ -122,39 +153,56 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 case 'restore':
                     $employee_id = $_POST['employee_id'];
                     
-                    // First get the archived employee details with error handling
-                    $stmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
-                    if (!$stmt->execute([$employee_id])) {
-                        throw new Exception("Failed to fetch archived employee details");
+                    try {
+                        // Start transaction
+                        $pdo->beginTransaction();
+                        $transaction_active = true;
+                        
+                        // First get the archived employee details with error handling
+                        $stmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
+                        if (!$stmt->execute([$employee_id])) {
+                            throw new Exception("Failed to fetch archived employee details");
+                        }
+                        
+                        $employee = $stmt->fetch(PDO::FETCH_ASSOC);
+                        if (!$employee) {
+                            throw new Exception("Employee not found in archive");
+                        }
+                        
+                        // Insert back into employees
+                        $stmt = $pdo->prepare("INSERT INTO employees (employee_id, company, employee_name, department, employee_email) VALUES (?, ?, ?, ?, ?)");
+                        if (!$stmt->execute([
+                            $employee['employee_id'],
+                            $employee['company'],
+                            $employee['employee_name'],
+                            $employee['department'],
+                            $employee['employee_email']
+                        ])) {
+                            throw new Exception("Failed to restore employee");
+                        }
+                        
+                        // Delete from archive
+                        $stmt = $pdo->prepare("DELETE FROM employees_archive WHERE employee_id = ?");
+                        if (!$stmt->execute([$employee_id])) {
+                            throw new Exception("Failed to remove employee from archive");
+                        }
+                        
+                        // Commit transaction
+                        $pdo->commit();
+                        $transaction_active = false;
+                        
+                        $_SESSION['message'] = [
+                            'type' => 'success',
+                            'text' => 'Employee restored successfully'
+                        ];
+                    } catch (Exception $e) {
+                        // Rollback transaction on error
+                        if ($transaction_active) {
+                            $pdo->rollBack();
+                            $transaction_active = false;
+                        }
+                        throw $e;
                     }
-                    
-                    $employee = $stmt->fetch(PDO::FETCH_ASSOC);
-                    if (!$employee) {
-                        throw new Exception("Employee not found in archive");
-                    }
-                    
-                    // Insert back into employees
-                    $stmt = $pdo->prepare("INSERT INTO employees (employee_id, company, employee_name, department, employee_email) VALUES (?, ?, ?, ?, ?)");
-                    if (!$stmt->execute([
-                        $employee['employee_id'],
-                        $employee['company'],
-                        $employee['employee_name'],
-                        $employee['department'],
-                        $employee['employee_email']
-                    ])) {
-                        throw new Exception("Failed to restore employee");
-                    }
-                    
-                    // Delete from archive
-                    $stmt = $pdo->prepare("DELETE FROM employees_archive WHERE employee_id = ?");
-                    if (!$stmt->execute([$employee_id])) {
-                        throw new Exception("Failed to remove employee from archive");
-                    }
-                    
-                    $_SESSION['message'] = [
-                        'type' => 'success',
-                        'text' => 'Employee restored successfully'
-                    ];
                     break;
 
                 case 'add':
@@ -253,13 +301,20 @@ $department_filter = isset($_GET['department']) ? htmlspecialchars($_GET['depart
 
 // Fetch unique companies and departments for filters with error handling
 try {
-    $companies = $pdo->query("SELECT DISTINCT company FROM employees ORDER BY company")->fetchAll(PDO::FETCH_COLUMN);
+    // Fetch from both active and archived employees for comprehensive filtering
+    $companies = $pdo->query("SELECT DISTINCT company FROM employees 
+                           UNION 
+                           SELECT DISTINCT company FROM employees_archive 
+                           ORDER BY company")->fetchAll(PDO::FETCH_COLUMN);
     if ($companies === false) {
         $companies = [];
         error_log("Failed to fetch companies list");
     }
     
-    $departments = $pdo->query("SELECT DISTINCT department FROM employees ORDER BY department")->fetchAll(PDO::FETCH_COLUMN);
+    $departments = $pdo->query("SELECT DISTINCT department FROM employees 
+                              UNION 
+                              SELECT DISTINCT department FROM employees_archive 
+                              ORDER BY department")->fetchAll(PDO::FETCH_COLUMN);
     if ($departments === false) {
         $departments = [];
         error_log("Failed to fetch departments list");
@@ -270,38 +325,96 @@ try {
     $departments = [];
 }
 
-// Build the query based on filters and view with proper error handling
+// Build the query to fetch both active and archived employees
 try {
-    $query = $view === 'archived' ? "SELECT * FROM employees_archive WHERE 1=1" : "SELECT * FROM employees WHERE 1=1";
+    // Debug output
+    error_log("Fetching employees data...");
+    
+    // Status filter
+    $status_filter = isset($_GET['status']) ? $_GET['status'] : '';
+    
+    // Initial query parts
+    $parts = [];
     $params = [];
+    
+    // Only include active employees if status is empty or 'active'
+    if ($status_filter === '' || $status_filter === 'active') {
+        $active_query = "SELECT 
+                          employee_id, 
+                          company, 
+                          employee_name, 
+                          department, 
+                          employee_email, 
+                          'active' as status 
+                        FROM 
+                          employees 
+                        WHERE 1=1";
+        
+        if (isset($_GET['company']) && $_GET['company'] !== '') {
+            $active_query .= " AND company = ?";
+            $params[] = $_GET['company'];
+        }
 
-    if (isset($_GET['company']) && $_GET['company'] !== '') {
-        $query .= " AND company = ?";
-        $params[] = $_GET['company'];
-    }
-
-    if (isset($_GET['department']) && $_GET['department'] !== '') {
-        $query .= " AND department = ?";
-        $params[] = $_GET['department'];
-    }
-
-    $query .= " ORDER BY employee_name";
-
-    $stmt = $pdo->prepare($query);
-    if (!$stmt->execute($params)) {
-        throw new Exception("Failed to fetch employees");
+        if (isset($_GET['department']) && $_GET['department'] !== '') {
+            $active_query .= " AND department = ?";
+            $params[] = $_GET['department'];
+        }
+        
+        $parts[] = $active_query;
     }
     
+    // Only include inactive employees if status is empty or 'inactive'
+    if ($status_filter === '' || $status_filter === 'inactive') {
+        $inactive_query = "SELECT 
+                            employee_id, 
+                            company, 
+                            employee_name, 
+                            department, 
+                            employee_email, 
+                            'inactive' as status 
+                          FROM 
+                            employees_archive 
+                          WHERE 1=1";
+        
+        if (isset($_GET['company']) && $_GET['company'] !== '') {
+            $inactive_query .= " AND company = ?";
+            $params[] = $_GET['company'];
+        }
+
+        if (isset($_GET['department']) && $_GET['department'] !== '') {
+            $inactive_query .= " AND department = ?";
+            $params[] = $_GET['department'];
+        }
+        
+        $parts[] = $inactive_query;
+    }
+    
+    // Combine the parts with UNION ALL
+    $query = implode(" UNION ALL ", $parts);
+    
+    // Add ordering
+    $query .= " ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, employee_name ASC";
+
+    error_log("SQL Query: " . $query);
+    error_log("Query params: " . print_r($params, true));
+    
+    $stmt = $pdo->prepare($query);
+    $stmt->execute($params);
+    
     $employees = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    error_log("Query result count: " . count($employees));
+    
     if ($employees === false) {
         $employees = [];
+        error_log("Failed to fetch employees, result was false");
     }
 } catch (Exception $e) {
     error_log("Error fetching employees: " . $e->getMessage());
     $employees = [];
     $_SESSION['message'] = [
         'type' => 'error',
-        'text' => 'Failed to load employees. Please try again.'
+        'text' => 'Failed to load employees. Please try again. Error: ' . $e->getMessage()
     ];
 }
 
@@ -396,7 +509,7 @@ $existing_usernames = array_column($admin_users, 'username');
                         <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-200">
                             <i class='bx bx-user text-xl'></i>
                         </span>
-                        <span class="ml-3 font-medium">Employee Management</span>
+                        <span class="ml-3 font-medium">User Management</span>
                     </a>
                     
                     <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 group">
@@ -451,9 +564,9 @@ $existing_usernames = array_column($admin_users, 'username');
             <div class="bg-white border-b border-gray-200">
                 <div class="flex justify-between items-center px-8 py-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Employee Management</h2>
+                        <h2 class="text-2xl font-bold text-gray-800">User Management</h2>
                         <p class="text-gray-600 text-sm mt-1">
-                            Manage and organize employee information
+                            Manage and organize user information
                         </p>
                     </div>
                     <div class="flex items-center gap-4">
@@ -470,16 +583,8 @@ $existing_usernames = array_column($admin_users, 'username');
                                 data-bs-toggle="modal"
                                 data-bs-target="#addEmployeeModal">
                             <i class="fas fa-plus"></i>
-                            Add New Employee
+                            Add New User
                         </button>
-                        <div class="btn-group">
-                            <a href="?view=active" class="btn <?php echo $view === 'active' ? 'btn-primary' : 'btn-outline-primary'; ?>">
-                                <i class="fas fa-users me-2"></i>Active Employees
-                            </a>
-                            <a href="?view=archived" class="btn <?php echo $view === 'archived' ? 'btn-primary' : 'btn-outline-primary'; ?>">
-                                <i class="fas fa-archive me-2"></i>Archived Employees
-                            </a>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -488,22 +593,13 @@ $existing_usernames = array_column($admin_users, 'username');
             <div class="p-8">
                 <!-- Filters -->
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Employees</h3>
-                    <form method="GET" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <input type="hidden" name="view" value="<?php echo htmlspecialchars($view); ?>">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Users</h3>
+                    <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div class="space-y-2">
                             <label class="block text-sm font-medium text-gray-700">Business Unit</label>
                             <select name="company" class="block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-base">
                                 <option value="">All Business Units</option>
-                                <?php 
-                                // Fetch companies from both active and archived employees
-                                $companiesQuery = "SELECT DISTINCT company FROM employees 
-                                                 UNION 
-                                                 SELECT DISTINCT company FROM employees_archive 
-                                                 ORDER BY company";
-                                $companies = $pdo->query($companiesQuery)->fetchAll(PDO::FETCH_COLUMN);
-                                foreach ($companies as $company): 
-                                ?>
+                                <?php foreach ($companies as $company): ?>
                                     <option value="<?php echo htmlspecialchars($company); ?>" 
                                             <?php echo isset($_GET['company']) && $_GET['company'] === $company ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($company); ?>
@@ -515,15 +611,7 @@ $existing_usernames = array_column($admin_users, 'username');
                             <label class="block text-sm font-medium text-gray-700">Department</label>
                             <select name="department" class="block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-base">
                                 <option value="">All Departments</option>
-                                <?php 
-                                // Fetch departments from both active and archived employees
-                                $departmentsQuery = "SELECT DISTINCT department FROM employees 
-                                                   UNION 
-                                                   SELECT DISTINCT department FROM employees_archive 
-                                                   ORDER BY department";
-                                $departments = $pdo->query($departmentsQuery)->fetchAll(PDO::FETCH_COLUMN);
-                                foreach ($departments as $department): 
-                                ?>
+                                <?php foreach ($departments as $department): ?>
                                     <option value="<?php echo htmlspecialchars($department); ?>"
                                             <?php echo isset($_GET['department']) && $_GET['department'] === $department ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($department); ?>
@@ -531,12 +619,20 @@ $existing_usernames = array_column($admin_users, 'username');
                                 <?php endforeach; ?>
                             </select>
                         </div>
+                        <div class="space-y-2">
+                            <label class="block text-sm font-medium text-gray-700">Status</label>
+                            <select name="status" class="block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-base">
+                                <option value="">All Status</option>
+                                <option value="active" <?php echo isset($_GET['status']) && $_GET['status'] === 'active' ? 'selected' : ''; ?>>Active</option>
+                                <option value="inactive" <?php echo isset($_GET['status']) && $_GET['status'] === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                            </select>
+                        </div>
                         <div class="flex items-end">
                             <div class="flex gap-2">
                                 <button type="submit" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
                                     <i class="fas fa-filter me-2"></i>Apply Filters
                                 </button>
-                                <a href="?view=<?php echo $view; ?>" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                                <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                                     <i class="fas fa-undo me-2"></i>Reset
                                 </a>
                             </div>
@@ -547,7 +643,7 @@ $existing_usernames = array_column($admin_users, 'username');
                 <!-- Employees Table -->
                 <div class="bg-white rounded-xl shadow-sm">
                     <div class="px-6 py-4 border-b border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800">Employee List</h3>  
+                        <h3 class="text-lg font-semibold text-gray-800">User List</h3>  
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200" id="employeesTable">
@@ -558,10 +654,7 @@ $existing_usernames = array_column($admin_users, 'username');
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <?php if ($view === 'archived'): ?>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archived Date</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Archive Reason</th>
-                                    <?php endif; ?>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
@@ -583,26 +676,16 @@ $existing_usernames = array_column($admin_users, 'username');
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?php echo htmlspecialchars($employee['employee_email']); ?>
                                     </td>
-                                    <?php if ($view === 'archived'): ?>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?php echo date('M d, Y h:i A', strtotime($employee['archived_at'])); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <a href="#" class="view-reason" 
-                                               data-reason="<?php echo htmlspecialchars($employee['archive_reason']); ?>"
-                                               data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>">
-                                                <?php 
-                                                    $short_reason = strlen($employee['archive_reason']) > 50 ? 
-                                                        substr($employee['archive_reason'], 0, 47) . '...' : 
-                                                        $employee['archive_reason'];
-                                                    echo htmlspecialchars($short_reason);
-                                                ?>
-                                            </a>
-                                        </td>
-                                    <?php endif; ?>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <?php if ($employee['status'] === 'active'): ?>
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+                                        <?php else: ?>
+                                            <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inactive</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex justify-end gap-2">
-                                            <?php if ($view === 'active'): ?>
+                                            <?php if ($employee['status'] === 'active'): ?>
                                                 <button class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 edit-employee"
                                                         data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
                                                         data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>"
@@ -643,7 +726,7 @@ $existing_usernames = array_column($admin_users, 'username');
         <div class="flex items-center justify-center min-h-screen">
             <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4">
                 <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-semibold text-gray-800">Edit Employee</h3>
+                    <h3 class="text-xl font-semibold text-gray-800">Edit User</h3>
                     <button onclick="hideEditModal()" class="text-gray-400 hover:text-gray-600">
                         <i class="fas fa-times text-xl"></i>
                     </button>
@@ -715,7 +798,7 @@ $existing_usernames = array_column($admin_users, 'username');
                     <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-archive text-2xl text-red-600"></i>
                     </div>
-                    <h3 class="text-xl font-semibold text-gray-800">Archive Employee</h3>
+                    <h3 class="text-xl font-semibold text-gray-800">Archive User</h3>
                     <p class="text-gray-600 mt-2" id="archive_confirm_text"></p>
                 </div>
 
@@ -740,8 +823,8 @@ $existing_usernames = array_column($admin_users, 'username');
                             </div>
                             <div class="ml-3">
                                 <p class="text-sm text-yellow-700">
-                                    This action will move the employee to the archived list. 
-                                    The employee will no longer appear in the active employees list.
+                                    This action will move the User to the archived list. 
+                                    The User will no longer appear in the active User list.
                                 </p>
                             </div>
                         </div>
@@ -754,7 +837,7 @@ $existing_usernames = array_column($admin_users, 'username');
                         </button>
                         <button type="submit" 
                                 class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700">
-                            Archive Employee
+                            Archive User
                         </button>
                     </div>
                 </form>
@@ -786,7 +869,7 @@ $existing_usernames = array_column($admin_users, 'username');
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Add New Employee</h5>
+                    <h5 class="modal-title">Add New User    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -841,7 +924,7 @@ $existing_usernames = array_column($admin_users, 'username');
                             <select class="form-select" id="add_role" name="role" required>
                                 <option value="requestor">Requestor</option>
                                 <option value="admin">Admin</option>
-                                <option value="superior">Superior</option>
+                                <option value="superior">Immediate Superior</option>
                                 <option value="technical_support">Technical Support</option>
                                 <option value="process_owner">Process Owner</option>
                             </select>
@@ -850,7 +933,7 @@ $existing_usernames = array_column($admin_users, 'username');
                         
                         <div class="text-end">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Add Employee</button>
+                            <button type="submit" class="btn btn-primary">Add User</button>
                         </div>
                     </form>
                 </div>
@@ -895,6 +978,10 @@ $existing_usernames = array_column($admin_users, 'username');
                                 <label class="form-label fw-bold">Status</label>
                                 <p id="view_status" class="mb-0"></p>
                             </div>
+                            <div class="mb-3 archive-reason-section" style="display: none;">
+                                <label class="form-label fw-bold">Archive Reason</label>
+                                <p id="view_archive_reason" class="mb-0"></p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -923,7 +1010,21 @@ $existing_usernames = array_column($admin_users, 'username');
         $(document).ready(function() {
             // Initialize DataTable with fixed configuration
             const table = $('#employeesTable').DataTable({
-                order: [[0, 'asc']],
+                columnDefs: [
+                    { 
+                        targets: 5, // Status column index
+                        type: 'string',
+                        render: function(data, type, row) {
+                            // For sorting purposes
+                            if (type === 'sort') {
+                                return data.includes('Active') ? '0' : '1'; // Active comes before Inactive
+                            }
+                            // Return the original HTML for display
+                            return data;
+                        }
+                    }
+                ],
+                order: [[5, 'asc'], [1, 'asc']], // First by status (active first), then by name
                 pageLength: 10,
                 searching: true,
                 language: {
@@ -943,6 +1044,61 @@ $existing_usernames = array_column($admin_users, 'username');
                         table.search($(this).val()).draw();
                     });
                 }
+            });
+
+            // View Employee Details
+            $(document).on('click', '.view-employee', function(e) {
+                e.preventDefault();
+                const employeeId = $(this).data('employee-id');
+                const employeeName = $(this).data('employee-name');
+                const company = $(this).data('company');
+                const department = $(this).data('department');
+                const email = $(this).data('email');
+                const status = $(this).data('status');
+                
+                $('#view_employee_id').text(employeeId);
+                $('#view_name').text(employeeName);
+                $('#view_company').text(company);
+                $('#view_department').text(department);
+                $('#view_email').text(email);
+                
+                // Set status with proper styling
+                if (status === 'active') {
+                    $('#view_status').html('<span class="badge bg-success">Active</span>');
+                    $('.archive-reason-section').hide();
+                    $('.edit-from-view').show();
+                } else {
+                    $('#view_status').html('<span class="badge bg-danger">Inactive</span>');
+                    
+                    // For inactive users, get the archive reason directly
+                    $.ajax({
+                        url: 'get_archive_reason.php',
+                        type: 'POST',
+                        data: {
+                            employee_id: employeeId,
+                            csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                $('#view_archive_reason').text(response.reason);
+                                $('.archive-reason-section').show();
+                            } else {
+                                $('#view_archive_reason').text('No archive reason found');
+                                $('.archive-reason-section').show();
+                            }
+                        },
+                        error: function() {
+                            $('#view_archive_reason').text('Error retrieving archive reason');
+                            $('.archive-reason-section').show();
+                        }
+                    });
+                    
+                    $('.edit-from-view').hide();
+                }
+                
+                const viewModal = new bootstrap.Modal(document.getElementById('viewDetailsModal'));
+                viewModal.show();
             });
 
             // Add Employee form submission
@@ -969,15 +1125,55 @@ $existing_usernames = array_column($admin_users, 'username');
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Get the form and directly submit it without AJAX
-                        // This ensures all form values are properly submitted
-                        document.getElementById('addEmployeeForm').submit();
+                        // Use AJAX to submit the form
+                        const formData = new FormData(this);
+                        
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Processing...',
+                            text: 'Please wait while we add the employee.',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        $.ajax({
+                            url: $(this).attr('action'),
+                            type: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success: function(response) {
+                                // Close the modal
+                                $('#addEmployeeModal').modal('hide');
+                                
+                                // Show success message
+                                Swal.fire({
+                                    title: 'Success',
+                                    text: 'Employee added successfully',
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Reload the table or page
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'Failed to add employee. Please try again.',
+                                    icon: 'error'
+                                });
+                            }
+                        });
                     }
                 });
             });
 
-            // Form validation and submission
-            $('#editForm, #archiveForm').on('submit', function(e) {
+            // Edit Form submission with AJAX
+            $('#editForm').on('submit', function(e) {
                 e.preventDefault();
                 const form = $(this);
                 
@@ -992,18 +1188,120 @@ $existing_usernames = array_column($admin_users, 'username');
 
                 // Show confirmation dialog
                 Swal.fire({
-                    title: form.attr('id') === 'editForm' ? 'Save Changes?' : 'Archive Employee?',
-                    text: form.attr('id') === 'editForm' ? 
-                          'Are you sure you want to save these changes?' : 
-                          'Are you sure you want to archive this employee?',
+                    title: 'Save Changes?',
+                    text: 'Are you sure you want to save these changes?',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonColor: form.attr('id') === 'editForm' ? '#4F46E5' : '#dc2626',
-                    confirmButtonText: form.attr('id') === 'editForm' ? 'Save Changes' : 'Archive',
+                    confirmButtonColor: '#4F46E5',
+                    confirmButtonText: 'Save Changes',
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        form.off('submit').submit();
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Processing...',
+                            text: 'Please wait while we update the employee.',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        $.ajax({
+                            url: window.location.href,
+                            type: 'POST',
+                            data: form.serialize(),
+                            success: function(response) {
+                                // Hide modal
+                                hideEditModal();
+                                
+                                // Show success message
+                                Swal.fire({
+                                    title: 'Success',
+                                    text: 'Employee updated successfully',
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Reload the table or page
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'Failed to update employee. Please try again.',
+                                    icon: 'error'
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Archive Form submission with AJAX
+            $('#archiveForm').on('submit', function(e) {
+                e.preventDefault();
+                const form = $(this);
+                
+                if (!validateForm(this.id)) {
+                    Swal.fire({
+                        title: 'Validation Error',
+                        text: 'Please check all required fields and ensure they are filled correctly.',
+                        icon: 'error'
+                    });
+                    return;
+                }
+
+                // Show confirmation dialog
+                Swal.fire({
+                    title: 'Archive Employee?',
+                    text: 'Are you sure you want to archive this employee?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc2626',
+                    confirmButtonText: 'Archive',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Processing...',
+                            text: 'Please wait while we archive the employee.',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        $.ajax({
+                            url: window.location.href,
+                            type: 'POST',
+                            data: form.serialize(),
+                            success: function(response) {
+                                // Hide modal
+                                hideArchiveModal();
+                                
+                                // Show success message
+                                Swal.fire({
+                                    title: 'Success',
+                                    text: 'Employee archived successfully',
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Reload the table or page
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'Failed to archive employee. Please try again.',
+                                    icon: 'error'
+                                });
+                            }
+                        });
                     }
                 });
             });
@@ -1024,9 +1322,46 @@ $existing_usernames = array_column($admin_users, 'username');
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        const form = $('#restoreForm');
-                        $('#restore_employee_id').val(employeeId);
-                        form.submit();
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Processing...',
+                            text: 'Please wait while we restore the employee.',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // Use AJAX to submit the restore action
+                        $.ajax({
+                            url: window.location.href,
+                            type: 'POST',
+                            data: {
+                                action: 'restore',
+                                employee_id: employeeId,
+                                csrf_token: '<?php echo $_SESSION['csrf_token']; ?>'
+                            },
+                            success: function(response) {
+                                // Show success message
+                                Swal.fire({
+                                    title: 'Success',
+                                    text: 'Employee restored successfully',
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Reload the table or page
+                                    location.reload();
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: 'Failed to restore employee. Please try again.',
+                                    icon: 'error'
+                                });
+                            }
+                        });
                     }
                 });
             });
@@ -1034,7 +1369,7 @@ $existing_usernames = array_column($admin_users, 'username');
             // Success/Error message handling
             <?php if (isset($_SESSION['message'])): ?>
                 Swal.fire({
-                    title: '<?php echo $_SESSION['message']['title']; ?>',
+                    title: '<?php echo $_SESSION['message']['title'] ?? ''; ?>',
                     text: '<?php echo $_SESSION['message']['text']; ?>',
                     icon: '<?php echo $_SESSION['message']['type']; ?>',
                     timer: 3000,
@@ -1042,7 +1377,60 @@ $existing_usernames = array_column($admin_users, 'username');
                 });
                 <?php unset($_SESSION['message']); ?>
             <?php endif; ?>
+            
+            // Handle edit button click
+            $(document).on('click', '.edit-employee', function(e) {
+                e.preventDefault();
+                const employeeId = $(this).data('employee-id');
+                const employeeName = $(this).data('employee-name');
+                const company = $(this).data('company');
+                const department = $(this).data('department');
+                const email = $(this).data('email');
+                
+                showEditModal(employeeId, employeeName, company, department, email);
+            });
+
+            // Handle archive button click
+            $(document).on('click', '.archive-employee', function(e) {
+                e.preventDefault();
+                const employeeId = $(this).data('employee-id');
+                const employeeName = $(this).data('employee-name');
+                
+                showArchiveModal(employeeId, employeeName);
+            });
+
+            // Close modals when clicking outside
+            $('.fixed.inset-0').click(function(e) {
+                if (e.target === this) {
+                    $(this).addClass('hidden');
+                }
+            });
         });
+
+        // Show/Hide Edit Modal
+        function showEditModal(employeeId, employeeName, company, department, email) {
+            $('#edit_employee_id').val(employeeId);
+            $('#edit_employee_name').val(employeeName);
+            $('#edit_company').val(company);
+            $('#edit_department').val(department);
+            $('#edit_email').val(email);
+            $('#editModal').removeClass('hidden');
+        }
+
+        function hideEditModal() {
+            $('#editModal').addClass('hidden');
+        }
+
+        // Show/Hide Archive Modal
+        function showArchiveModal(employeeId, employeeName) {
+            $('#archive_employee_id').val(employeeId);
+            $('#archive_confirm_text').text(`Are you sure you want to archive ${employeeName}?`);
+            $('#archiveModal').removeClass('hidden');
+        }
+
+        function hideArchiveModal() {
+            $('#archiveModal').addClass('hidden');
+        }
 
         // Form validation function
         function validateForm(formId) {
@@ -1081,61 +1469,6 @@ $existing_usernames = array_column($admin_users, 'username');
 
             return isValid;
         }
-
-        // Show/Hide Edit Modal
-        function showEditModal(employeeId, employeeName, company, department, email) {
-            $('#edit_employee_id').val(employeeId);
-            $('#edit_employee_name').val(employeeName);
-            $('#edit_company').val(company);
-            $('#edit_department').val(department);
-            $('#edit_email').val(email);
-            $('#editModal').removeClass('hidden');
-        }
-
-        function hideEditModal() {
-            $('#editModal').addClass('hidden');
-        }
-
-        // Show/Hide Archive Modal
-        function showArchiveModal(employeeId, employeeName) {
-            $('#archive_employee_id').val(employeeId);
-            $('#archive_confirm_text').text(`Are you sure you want to archive ${employeeName}?`);
-            $('#archiveModal').removeClass('hidden');
-        }
-
-        function hideArchiveModal() {
-            $('#archiveModal').addClass('hidden');
-        }
-
-        $(document).ready(function() {
-            // Handle edit button click
-            $(document).on('click', '.edit-employee', function(e) {
-                e.preventDefault();
-                const employeeId = $(this).data('employee-id');
-                const employeeName = $(this).data('employee-name');
-                const company = $(this).data('company');
-                const department = $(this).data('department');
-                const email = $(this).data('email');
-                
-                showEditModal(employeeId, employeeName, company, department, email);
-            });
-
-            // Handle archive button click
-            $(document).on('click', '.archive-employee', function(e) {
-                e.preventDefault();
-                const employeeId = $(this).data('employee-id');
-                const employeeName = $(this).data('employee-name');
-                
-                showArchiveModal(employeeId, employeeName);
-            });
-
-            // Close modals when clicking outside
-            $('.fixed.inset-0').click(function(e) {
-                if (e.target === this) {
-                    $(this).addClass('hidden');
-                }
-            });
-        });
     </script>
 </body>
 </html>

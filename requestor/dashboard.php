@@ -10,13 +10,16 @@ if (!isset($_SESSION['requestor_id'])) {
 
 $requestorId = $_SESSION['requestor_id'];
 $username = $_SESSION['username'] ?? 'User';
+// Get first name only final
+$firstName = explode(' ', $username)[0];
 
 try {
     $stmt = $pdo->prepare("SELECT 
         COUNT(*) as total,
         SUM(status = 'approved') as approved,
         SUM(status = 'rejected') as rejected,
-        SUM(status = 'pending') as pending
+        SUM(status LIKE 'pending%') as pending,
+        SUM(status = 'canceled') as canceled
         FROM access_requests
         WHERE employee_id = ?");
     $stmt->execute([$requestorId]);
@@ -26,6 +29,7 @@ try {
     $approved = $data['approved'] ?? 0;
     $rejected = $data['rejected'] ?? 0;
     $pending = $data['pending'] ?? 0;
+    $canceled = $data['canceled'] ?? 0;
 
     $approvalRate = $total > 0 ? round(($approved / $total) * 100, 1) : 0;
     $declineRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
@@ -35,7 +39,7 @@ try {
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Dashboard error: " . $e->getMessage());
-    $total = $approved = $rejected = $pending = 0;
+    $total = $approved = $rejected = $pending = $canceled = 0;
     $approvalRate = $declineRate = 0;
     $recentRequests = [];
 }
@@ -301,7 +305,7 @@ try {
                 <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                     <i class='bx bx-list-ul text-xl'></i>
                 </span>
-                <span class="ml-3">My Requests</span>
+                <span class="ml-3">Pending Requests</span>
             </a>
             <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
                 <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
@@ -320,17 +324,6 @@ try {
             </a>
         </div>
 
-        <div class="px-4 py-4 border-t border-gray-100">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                    <i class='bx bxs-user text-xl'></i>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($username); ?></p>
-                    <p class="text-xs text-gray-500">Requestor</p>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
@@ -361,7 +354,7 @@ try {
 <!-- Main Content -->
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-blue-600 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-8 py-4" style = "padding-left: 0px;">
             <div class="flex items-center">
                 <!-- Hamburger button for toggling sidebar -->
@@ -373,14 +366,26 @@ try {
                     <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
                 </button>
                 <div>
-                    <h2 class="text-4xl font-bold text-white">User Access Request System (UAR)</h2>
-                    <p class="text-white text-xl mt-1">Welcome back <?php echo htmlspecialchars($username); ?></p>
+                    <h2 class="text-4xl font-bold text-white">ABU IT - Electronic User Access Request (UAR)</h2>
+                    <p class="text-white text-xl mt-1"> <?php echo htmlspecialchars($firstName); ?></p>
                 </div>
             </div>
-            <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
-                <div class="flex items-center space-x-2 text-sm bg-white text-primary-700 px-4 py-2 rounded-lg">
-                    <i class='bx bx-time-five'></i>
-                    <span id="current_time"></span>
+
+            <!-- Data Privacy Notice -->
+            <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
+                <button class="text-white hover:text-blue-200 focus:outline-none">
+                    <i class='bx bx-info-circle text-2xl'></i>
+                </button>
+                <div x-cloak x-show="privacyNoticeOpen"
+                     class="absolute right-0 mt-2 w-64 p-4 bg-white rounded-md shadow-lg text-gray-700 text-sm z-50"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95">
+                    <p class="font-semibold mb-2">Data Privacy Notice</p>
+                    <p>Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
                 </div>
             </div>
         </div>
@@ -388,8 +393,8 @@ try {
 
     <div class="p-8">
         <!-- Stats Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
-            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300">
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6 mb-8">
+            <div onclick="filterRequests('all')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                 <div class="bg-gradient-to-br from-blue-500 via-white to-blue-300 p-3 rounded-full shadow-lg">
                     <i class='bx bx-folder text-2xl text-blue-600'></i>
                 </div>
@@ -398,7 +403,7 @@ try {
                     <h4 class="text-2xl font-bold text-white"><?php echo $total; ?></h4>
                 </div>
             </div>
-            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-green-500 via-green-400 to-green-300">
+            <div onclick="filterRequests('approved')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-green-500 via-green-400 to-green-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                 <div class="bg-gradient-to-br from-green-500 via-white to-green-300 p-3 rounded-full shadow-lg">
                     <i class='bx bx-check-circle text-2xl text-green-600'></i>
                 </div>
@@ -407,7 +412,7 @@ try {
                     <h4 class="text-2xl font-bold text-white"><?php echo $approved; ?></h4>
                 </div>
             </div>
-            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-yellow-500 via-yellow-400 to-yellow-300">
+            <div onclick="filterRequests('pending')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-yellow-500 via-yellow-400 to-yellow-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                 <div class="bg-gradient-to-br from-yellow-500 via-white to-yellow-300 p-3 rounded-full shadow-lg">
                     <i class='bx bx-time text-2xl text-yellow-600'></i>
                 </div>
@@ -416,7 +421,7 @@ try {
                     <h4 class="text-2xl font-bold text-white"><?php echo $pending; ?></h4>
                 </div>
             </div>
-            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-red-500 via-red-400 to-red-300">
+            <div onclick="filterRequests('rejected')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-red-500 via-red-400 to-red-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                 <div class="bg-gradient-to-br from-red-500 via-white to-red-300 p-3 rounded-full shadow-lg">
                     <i class='bx bx-x-circle text-2xl text-red-600'></i>
                 </div>
@@ -425,19 +430,23 @@ try {
                     <h4 class="text-2xl font-bold text-white"><?php echo $rejected; ?></h4>
                 </div>
             </div>
+            <div onclick="filterRequests('canceled')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-gray-500 via-gray-400 to-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300">
+                <div class="bg-gradient-to-br from-gray-500 via-white to-gray-300 p-3 rounded-full shadow-lg">
+                    <i class='bx bx-block text-2xl text-gray-600'></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-white">Canceled</p>
+                    <h4 class="text-2xl font-bold text-white"><?php echo $canceled; ?></h4>
+                </div>
+            </div>
         </div>
 
         <!-- Requests Table -->
         <div class="bg-white rounded-xl shadow-sm overflow-hidden enhanced-table">
             <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 flex justify-between items-center">
                 <h2 class="text-lg font-medium text-gray-800">My Access Requests</h2>
-                <a href="create_request.php" class="action-button bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700">
-                    <i class='bx bx-plus'></i> New Request
-                </a>
+                
             </div>
-
-            
-            
             <!-- Pending Testing Requests Section -->
             <?php
             // Get pending testing requests for this user
@@ -453,6 +462,7 @@ try {
             $requestsQuery = "SELECT * FROM access_requests 
                             WHERE employee_id = :employee_id 
                             AND status != 'pending_testing'
+                            AND status != 'canceled'
                             ORDER BY submission_date DESC";
             $stmt = $pdo->prepare($requestsQuery);
             $stmt->execute(['employee_id' => $requestorId]);
@@ -460,7 +470,7 @@ try {
             
             if (count($pendingTestingRequests) > 0):
             ?>
-            <div class="p-4 bg-yellow-50 border-b border-yellow-100">
+            <div class="p-4 bg-yellow-50 border-b border-yellow-100 pending-testing-section">
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
                         <i class='bx bx-test-tube text-yellow-600 text-xl'></i>
@@ -549,7 +559,7 @@ try {
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php foreach ($requests as $request): ?>
-                                    <tr class="hover:bg-gray-50 cursor-pointer hover:shadow-md transition-all duration-200 hover:bg-gray-50 odd:bg-gray-100">
+                                    <tr class="hover:bg-gray-50 cursor-pointer hover:shadow-md transition-all duration-200 hover:bg-gray-50 odd:bg-gray-100" onclick="viewRequest(<?php echo $request['id']; ?>)">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Request Number">
                                             <?php echo htmlspecialchars($request['access_request_number']); ?>
                                         </td>
@@ -593,6 +603,10 @@ try {
                                                     $statusClass = 'bg-red-100 text-red-800';
                                                     $displayStatus = 'Rejected';
                                                     break;
+                                                case 'canceled':
+                                                    $statusClass = 'bg-gray-100 text-gray-800';
+                                                    $displayStatus = 'Canceled';
+                                                    break;
                                                 default:
                                                     $statusClass = 'bg-gray-100 text-gray-800';
                                                     $displayStatus = ucfirst($status);
@@ -612,18 +626,13 @@ try {
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" data-label="Actions">
                                             <div class="flex justify-end gap-2">
-                                                <button onclick="viewRequest(<?php echo $request['id']; ?>)" 
-                                                        class="action-button bg-gray-100 text-gray-700 hover:bg-gray-200">
-                                                    <i class='bx bx-info-circle'></i>
-                                                    <span>View</span>
-                                                </button>
                                                 <?php if ($status === 'pending_testing' && $request['testing_status'] === 'pending'): ?>
-                                                <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'success')" 
+                                                <button onclick="event.stopPropagation(); updateTestingStatus(<?php echo $request['id']; ?>, 'success')" 
                                                         class="action-button bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700">
                                                     <i class='bx bx-check'></i>
                                                     <span>Testing Success</span>
                                                 </button>
-                                                <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'failed')" 
+                                                <button onclick="event.stopPropagation(); updateTestingStatus(<?php echo $request['id']; ?>, 'failed')" 
                                                         class="action-button bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700">
                                                     <i class='bx bx-x'></i>
                                                     <span>Testing Failed</span>
@@ -637,108 +646,6 @@ try {
                             </table>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Add a workflow diagram to show the request flow -->
-    <div class="mt-8 p-6 bg-gradient-to-br from-green-50 to-blue-50 shadow-lg rounded-xl" style="margin-left: 32px; margin-right: 32px; margin-bottom: 32px;">
-        <h3 class="text-xl font-bold text-gray-900 mb-6">Request Workflow</h3>
-        <p class="mb-8 text-sm text-gray-700">There are two possible workflows depending on the request type:</p>
-        <div class="flex flex-col items-center space-y-12">
-            <!-- Common steps -->
-            <div class="flex items-center space-x-8">
-                <div class="workflow-step flex flex-col items-center">
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center shadow-lg">
-                        <i class='bx bx-user text-gray-700 text-2xl'></i>
-                    </div>
-                    <span class="mt-3 text-sm font-medium text-gray-700">Requestor</span>
-                </div>
-                <i class='bx bx-right-arrow-alt text-gray-400 text-3xl'></i>
-                <div class="workflow-step flex flex-col items-center">
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-yellow-200 to-yellow-300 flex items-center justify-center shadow-lg">
-                        <i class='bx bx-user-check text-yellow-600 text-2xl'></i>
-                    </div>
-                    <span class="mt-3 text-sm font-medium text-gray-700">Superior</span>
-                </div>
-                <i class='bx bx-right-arrow-alt text-gray-400 text-3xl'></i>
-                <div class="workflow-step flex flex-col items-center">
-                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-200 to-blue-300 flex items-center justify-center shadow-lg">
-                        <i class='bx bx-support text-blue-600 text-2xl'></i>
-                    </div>
-                    <span class="mt-3 text-sm font-medium text-gray-700">Help Desk</span>
-                </div>
-            </div>
-            <!-- Branching steps -->
-            <div class="flex w-full justify-center">
-                <!-- Branch 1: Process Owner Path -->
-                <div class="flex flex-col items-center w-1/2">
-                    <div class="flex items-center space-x-6">
-                        
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                                <i class='bx bx-briefcase text-indigo-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">Process Owner</span>
-                        </div>
-                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                                <i class='bx bx-support text-blue-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">Help Desk</span>
-                        </div>
-                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                                <i class='bx bx-wrench text-green-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">Technical Support</span>
-                        </div>
-                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                                <i class='bx bx-pencil text-green-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">Testing</span>
-                        </div>
-                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                                <i class='bx bx-shield text-purple-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">IT Leader</span>
-                        </div>
-                    </div>
-                    <span class="mt-2 text-xs text-gray-500 font-medium">If the request is Application related </span>
-                </div>
-                <!-- Branch 2: Technical Support Path -->
-                <div class="flex flex-col items-center w-1/2">
-                    <div class="flex items-center space-x-6">
-                        <i class='bx bx-down-arrow-alt text-gray-400 text-2xl opacity-0'></i>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                                <i class='bx bx-wrench text-green-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">Technical Support</span>
-                        </div>
-                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                                <i class='bx bx-pencil text-green-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">Testing</span>
-                        </div>
-                        <i class='bx bx-right-arrow-alt text-gray-400 text-2xl'></i>
-                        <div class="flex flex-col items-center">
-                            <div class="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
-                                <i class='bx bx-shield text-purple-600 text-xl'></i>
-                            </div>
-                            <span class="mt-2 text-sm font-medium text-gray-700">IT Leader</span>
-                        </div>
-                    </div>
-                    <span class="mt-2 text-xs text-gray-500 font-medium">If the request is NOT Application related</span>
                 </div>
             </div>
         </div>
@@ -832,23 +739,50 @@ function viewRequest(requestId) {
             window.location.href = `cancel_request.php?id=${requestId}`;
         }
     }
-     // Current time display
-     function updateTime() {
-            const now = new Date();
-            const timeElement = document.getElementById('current_time');
-            if (timeElement) {
-                timeElement.textContent = now.toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true 
-                });
+
+    // Add filtering functionality
+    function filterRequests(status) {
+        const rows = document.querySelectorAll('tbody tr');
+        const pendingTestingSection = document.querySelector('.pending-testing-section'); // Add a class to this section
+
+        rows.forEach(row => {
+            const statusCell = row.querySelector('td:nth-child(3)');
+            const statusText = statusCell.textContent.toLowerCase();
+            
+            if (status === 'all') {
+                row.style.display = '';
+            } else if (status === 'pending') {
+                // Show all rows that include 'pending' in their status text
+                row.style.display = statusText.includes('pending') ? '' : 'none';
+            } else {
+                // For 'approved' and 'rejected', show only rows with that specific status
+                row.style.display = statusText.includes(status) && !statusText.includes('pending') ? '' : 'none';
+            }
+        });
+
+        // Handle the pending testing section
+        if (pendingTestingSection) {
+            if (status === 'pending' || status === 'all') {
+                pendingTestingSection.style.display = ''; // Show for 'pending' and 'all'
+            } else {
+                pendingTestingSection.style.display = 'none'; // Hide for other statuses
             }
         }
-        
-        updateTime();
-        setInterval(updateTime, 1000);
+
+        // Update active state of stat cards
+        document.querySelectorAll('.stat-card').forEach(card => {
+            card.classList.remove('ring-4', 'ring-gray-600', 'ring-opacity-100');
+        });
+        // Add a slight delay to ensure the click event finishes before applying ring
+        setTimeout(() => {
+            event.currentTarget.classList.add('ring-4', 'ring-white', 'ring-opacity-50');
+        }, 50);
+    }
 </script>
 
 </body>
+<?php include 'footer.php'; ?>
+
 </html>
+
+

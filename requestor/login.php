@@ -29,6 +29,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             exit;
         }
         
+        // Check if user is archived (inactive)
+        $archiveStmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
+        $archiveStmt->execute([$user['employee_id']]);
+        $archivedUser = $archiveStmt->fetch();
+        
+        if ($archivedUser) {
+            echo json_encode(['status' => 'error', 'message' => 'Your account has been deactivated. Please contact the administrator.']);
+            exit;
+        }
+        
         if (!password_verify($password, $user['password'])) {
             echo json_encode(['status' => 'error', 'message' => 'Invalid password']);
             exit;

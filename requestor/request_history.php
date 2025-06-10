@@ -199,6 +199,9 @@ try {
         .status-rejected {
             @apply bg-red-600 text-white border-2 border-red-700;
         }
+        .status-cancelled {
+            @apply bg-gray-600 text-white border-2 border-gray-700;
+        }
         
         /* Responsive table */
         @media (max-width: 768px) {
@@ -269,6 +272,16 @@ try {
                 transform: translateX(-100%);
             }
         }
+        
+        /* Clickable rows styling */
+        #requests-table tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        #requests-table tbody tr:hover {
+            background-color: rgba(14, 165, 233, 0.05) !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
@@ -314,7 +327,7 @@ try {
                 <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
                     <i class='bx bx-list-ul text-xl'></i>
                 </span>
-                <span class="font-medium">My Requests</span>
+                <span class="font-medium">Pending Requests</span>
             </a>
             <a href="request_history.php" class="flex items-center p-3 text-primary-600 bg-primary-50 rounded-xl transition-all duration-200 group">
                 <span class="flex items-center justify-center w-10 h-10 bg-primary-100 text-primary-600 rounded-xl mr-3">
@@ -331,18 +344,6 @@ try {
                 </span>
                 <span class="font-medium">Logout</span>
             </a>
-        </div>
-
-        <div class="px-4 py-4 border-t border-gray-100">
-            <div class="flex items-center space-x-3">
-                <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-600">
-                    <i class='bx bxs-user text-xl'></i>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($username); ?></p>
-                    <p class="text-xs text-gray-500">Requestor</p>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -385,7 +386,7 @@ try {
 
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-blue-600 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4" style = "padding-left: 0px;">
             <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
                 <!-- Hamburger button for toggling sidebar -->
@@ -401,10 +402,21 @@ try {
                     <p class="text-white text-lg mt-1">View all your previously processed requests</p>
                 </div>
             </div>
-            <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
-                <div class="flex items-center space-x-2 text-sm bg-primary-50 text-primary-700 px-4 py-2 rounded-lg">
-                    <i class='bx bx-time-five'></i>
-                    <span id="current_time"></span>
+            <!-- Data Privacy Notice -->
+            <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
+                <button class="text-white hover:text-blue-200 focus:outline-none">
+                    <i class='bx bx-info-circle text-2xl'></i>
+                </button>
+                <div x-cloak x-show="privacyNoticeOpen"
+                     class="absolute right-0 mt-2 w-64 p-4 bg-white rounded-md shadow-lg text-gray-700 text-sm z-50"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95">
+                    <p class="font-semibold mb-2">Data Privacy Notice</p>
+                    <p>Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
                 </div>
             </div>
         </div>
@@ -490,34 +502,21 @@ try {
                     <thead class="bg-gray-50">
                         <tr>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed Date</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Since</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php if(count($requests) > 0): ?>
                             <?php foreach($requests as $request): ?>
-                                <tr class="hover:bg-gray-50">
+                                <tr class="hover:bg-gray-50" data-history-id="<?php echo $request['history_id']; ?>">
                                     <td class="px-6 py-4 whitespace-nowrap" data-label="Request No.">
                                         <div class="text-sm font-medium text-gray-900">
                                             <?php echo htmlspecialchars($request['access_request_number']); ?>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Access Type">
-                                        <div class="text-sm text-gray-900">
-                                            <?php echo htmlspecialchars($request['access_type']); ?>
-                                            <?php if(!empty($request['system_type'])): ?>
-                                                <span class="text-xs text-gray-500 block"><?php echo htmlspecialchars($request['system_type']); ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Department">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($request['department']); ?></div>
-                                        <div class="text-xs text-gray-500"><?php echo htmlspecialchars($request['business_unit']); ?></div>
-                                    </td>
+                                   
                                     <td class="px-6 py-4 whitespace-nowrap" data-label="Status">
                                         <?php 
                                         $statusClass = '';
@@ -546,13 +545,16 @@ try {
                                         echo $date->format('M d, Y'); 
                                         ?>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Actions">
-                                        <a href="view_history_detail.php?id=<?php echo $request['history_id']; ?>" class="inline-flex items-center px-3 py-1.5 text-sm bg-primary-100 text-primary-700 rounded-lg hover:bg-primary-200 transition-colors">
-                                            <i class='bx bx-show mr-1'></i> View
-                                        </a>
-                                        <a href="tcpdf_print_record.php?id=<?php echo $request['history_id']; ?>" class="inline-flex items-center px-3 py-1.5 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors ml-1">
-                                            <i class='bx bx-file-pdf mr-1'></i> PDF
-                                        </a>
+                                    <td class="px-6 py-4 whitespace-nowrap text-gray-700" data-label="Days Since">
+                                        <?php 
+                                        // Calculate days since processed
+                                        $today = new DateTime('now');
+                                        $date = new DateTime($request['created_at'] ?? 'now');
+                                        $interval = $today->diff($date);
+                                        $daysSince = $interval->days;
+                                        
+                                        echo "<span class='text-sm font-medium text-gray-600'>{$daysSince} days ago</span>";
+                                        ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -622,7 +624,16 @@ try {
             ordering: false, // Disable column sorting
             searching: true, // Keep search functionality
             paging: true, // Keep pagination
-            info: true // Keep table information
+            info: true, // Keep table information
+            "drawCallback": function() {
+                // Make rows clickable after table is drawn
+                $('#requests-table tbody tr').css('cursor', 'pointer');
+                
+                $('#requests-table tbody tr').on('click', function() {
+                    const historyId = $(this).data('history-id');
+                    window.location.href = 'view_history_detail.php?id=' + historyId;
+                });
+            }
         });
         
         // Initialize AOS
@@ -649,5 +660,6 @@ try {
         };
     });
     </script>
+    <?php include 'footer.php'; ?>
 </body>
 </html> 

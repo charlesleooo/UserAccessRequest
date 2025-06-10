@@ -125,6 +125,8 @@ try {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         body {
@@ -148,7 +150,6 @@ try {
             font-family: 'Poppins', sans-serif;
         }
     </style>
-</head>
     <script>
         tailwind.config = {
             theme: {
@@ -168,19 +169,12 @@ try {
         }
     </script>
 </head>
-<body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
+<body class="bg-gray-100" x-data="{ sidebarOpen: window.innerWidth >= 768 }" @resize.window="sidebarOpen = window.innerWidth >= 768">
 
 <!-- Sidebar -->
 <div 
-    class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg"
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300 ease-in-out"
     :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-    x-show="sidebarOpen"
-    x-transition:enter="transition-transform ease-in-out duration-500"
-    x-transition:enter-start="-translate-x-full"
-    x-transition:enter-end="translate-x-0"
-    x-transition:leave="transition-transform ease-in-out duration-500"
-    x-transition:leave-start="translate-x-0"
-    x-transition:leave-end="-translate-x-full"
     aria-hidden="false"
 >
     <div class="flex flex-col h-full">
@@ -204,7 +198,7 @@ try {
                 <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                     <i class='bx bx-list-ul text-xl'></i>
                 </span>
-                <span class="ml-3">My Requests</span>
+                <span class="ml-3">Pending Requests</span>
             </a>
             <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
                 <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
@@ -221,18 +215,6 @@ try {
                 </span>
                 <span class="ml-3 font-medium">Logout</span>
             </a>
-        </div>
-
-        <div class="px-4 py-4 border-t border-gray-100">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                    <i class='bx bxs-user text-xl'></i>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($username); ?></p>
-                    <p class="text-xs text-gray-500">Requestor</p>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -252,15 +234,15 @@ try {
 </div>
 
 <!-- Main Content -->
-<div class="flex-1 ml-72 transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
+<div class="flex-1 transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-blue-600 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-        <div class="flex justify-between items-center px-8 py-4" style = "padding-left: 0px;">
-            <div class="flex items-center">
+    <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div class="flex justify-between items-center px-8 py-4">
+            <div class="flex items-center" style="margin-left: 0px;">
                 <!-- Hamburger button for toggling sidebar -->
                 <button 
                     @click="sidebarOpen = !sidebarOpen"
-                    class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
+                    class="inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white mr-4"
                     aria-label="Toggle sidebar"
                 >
                     <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
@@ -270,10 +252,20 @@ try {
                     <p class="text-white text-xl mt-1">Fill out the form below to submit a new access request</p>
                 </div>
             </div>
-            <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
-                <div class="flex items-center space-x-2 text-sm bg-blue-50 text-primary-600 px-4 py-2 rounded-lg">
-                    <i class='bx bx-time-five'></i>
-                    <span id="current_time"></span>
+            <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
+                <button class="text-white hover:text-blue-200 focus:outline-none">
+                    <i class='bx bx-info-circle text-2xl'></i>
+                </button>
+                <div x-cloak x-show="privacyNoticeOpen"
+                     class="absolute right-0 mt-2 w-64 p-4 bg-white rounded-md shadow-lg text-gray-700 text-sm z-50"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95">
+                    <p class="font-semibold mb-2">Data Privacy Notice</p>
+                    <p>Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
                 </div>
             </div>
         </div>
@@ -326,7 +318,7 @@ try {
                     <i class="fas fa-info-circle"></i> Add additional access requests for the same user below.
                 </div>
                 <button type="button" class="bg-primary hover:bg-primary-dark text-white py-2.5 px-4 rounded mb-5 transition flex items-center" onclick="addRow('individualTable')">
-                    <i class="fas fa-plus-circle mr-2"></i> Add Row
+                    <i class="fas fa-plus-circle mr-2"></i> Additional Request
                 </button>
                 <div class="w-full overflow-x-auto">
                     <table id="individualTable" class="w-full border-collapse mb-6 shadow-sm">
@@ -402,7 +394,7 @@ try {
                     <i class="fas fa-info-circle"></i> Add group access requests below. For multiple applications, add additional rows.
                 </div>
                 <button type="button" class="bg-primary hover:bg-primary-dark text-white py-2.5 px-4 rounded mb-5 transition flex items-center" onclick="addRow('groupTable')">
-                    <i class="fas fa-plus-circle mr-2"></i> Add Application Row
+                    <i class="fas fa-plus-circle mr-2"></i> Additional Request
                 </button>
                 <div class="w-full overflow-x-auto">
                     <table id="groupTable" class="w-full border-collapse mb-6 shadow-sm">
@@ -490,34 +482,7 @@ try {
     </div>
 </div>
 
-<!-- Modal Structure -->
-<div class="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-50 hidden" id="modalOverlay"></div>
-<div class="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white rounded-lg p-8 z-50 shadow-lg max-w-xl w-11/12 hidden" id="justificationModal">
-    <h3 class="mb-5 text-primary text-lg font-medium">Reason for Access</h3>
-    <textarea id="justificationTextarea" rows="8" placeholder="Enter detailed reason for access here..." class="w-full p-4 text-sm font-normal border border-gray-300 rounded mb-4 focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition resize-y min-h-[150px]"></textarea>
-    <button id="closeModal" class="bg-primary hover:bg-primary-dark text-white py-3 px-6 rounded transition text-base">
-        <i class="fas fa-check mr-2"></i> Save & Close
-    </button>
-</div>
-
 <script>
-    // Current time display
-    function updateTime() {
-            const now = new Date();
-            const timeElement = document.getElementById('current_time');
-            if (timeElement) {
-                timeElement.textContent = now.toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true 
-                });
-            }
-        }
-        
-        updateTime();
-        setInterval(updateTime, 1000);
-
     const businessUnitDepartments = {
         'AAC': [
             'AFFILIATES',
@@ -612,38 +577,43 @@ try {
         ].sort()
     };
 
-    // Modal functionality
+    // Replace modal functionality with SweetAlert2
     let currentInput = null;
-    const modalOverlay = document.getElementById('modalOverlay');
-    const justificationModal = document.getElementById('justificationModal');
-    const justificationTextarea = document.getElementById('justificationTextarea');
-    const closeModalBtn = document.getElementById('closeModal');
 
     function setupJustificationInputs() {
         document.querySelectorAll('.justification-input').forEach(input => {
             input.addEventListener('click', function(e) {
                 currentInput = e.target;
-                justificationTextarea.value = currentInput.value;
-                modalOverlay.style.display = 'block';
-                justificationModal.style.display = 'block';
+                
+                Swal.fire({
+                    title: 'Reason for Access',
+                    input: 'textarea',
+                    inputLabel: 'Please provide detailed justification',
+                    inputPlaceholder: 'Enter detailed reason for access here...',
+                    inputValue: currentInput.value,
+                    inputAttributes: {
+                        'aria-label': 'Justification text area',
+                        'rows': '8'
+                    },
+                    confirmButtonText: 'Save & Close',
+                    confirmButtonColor: '#0084FF',
+                    showCancelButton: true,
+                    cancelButtonText: 'Cancel',
+                    cancelButtonColor: '#6B7280',
+                    customClass: {
+                        input: 'text-sm font-normal p-4 min-h-[150px] resize-y'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        currentInput.value = result.value;
+                    }
+                });
             });
         });
     }
 
     // Initial setup
     setupJustificationInputs();
-
-    closeModalBtn.addEventListener('click', function() {
-        if (currentInput) {
-            currentInput.value = justificationTextarea.value;
-        }
-        modalOverlay.style.display = 'none';
-        justificationModal.style.display = 'none';
-    });
-
-    modalOverlay.addEventListener('click', function() {
-        closeModalBtn.click();
-    });
 
     // Handle access type selection
     document.querySelectorAll('input[name="access_type"]').forEach(radio => {
@@ -705,8 +675,14 @@ try {
 
         input.addEventListener('change', function() {
             if (this.value < today) {
-                alert('Date needed cannot be in the past.');
-                this.value = today;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Date',
+                    text: 'Date needed cannot be in the past.',
+                    confirmButtonColor: '#0084FF'
+                }).then(() => {
+                    this.value = today;
+                });
             }
         });
     });
@@ -719,7 +695,12 @@ try {
         
         // Check if it's the last row in the table
         if (table.querySelectorAll('tbody tr').length <= 1) {
-            alert('Cannot delete the last row.');
+            Swal.fire({
+                icon: 'info',
+                title: 'Cannot Delete Row',
+                text: 'Cannot delete the last row.',
+                confirmButtonColor: '#0084FF'
+            });
             return;
         }
         
@@ -760,11 +741,25 @@ try {
         
         if (tableId === 'individualTable') {
             const tbody = table.querySelector('tbody');
-            const firstRow = tbody.querySelector('tr');
-            const username = firstRow.querySelector('input[name="ind_username"]').value;
+            const rows = tbody.querySelectorAll('tr');
+            const lastRow = rows[rows.length - 1];
             
-            if (!username) {
-                alert('Please enter a username first');
+            // Check if the last row is complete
+            const username = lastRow.querySelector('input[name="ind_username"]').value;
+            const application = lastRow.querySelector('select[name="ind_application[]"]').value;
+            const accessType = lastRow.querySelector('select[name="ind_access_type[]"]').value;
+            const durationType = lastRow.querySelector('select[name="ind_duration_type[]"]').value;
+            const dateNeeded = lastRow.querySelector('input[name="ind_date_needed[]"]').value;
+            const justification = lastRow.querySelector('input[name="ind_justification[]"]').value;
+            
+            // Check if all required fields in the last row are filled
+            if (!username || !application || !accessType || !durationType || !dateNeeded || !justification) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Complete Current Row',
+                    text: 'Please complete all fields in the current row before adding a new row.',
+                    confirmButtonColor: '#0084FF'
+                });
                 return;
             }
             
@@ -828,8 +823,30 @@ try {
                 });
             }
         } else {
-            // Existing group table row addition code
+            // Group table row addition
             const tbody = table.querySelector('tbody');
+            const rows = tbody.querySelectorAll('tr');
+            const lastRow = rows[rows.length - 1];
+            
+            // Check if the last row is complete
+            const application = lastRow.querySelector('select[name="grp_application[]"]').value;
+            const username = lastRow.querySelector('input[name="grp_username[]"]').value;
+            const accessType = lastRow.querySelector('select[name="grp_access_type[]"]').value;
+            const durationType = lastRow.querySelector('select[name="grp_duration_type[]"]').value;
+            const dateNeeded = lastRow.querySelector('input[name="grp_date_needed[]"]').value;
+            const justification = lastRow.querySelector('input[name="grp_justification[]"]').value;
+            
+            // Check if all required fields in the last row are filled
+            if (!application || !username || !accessType || !durationType || !dateNeeded || !justification) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Complete Current Row',
+                    text: 'Please complete all fields in the current row before adding a new row.',
+                    confirmButtonColor: '#0084FF'
+                });
+                return;
+            }
+            
             const lastAppId = parseInt(tbody.lastElementChild?.getAttribute('data-app-id') || '0');
             const newAppId = lastAppId + 1;
             
@@ -905,10 +922,81 @@ try {
         const appId = appRow.getAttribute('data-app-id');
         const appSelect = appRow.querySelector('.app-select');
         const selectedApp = appSelect.value;
+        const accessType = appRow.querySelector('select[name="grp_access_type[]"]').value;
+        const durationType = appRow.querySelector('select[name="grp_duration_type[]"]').value;
+        const dateNeeded = appRow.querySelector('input[name="grp_date_needed[]"]').value;
+        const justification = appRow.querySelector('input[name="grp_justification[]"]').value;
+        const username = appRow.querySelector('input[name="grp_username[]"]').value;
         
-        if (!selectedApp) {
-            alert('Please select an application first');
+        // Validate all required fields
+        const missingFields = [];
+        
+        if (!selectedApp) missingFields.push('Application');
+        if (!username) missingFields.push('Username');
+        if (!accessType) missingFields.push('Access Type');
+        if (!durationType) missingFields.push('Duration Type');
+        if (!dateNeeded) missingFields.push('Date Needed');
+        if (!justification) missingFields.push('Justification');
+        
+        if (missingFields.length > 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Information',
+                html: `
+                    <div class="text-left">
+                        <p class="mb-2">Please complete the following fields before adding a new user:</p>
+                        <ul class="list-disc list-inside">
+                            ${missingFields.map(field => `<li>${field}</li>`).join('')}
+                        </ul>
+                    </div>
+                `,
+                confirmButtonColor: '#0084FF'
+            });
             return;
+        }
+        
+        // Validate date needed is not in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const dateNeededObj = new Date(dateNeeded);
+        
+        if (dateNeededObj < today) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Invalid Date',
+                text: 'Date needed cannot be in the past.',
+                confirmButtonColor: '#0084FF'
+            });
+            return;
+        }
+        
+        // If temporary access, validate start and end dates
+        if (durationType === 'temporary') {
+            const startDate = appRow.querySelector('input[name="grp_start_date[]"]').value;
+            const endDate = appRow.querySelector('input[name="grp_end_date[]"]').value;
+            
+            if (!startDate || !endDate) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Dates',
+                    text: 'Please set both start and end dates for temporary access.',
+                    confirmButtonColor: '#0084FF'
+                });
+                return;
+            }
+            
+            const startDateObj = new Date(startDate);
+            const endDateObj = new Date(endDate);
+            
+            if (startDateObj > endDateObj) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Date Range',
+                    text: 'Start date cannot be after end date.',
+                    confirmButtonColor: '#0084FF'
+                });
+                return;
+            }
         }
         
         const newRow = document.createElement('tr');
@@ -1099,19 +1187,34 @@ try {
         
         // Check if we have at least one valid request
         if(userForms.length === 0) {
-            alert('Please add at least one valid access request.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing Information',
+                text: 'Please add at least one valid access request.',
+                confirmButtonColor: '#0084FF'
+            });
             return;
         }
         
         // Check if form is valid
         if(!isValid) {
-            alert('Please fill out all required fields.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Incomplete Form',
+                text: 'Please fill out all required fields.',
+                confirmButtonColor: '#0084FF'
+            });
             return;
         }
         
         // Validate basic form fields
         if(!name || !businessUnit || !department || !date) {
-            alert('Please fill out all required fields in the Requestor Information section.');
+            Swal.fire({
+                icon: 'warning',
+                title: 'Incomplete Form',
+                text: 'Please fill out all required fields in the Requestor Information section.',
+                confirmButtonColor: '#0084FF'
+            });
             return;
         }
         
@@ -1130,34 +1233,83 @@ try {
         submitBtn.html('<i class="fas fa-spinner fa-spin mr-2"></i> Submitting...');
         submitBtn.prop('disabled', true);
         
-        // Submit form
+        // Submit form with explicit content type
         $.ajax({
             url: 'submit.php',
             type: 'POST',
             data: formData,
             processData: false,
             contentType: false,
+            dataType: 'json',
             success: function(response) {
+                console.log('Response received:', response);
                 submitBtn.html(originalText);
                 submitBtn.prop('disabled', false);
                 
                 if(response.success) {
-                    alert(response.message || 'Request submitted successfully!');
-                    // Reset form
-                    $('#uarForm').trigger('reset');
-                    // Redirect to my requests page after 2 seconds
-                    setTimeout(function() {
-                        window.location.href = 'my_requests.php';
-                    }, 2000);
+                    // Extract request number if available
+                    let requestNumber = '';
+                    if (response.message && response.message.includes('Request number is')) {
+                        const match = response.message.match(/Request number is (\d+-\d+)/);
+                        if (match && match[1]) {
+                            requestNumber = match[1];
+                        }
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Request Submitted Successfully!',
+                        html: `
+                            <div class="ml-3">
+                                              <p class="text-sm text-blue-800 font-medium">Request Number: <span class="font-bold">${requestNumber}</span></p>
+                                          </div>
+                        `,
+                        confirmButtonColor: '#0084FF',
+                        confirmButtonText: 'Close',
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Go to my requests page
+                            window.location.href = 'dashboard.php';
+                        } else {
+                            // Reset form for a new submission
+                            $('#uarForm').trigger('reset');
+                            // Refresh the page to reset all fields
+                            window.location.reload();
+                        }
+                    });
                 } else {
-                    alert(response.message || 'An error occurred while submitting the form.');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'An error occurred while submitting the form.',
+                        confirmButtonColor: '#0084FF'
+                    });
                 }
             },
             error: function(xhr, status, error) {
+                console.log('AJAX error:', status, error);
+                console.log('Response:', xhr.responseText);
                 submitBtn.html(originalText);
                 submitBtn.prop('disabled', false);
-                alert('An error occurred while submitting the form. Please try again.');
-                console.error(error);
+                
+                try {
+                    // Try to parse the error response
+                    const response = JSON.parse(xhr.responseText);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'An error occurred while submitting the form. Please try again.',
+                        confirmButtonColor: '#0084FF'
+                    });
+                } catch (e) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'An error occurred while submitting the form. Please try again.',
+                        confirmButtonColor: '#0084FF'
+                    });
+                }
             }
         });
     });
@@ -1228,5 +1380,7 @@ try {
         });
     });
 </script>
+<?php include 'footer.php'; ?>
+
 </body>
 </html>

@@ -88,7 +88,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Requests</title>
+    <title>Pending Requests</title>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Tailwind CSS -->
@@ -259,6 +259,16 @@ try {
             }
         }
         
+        /* Clickable rows styling */
+        #requestsTable tbody tr {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        #requestsTable tbody tr:hover {
+            background-color: rgba(14, 165, 233, 0.05) !important;
+        }
+        
         [x-cloak] {
             display: none !important;
         }
@@ -305,7 +315,7 @@ try {
                 <span class="flex items-center justify-center w-10 h-10 bg-primary-100 text-primary-600 rounded-xl mr-3">
                     <i class='bx bx-list-ul text-xl'></i>
                 </span>
-                <span class="font-medium">My Requests</span>
+                <span class="font-medium">Pending Requests</span>
             </a>
             <a href="request_history.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
                 <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
@@ -322,18 +332,6 @@ try {
                 </span>
                 <span class="font-medium">Logout</span>
             </a>
-        </div>
-
-        <div class="px-4 py-4 border-t border-gray-100">
-            <div class="flex items-center space-x-3">
-                <div class="flex items-center justify-center w-10 h-10 rounded-full bg-primary-100 text-primary-600">
-                    <i class='bx bxs-user text-xl'></i>
-                </div>
-                <div>
-                    <p class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($username); ?></p>
-                    <p class="text-xs text-gray-500">Requestor</p>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -381,7 +379,7 @@ try {
 
 <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
     <!-- Header -->
-    <div class="bg-blue-600 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+    <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
         <div class="flex justify-between items-center px-6 py-4" style = "padding-left: 0px;">
             <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
                 <!-- Hamburger button for toggling sidebar -->
@@ -397,7 +395,7 @@ try {
                         <?php if (is_array($statusFilter) && in_array('approved', $statusFilter) && in_array('rejected', $statusFilter)): ?>
                             Request History
                         <?php else: ?>
-                            My Access Requests
+                            Pending Requests
                         <?php endif; ?>
                     </h2>
                     <p class="text-white text-lg mt-1">
@@ -409,10 +407,21 @@ try {
                     </p>
                 </div>
             </div>
-            <div data-aos="fade-left" data-aos-duration="800" class="hidden md:block">
-                <div class="flex items-center space-x-2 text-sm bg-primary-50 text-primary-700 px-4 py-2 rounded-lg">
-                    <i class='bx bx-time-five'></i>
-                    <span id="current_time"></span>
+            <!-- Data Privacy Notice -->
+            <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
+                <button class="text-white hover:text-blue-200 focus:outline-none">
+                    <i class='bx bx-info-circle text-2xl'></i>
+                </button>
+                <div x-cloak x-show="privacyNoticeOpen"
+                     class="absolute right-0 mt-2 w-64 p-4 bg-white rounded-md shadow-lg text-gray-700 text-sm z-50"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 transform scale-95"
+                     x-transition:enter-end="opacity-100 transform scale-100"
+                     x-transition:leave="transition ease-in duration-75"
+                     x-transition:leave-start="opacity-100 transform scale-100"
+                     x-transition:leave-end="opacity-0 transform scale-95">
+                    <p class="font-semibold mb-2">Data Privacy Notice</p>
+                    <p>Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
                 </div>
             </div>
         </div>
@@ -484,12 +493,11 @@ try {
                 <table id="requestsTable" class="min-w-full divide-y divide-gray-200 responsive-table">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
-                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
-                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR Ref No.</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
+                            <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -498,43 +506,7 @@ try {
                             <td class="px-6 py-4 whitespace-nowrap" data-label="Request No.">
                                 <span class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></span>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap" data-label="Business Unit">
-                                <span class="text-sm text-gray-700"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap" data-label="Access Type">
-                                <div class="flex items-center text-sm text-gray-700">
-                                    <?php 
-                                    $iconClass = 'text-primary-500';
-                                    $icon = 'bx-window-alt';
-                                    
-                                    if ($request['access_type'] === 'PC Access - Network') {
-                                        $icon = 'bx-desktop';
-                                    } elseif ($request['access_type'] === 'Email Access') {
-                                        $icon = 'bx-envelope';
-                                    } elseif ($request['access_type'] === 'Server Access') {
-                                        $icon = 'bx-server';
-                                    } elseif ($request['access_type'] === 'Internet Access') {
-                                        $icon = 'bx-globe';
-                                    } elseif ($request['access_type'] === 'Printer Access') {
-                                        $icon = 'bx-printer';
-                                    } elseif ($request['access_type'] === 'Active Directory Access (MS ENTRA ID)') {
-                                        $icon = 'bx-folder-open';
-                                    } elseif ($request['access_type'] === 'Firewall Access') {
-                                        $icon = 'bx-shield-quarter';
-                                    } elseif ($request['access_type'] === 'Wi-Fi/Access Point Access') {
-                                        $icon = 'bx-wifi';
-                                    } elseif ($request['access_type'] === 'TNA Biometric Device Access') {
-                                        $icon = 'bx-fingerprint';
-                                    } elseif ($request['access_type'] === 'USB/PC-port Access') {
-                                        $icon = 'bx-usb';
-                                    } elseif ($request['access_type'] === 'CCTV Access') {
-                                        $icon = 'bx-cctv';
-                                    }
-                                    ?>
-                                    <i class='bx <?php echo $icon; ?> text-lg mr-2 <?php echo $iconClass; ?>'></i>
-                                    <span><?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?></span>
-                                </div>
-                            </td>
+                            
                             <td class="px-6 py-4 whitespace-nowrap" data-label="Status">
                                 <?php 
                                 $statusClass = '';
@@ -591,11 +563,23 @@ try {
                                     ?>
                                 </span>
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap" data-label="Days Pending">
+                                <?php 
+                                // Calculate days pending
+                                $today = new DateTime('now');
+                                $date = new DateTime($request['submission_date'] ?? 'now');
+                                $interval = $today->diff($date);
+                                $daysPending = $interval->days;
+                                
+                                // Only show days pending for requests that aren't approved or rejected
+                                if ($status !== 'approved' && $status !== 'rejected' && $status !== 'cancelled') {
+                                    echo "<span class='text-sm font-medium text-gray-600'>{$daysPending} days</span>";
+                                } else {
+                                    echo "<span class='text-sm text-gray-400'>-</span>";
+                                }
+                                ?>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right" data-label="Actions">
-                                <a href="view_request.php?id=<?php echo $request['id']; ?>" 
-                                   class="inline-flex items-center px-3 py-1.5 text-primary-600 hover:text-primary-800 transition-colors">
-                                    <i class='bx bx-show mr-1'></i> View
-                                </a>
                                 <?php if ($status === 'pending_testing' && $request['testing_status'] === 'pending'): ?>
                                 <a href="testing_status.php?id=<?php echo $request['id']; ?>" 
                                    class="inline-flex items-center px-3 py-1.5 text-blue-600 hover:text-blue-800 transition-colors">
@@ -604,7 +588,7 @@ try {
                                 <?php endif; ?>
                                 <?php if ($status === 'pending' || ($status !== 'approved' && $status !== 'rejected' && !$adminReviewDate)): ?>
                                 <button class="cancel-request inline-flex items-center px-3 py-1.5 text-red-600 hover:text-red-800 transition-colors" data-id="<?php echo $request['id']; ?>">
-                                    <i class='bx bx-x mr-1'></i> Cancel
+                                    
                                 </button>
                                 <?php endif; ?>
                             </td>
@@ -654,6 +638,24 @@ try {
         
         // Initialize AOS animation library
         AOS.init();
+        
+        // Make table rows clickable
+        document.querySelectorAll('#requestsTable tbody tr').forEach(row => {
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', function(e) {
+                // Don't navigate if clicking on action buttons
+                if (e.target.closest('.cancel-request') || e.target.closest('a')) {
+                    return;
+                }
+                
+                const requestId = this.querySelector('.cancel-request')?.getAttribute('data-id') || 
+                                  this.querySelector('a')?.href.split('=').pop();
+                                  
+                if (requestId) {
+                    window.location.href = 'view_request.php?id=' + requestId;
+                }
+            });
+        });
         
         // Show success/error messages
         <?php if (isset($_GET['success']) && $_GET['success'] === 'cancelled'): ?>
@@ -708,11 +710,11 @@ try {
                 },
                 dom: 'rtip', // Only show table, info and pagination
                 pageLength: 10,
-                order: [[4, 'desc']], // Sort by Date column (index 4) in descending order
+                order: [[2, 'desc']], // Sort by Date column (index 2) in descending order
                 columnDefs: [
                     {
-                        // Apply special rendering to Status column (index 3)
-                        targets: 3,
+                        // Apply special rendering to Status column (index 1)
+                        targets: 1,
                         className: 'dt-body-center'
                     }
                 ],
@@ -746,22 +748,22 @@ try {
             document.getElementById("progressBar").style.width = scrolled + "%";
         };
         
-        // Current time display
-        function updateTime() {
-            const now = new Date();
-            const timeElement = document.getElementById('current_time');
-            if (timeElement) {
-                timeElement.textContent = now.toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: true 
-                });
-            }
-        }
+        // Current time display (kept for other pages if needed, but removed from this header)
+        // function updateTime() {
+        //     const now = new Date();
+        //     const timeElement = document.getElementById('current_time');
+        //     if (timeElement) {
+        //         timeElement.textContent = now.toLocaleTimeString('en-US', { 
+        //             hour: '2-digit', 
+        //             minute: '2-digit',
+        //             second: '2-digit',
+        //             hour12: true 
+        //         });
+        //     }
+        // }
         
-        updateTime();
-        setInterval(updateTime, 1000);
+        // updateTime();
+        // setInterval(updateTime, 1000);
     });
 
     // Unified cancel request function that works with both onclick and event listeners
@@ -825,5 +827,7 @@ try {
         });
     }
 </script>
+<?php include 'footer.php'; ?>
+
 </body>
 </html> 

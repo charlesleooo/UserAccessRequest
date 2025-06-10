@@ -39,6 +39,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             exit;
         }
         
+        // Check if user is in archive (inactive)
+        $archiveStmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
+        $archiveStmt->execute([$user['employee_id']]);
+        $archivedUser = $archiveStmt->fetch();
+        
+        if ($archivedUser) {
+            echo json_encode(['status' => 'error', 'message' => 'Your account has been deactivated. Please contact the administrator.']);
+            exit;
+        }
+        
         if (!password_verify($password, $user['password'])) {
             echo json_encode(['status' => 'error', 'message' => 'Invalid password']);
             exit;
@@ -233,7 +243,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                 error_log("User role: " . $user['role']);
             }
             
-            if ($user && password_verify($password, $user['password'])) {
+            // Check if user is archived (inactive)
+            if ($user) {
+                $archiveStmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
+                $archiveStmt->execute([$user['employee_id']]);
+                $archivedUser = $archiveStmt->fetch();
+                
+                if ($archivedUser) {
+                    $error = "Your account has been deactivated. Please contact the administrator.";
+                    error_log("Login failed: User is archived (inactive): " . $username);
+                }
+            }
+            
+            if ($user && !isset($error) && password_verify($password, $user['password'])) {
                 $_SESSION['admin_id'] = $user['employee_id'];
                 $_SESSION['admin_username'] = $user['employee_name'];
                 $_SESSION['role'] = $user['role'];
