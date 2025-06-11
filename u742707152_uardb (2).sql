@@ -46,7 +46,7 @@ CREATE TABLE `access_requests` (
   `end_date` date DEFAULT NULL,
   `date_needed` date DEFAULT NULL COMMENT 'Date when access is needed',
   `access_level` varchar(20) DEFAULT NULL,
-  `usernames` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`usernames`)),
+  `user_names` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`user_names`)),
   `status` enum('pending_superior','pending_help_desk','pending_technical','pending_process_owner','pending_admin','approved','rejected','pending_testing','pending_testing_setup','pending_testing_review') NOT NULL DEFAULT 'pending_superior',
   `testing_status` enum('not_required','pending','success','failed') DEFAULT 'not_required',
   `testing_notes` text DEFAULT NULL,
@@ -77,7 +77,7 @@ CREATE TABLE `access_requests` (
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `date_needed`, `access_level`, `usernames`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`, `application_system`) VALUES
+INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `date_needed`, `access_level`, `user_names`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`, `application_system`) VALUES
 (55, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-022', 'INFORMATION TECHNOLOGY ', '', 'AAC052003', '2025-05-27', 'individual', 'qweqwe', NULL, NULL, 'full', 'permanent', NULL, NULL, '2025-05-27', NULL, '[\"qweqweqwe\"]', 'pending_technical', 'not_required', NULL, NULL, '2025-05-27 08:25:10', 6, '2025-05-27 08:25:21', 'qweqwe', 15, '2025-05-27 08:25:37', 'qweqwewqe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network');
 
 -- --------------------------------------------------------

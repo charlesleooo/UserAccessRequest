@@ -484,9 +484,7 @@ try {
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden" data-aos="fade-up" data-aos-duration="800">
             <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-800">Access Requests</h3>
-                <a href="create_request.php" class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                    <i class='bx bx-plus mr-2'></i> New Request
-                </a>
+                
             </div>
             <div class="overflow-x-auto">
                 <?php if (!empty($requests)): ?>
@@ -496,6 +494,7 @@ try {
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR Ref No.</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
+                            <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
                             <th class="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
                             <th class="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                         </tr>
@@ -560,6 +559,14 @@ try {
                                     <?php 
                                     $date = new DateTime($request['submission_date'] ?? 'now');
                                     echo $date->format('M d, Y'); 
+                                    ?>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap" data-label="Date Needed">
+                                <span class="text-sm text-gray-700">
+                                    <?php 
+                                    $dateNeeded = new DateTime($request['date_needed'] ?? 'now');
+                                    echo $dateNeeded->format('M d, Y'); 
                                     ?>
                                 </span>
                             </td>

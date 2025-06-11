@@ -270,6 +270,7 @@ try {
             </div>
         </div>
     </div>
+    
 
     <div class="p-5">
         <form id="uarForm" class="w-full">
@@ -280,7 +281,7 @@ try {
                     <tr>
                         <td class="border border-gray-200 p-4 w-1/12"><strong>Name</strong>
                         <td class="border border-gray-200 p-4 w-5/12"><input type="text" name="name" value="<?php echo htmlspecialchars($fullName); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly></td>
-                        <td class="border border-gray-200 p-4 w-1/12"><strong><span class="after:content-['*'] after:text-red-500 after:ml-1">Date</span></strong></td>
+                        <td class="border border-gray-200 p-4 w-1/12"><strong><span class=" after:ml-1">Date</span></strong></td>
                         <td class="border border-gray-200 p-4 w-5/12"><input type="text" name="date" value="<?php echo date('Y-m-d'); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly></td>
                     </tr>
                     <tr class="bg-gray-50">
@@ -312,7 +313,7 @@ try {
             </div>
             
             <!-- Individual Access -->
-            <div id="individualAccess" class="mb-8">
+            <div id="individualAccess" class="mb-0">
                 <h3 class="mb-4 text-primary text-base font-medium">I. For Individual Access</h3>
                 <div class="p-4 mb-5 bg-blue-50 border-l-4 border-blue-500 rounded">
                     <i class="fas fa-info-circle"></i> Add additional access requests for the same user below.
@@ -321,24 +322,24 @@ try {
                     <i class="fas fa-plus-circle mr-2"></i> Additional Request
                 </button>
                 <div class="w-full overflow-x-auto">
-                    <table id="individualTable" class="w-full border-collapse mb-6 shadow-sm">
+                    <table id="individualTable" class="w-full border-collapse mb-0 shadow-sm">
                         <thead>
                             <tr>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[25%]">User Name</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[17%]">Application/System</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[8%]">Access Type</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[11%]">Access Duration</th>
-                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">Start Date</th>
-                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">End Date</th>
-                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">Date Needed</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[15.5%]">Justification</th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[25%]">User Name <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[17%]">Application/System <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[8%]">Access Type <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[11%]">Access Duration <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">Start Date <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">End Date <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">Date Needed <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[15.5%]">Justification <span class="text-red-500">*</span></th>
                                 <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[5%] text-center">Delete</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr>
                                 <td class="border border-gray-200 p-2">
-                                    <input type="text" placeholder="User Name" name="ind_username" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition">
+                                    <input type="text" placeholder="User Name" name="ind_user_names" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition">
                                 </td>
                                 <td class="border border-gray-200 p-2">
                                     <select name="ind_application[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
@@ -388,7 +389,7 @@ try {
             </div>
 
             <!-- Group Access -->
-            <div id="groupAccess" class="mb-8 hidden">
+            <div id="groupAccess" class="mb-0 hidden">
                 <h3 class="mb-4 text-primary text-base font-medium">II. For Group Access</h3>
                 <div class="p-4 mb-5 bg-blue-50 border-l-4 border-blue-500 rounded">
                     <i class="fas fa-info-circle"></i> Add group access requests below. For multiple applications, add additional rows.
@@ -397,17 +398,17 @@ try {
                     <i class="fas fa-plus-circle mr-2"></i> Additional Request
                 </button>
                 <div class="w-full overflow-x-auto">
-                    <table id="groupTable" class="w-full border-collapse mb-6 shadow-sm">
+                    <table id="groupTable" class="w-full border-collapse mb-0 shadow-sm">
                         <thead>
                             <tr>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[18.5%]">Application/System</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[32%] min-w-[200px]">User Name</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[8%] min-w-[110px]">Access Type</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[12%]">Access Duration</th>
-                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">Start Date</th>
-                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">End Date</th>
-                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">Date Needed</th>
-                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[15.5%]">Justification</th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[18.5%]">Application/System <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[32%] min-w-[200px]">User Name <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[8%] min-w-[110px]">Access Type <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[12%]">Access Duration <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">Start Date <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">End Date <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">Date Needed <span class="text-red-500">*</span></th>
+                                <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[15.5%]">Justification <span class="text-red-500">*</span></th>
                                 <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[5%] text-center">Delete</th>
                             </tr>
                         </thead>
@@ -470,7 +471,7 @@ try {
                 </div>
             </div>
 
-            <div class="mt-5 text-center flex justify-center gap-5 flex-wrap">
+            <div class="mt-2 text-center flex justify-center gap-5 flex-wrap">
                 <button type="submit" class="bg-primary hover:bg-primary-dark text-white py-3.5 px-8 rounded transition text-base font-medium min-w-[200px]">
                     <i class="fas fa-paper-plane mr-2"></i> Submit Request
                 </button>
@@ -868,7 +869,7 @@ try {
                 </td>
                 <td class="border border-gray-200 p-2">
                     <div class="flex items-center gap-2">
-                        <input type="text" placeholder="User Name" name="grp_username[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                        <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
                         <button type="button" class="bg-primary hover:bg-primary-dark text-white p-2 rounded transition flex-shrink-0" onclick="addUserRow(this)" title="Add User">
                             <i class="fa fa-user-plus"></i>
                         </button>
@@ -1010,7 +1011,7 @@ try {
                 <input type="hidden" name="grp_application_system[]" value="${selectedApp}">
             </td>
             <td class="border border-gray-200 p-2">
-                <input type="text" placeholder="User Name" name="grp_username[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
             </td>
             <td class="border border-gray-200 p-2">
                 <select name="grp_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
@@ -1136,7 +1137,7 @@ try {
                         end_date: endDate,
                         date_needed: dateNeeded,
                         justification: justification,
-                        usernames: [username]
+                        user_names: [username]
                     });
                 } else {
                     isValid = false;
@@ -1163,7 +1164,7 @@ try {
                     
                     if(existingAppIndex !== -1) {
                         // Add username to existing application
-                        userForms[existingAppIndex].usernames.push(username);
+                        userForms[existingAppIndex].user_names.push(username);
                     } else {
                         // Create new entry for this application
                         userForms.push({
@@ -1176,7 +1177,7 @@ try {
                             end_date: endDate,
                             date_needed: dateNeeded,
                             justification: justification,
-                            usernames: [username]
+                            user_names: [username]
                         });
                     }
                 } else {

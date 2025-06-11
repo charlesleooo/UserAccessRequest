@@ -19,7 +19,7 @@ try {
         SUM(status = 'approved') as approved,
         SUM(status = 'rejected') as rejected,
         SUM(status LIKE 'pending%') as pending,
-        SUM(status = 'canceled') as canceled
+        SUM(status = 'cancelled') as cancelled
         FROM access_requests
         WHERE employee_id = ?");
     $stmt->execute([$requestorId]);
@@ -29,7 +29,7 @@ try {
     $approved = $data['approved'] ?? 0;
     $rejected = $data['rejected'] ?? 0;
     $pending = $data['pending'] ?? 0;
-    $canceled = $data['canceled'] ?? 0;
+    $cancelled = $data['cancelled'] ?? 0;
 
     $approvalRate = $total > 0 ? round(($approved / $total) * 100, 1) : 0;
     $declineRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
@@ -39,7 +39,7 @@ try {
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Dashboard error: " . $e->getMessage());
-    $total = $approved = $rejected = $pending = $canceled = 0;
+    $total = $approved = $rejected = $pending = $cancelled = 0;
     $approvalRate = $declineRate = 0;
     $recentRequests = [];
 }
@@ -430,13 +430,13 @@ try {
                     <h4 class="text-2xl font-bold text-white"><?php echo $rejected; ?></h4>
                 </div>
             </div>
-            <div onclick="filterRequests('canceled')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-gray-500 via-gray-400 to-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300">
+            <div onclick="filterRequests('cancelled')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-gray-500 via-gray-400 to-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                 <div class="bg-gradient-to-br from-gray-500 via-white to-gray-300 p-3 rounded-full shadow-lg">
                     <i class='bx bx-block text-2xl text-gray-600'></i>
                 </div>
                 <div class="ml-4">
                     <p class="text-sm text-white">Canceled</p>
-                    <h4 class="text-2xl font-bold text-white"><?php echo $canceled; ?></h4>
+                    <h4 class="text-2xl font-bold text-white"><?php echo $cancelled; ?></h4>
                 </div>
             </div>
         </div>
@@ -462,7 +462,7 @@ try {
             $requestsQuery = "SELECT * FROM access_requests 
                             WHERE employee_id = :employee_id 
                             AND status != 'pending_testing'
-                            AND status != 'canceled'
+                            AND status != 'cancelled'
                             ORDER BY submission_date DESC";
             $stmt = $pdo->prepare($requestsQuery);
             $stmt->execute(['employee_id' => $requestorId]);
@@ -541,33 +541,31 @@ try {
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Request Number
+                                            UAR REF NO.
+                                        </th>
+                                        
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Date Requested
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Access Type
+                                            Days Pending
                                         </th>
                                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
+                                            Date Needed
                                         </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Submitted
-                                        </th>
-                                        <th scope="col" class="relative px-6 py-3">
-                                            <span class="sr-only">Actions</span>
-                                        </th>
+                                        
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
-                                    <?php foreach ($requests as $request): ?>
+                                    <?php foreach ($requests as $request): 
+                                        // Calculate days pending
+                                        $submissionDate = new DateTime($request['submission_date']);
+                                        $today = new DateTime();
+                                        $daysPending = $submissionDate->diff($today)->days;
+                                    ?>
                                     <tr class="hover:bg-gray-50 cursor-pointer hover:shadow-md transition-all duration-200 hover:bg-gray-50 odd:bg-gray-100" onclick="viewRequest(<?php echo $request['id']; ?>)">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-label="Request Number">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" data-label="UAR REF NO.">
                                             <?php echo htmlspecialchars($request['access_request_number']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Access Type">
-                                            <?php echo htmlspecialchars($request['access_type']); ?>
-                                            <?php if ($request['system_type']): ?>
-                                            <div class="text-xs text-gray-500"><?php echo htmlspecialchars($request['system_type']); ?></div>
-                                            <?php endif; ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <?php 
@@ -603,7 +601,7 @@ try {
                                                     $statusClass = 'bg-red-100 text-red-800';
                                                     $displayStatus = 'Rejected';
                                                     break;
-                                                case 'canceled':
+                                                case 'cancelled':
                                                     $statusClass = 'bg-gray-100 text-gray-800';
                                                     $displayStatus = 'Canceled';
                                                     break;
@@ -615,31 +613,17 @@ try {
                                             <span class="status-badge <?php echo $statusClass; ?>">
                                                 <?php echo $displayStatus; ?>
                                             </span>
-                                            <?php if ($status === 'pending_testing'): ?>
-                                            <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $request['testing_status'] === 'success' ? 'bg-green-100 text-green-800' : ($request['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
-                                                <?php echo ucfirst($request['testing_status']); ?>
-                                            </span>
-                                            <?php endif; ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Access Type">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Requested">
                                             <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium" data-label="Actions">
-                                            <div class="flex justify-end gap-2">
-                                                <?php if ($status === 'pending_testing' && $request['testing_status'] === 'pending'): ?>
-                                                <button onclick="event.stopPropagation(); updateTestingStatus(<?php echo $request['id']; ?>, 'success')" 
-                                                        class="action-button bg-gradient-to-r from-green-500 to-green-600 text-white hover:from-green-600 hover:to-green-700">
-                                                    <i class='bx bx-check'></i>
-                                                    <span>Testing Success</span>
-                                                </button>
-                                                <button onclick="event.stopPropagation(); updateTestingStatus(<?php echo $request['id']; ?>, 'failed')" 
-                                                        class="action-button bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700">
-                                                    <i class='bx bx-x'></i>
-                                                    <span>Testing Failed</span>
-                                                </button>
-                                                <?php endif; ?>
-                                            </div>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Days Pending">
+                                            <?php echo $daysPending; ?> days
                                         </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
+                                            <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
+                                        </td>
+                                        
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -743,7 +727,7 @@ function viewRequest(requestId) {
     // Add filtering functionality
     function filterRequests(status) {
         const rows = document.querySelectorAll('tbody tr');
-        const pendingTestingSection = document.querySelector('.pending-testing-section'); // Add a class to this section
+        const pendingTestingSection = document.querySelector('.pending-testing-section');
 
         rows.forEach(row => {
             const statusCell = row.querySelector('td:nth-child(3)');
@@ -754,9 +738,12 @@ function viewRequest(requestId) {
             } else if (status === 'pending') {
                 // Show all rows that include 'pending' in their status text
                 row.style.display = statusText.includes('pending') ? '' : 'none';
+            } else if (status === 'cancelled') {
+                // Show only rows with 'cancelled' status
+                row.style.display = statusText.includes('cancelled') ? '' : 'none';
             } else {
                 // For 'approved' and 'rejected', show only rows with that specific status
-                row.style.display = statusText.includes(status) && !statusText.includes('pending') ? '' : 'none';
+                row.style.display = statusText.includes(status) && !statusText.includes('pending') && !statusText.includes('cancelled') ? '' : 'none';
             }
         });
 

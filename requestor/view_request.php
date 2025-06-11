@@ -133,177 +133,103 @@ try {
     </div>
 
     <div class="p-6">
-        <!-- Request Details -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-            <!-- Request Info -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                    <i class='bx bx-info-circle text-primary-500 text-xl mr-2'></i>
-                    Request Information
-                </h3>
-                <div class="space-y-3">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Request No:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Status:</span>
-                        <?php 
-                        $statusClass = '';
-                        $status = strtolower($request['status'] ?? 'pending');
-                        
-                        if ($status === 'pending') {
-                            $statusClass = 'status-pending';
-                            $bgClass = 'bg-yellow-100';
-                        } elseif ($status === 'approved') {
-                            $statusClass = 'status-approved';
-                            $bgClass = 'bg-green-100';
-                        } elseif ($status === 'rejected') {
-                            $statusClass = 'status-rejected';
-                            $bgClass = 'bg-red-100';
-                        }
-                        ?>
-                        <div class="flex justify-center items-center w-full">
-                            <span class="inline-block px-4 py-1 rounded-full bg-blue-100 text-blue-900 font-semibold text-base text-center">
-                                <?php 
-                                $displayStatus = ucwords(str_replace('_', ' ', $status));
-                                echo htmlspecialchars($displayStatus);
-                                ?>
-                            </span>
-                        </div>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Submitted:</span>
-                        <span class="font-medium text-gray-900">
-                            <?php 
-                            $date = new DateTime($request['submission_date'] ?? 'now');
-                            echo $date->format('M d, Y h:i A'); 
-                            ?>
-                        </span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Duration:</span>
-                        <span class="font-medium text-gray-900">
-                            <?php 
-                            if ($request['duration_type'] === 'permanent') {
-                                echo 'Permanent';
-                            } else {
-                                $startDate = new DateTime($request['start_date']);
-                                $endDate = new DateTime($request['end_date']);
-                                echo $startDate->format('M d, Y') . ' - ' . $endDate->format('M d, Y');
-                            }
-                            ?>
-                        </span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Requestor Info -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="100">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                    <i class='bx bx-user text-primary-500 text-xl mr-2'></i>
-                    Requestor Information
-                </h3>
-                <div class="space-y-3">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Name:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['requestor_name'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Business Unit:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Department:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['department'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Email:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['email'] ?? 'N/A'); ?></span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Employee ID:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['employee_id'] ?? 'N/A'); ?></span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Access Details -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                    <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
-                    Access Details
-                </h3>
-                <div class="space-y-3">
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Access Type:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?></span>
-                    </div>
-                    <?php if (!empty($request['system_type'])): ?>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">System Type:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['system_type'] ?? 'N/A'); ?></span>
-                    </div>
-                    <?php endif; ?>
-
-                    <?php if (!empty($request['application_system'])): ?>
-                        <div class="mb-4">
-                            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                                <h3 class="text-sm font-medium text-gray-600 mb-1">Application System</h3>
-                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['application_system'] ?? 'N/A'); ?></span>
+        <!-- Access Details -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
+                Access Details
+            </h3>
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-600 mb-2">Basic Information</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">User Name:</span>
+                                <span class="font-medium text-gray-900">
+                                    <?php 
+                                    $user_names = [];
+                                    if (!empty($request['user_names'])) {
+                                        $decoded = json_decode($request['user_names'], true);
+                                        if (is_array($decoded)) {
+                                            $user_names = $decoded;
+                                        } else {
+                                            $user_names = [$request['user_names']];
+                                        }
+                                    }
+                                    echo !empty($user_names) ? htmlspecialchars(implode(', ', $user_names)) : 'N/A';
+                                    ?>
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Access Type:</span>
+                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">System Type:</span>
+                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['system_type'] ?? 'N/A'); ?></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Role Access Type:</span>
+                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['role_access_type'] ?? 'N/A'); ?></span>
                             </div>
                         </div>
-                    <?php endif; ?>
+                    </div>
 
-                    <?php if (!empty($request['access_level'])): ?>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Access Level:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['access_level']); ?></span>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($request['usernames'])): ?>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Usernames:</span>
-                        <span class="font-medium text-gray-900">
-                            <?php 
-                            $usernames = json_decode($request['usernames'], true);
-                            if (is_array($usernames)) {
-                                echo htmlspecialchars(implode(', ', $usernames));
-                            } else {
-                                echo htmlspecialchars($request['usernames']);
-                            }
-                            ?>
-                        </span>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($request['other_system_type'])): ?>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Other System:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['other_system_type'] ?? 'N/A'); ?></span>
-                    </div>
-                    <?php endif; ?>
-                    <?php if (!empty($request['role_access_type'])): ?>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Role Access Type:</span>
-                        <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['role_access_type'] ?? 'N/A'); ?></span>
-                    </div>
-                    <?php endif; ?>
-                    <div class="flex justify-between">
-                        <span class="text-gray-600">Justification:</span>
-                        <span class="font-medium text-gray-900 text-left w-2/3"><?php echo nl2br(htmlspecialchars($request['justification'] ?? 'No justification provided.')); ?></span>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-sm font-medium text-gray-600 mb-2">Access Duration</h4>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Duration Type:</span>
+                                <span class="font-medium text-gray-900">
+                                    <?php 
+                                    if ($request['duration_type'] === 'permanent') {
+                                        echo 'Permanent';
+                                    } else {
+                                        echo 'Temporary';
+                                    }
+                                    ?>
+                                </span>
+                            </div>
+                            <?php if ($request['duration_type'] !== 'permanent'): ?>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Start Date:</span>
+                                <span class="font-medium text-gray-900">
+                                    <?php 
+                                    $startDate = new DateTime($request['start_date']);
+                                    echo $startDate->format('M d, Y');
+                                    ?>
+                                </span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">End Date:</span>
+                                <span class="font-medium text-gray-900">
+                                    <?php 
+                                    $endDate = new DateTime($request['end_date']);
+                                    echo $endDate->format('M d, Y');
+                                    ?>
+                                </span>
+                            </div>
+                            <?php endif; ?>
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Date Needed:</span>
+                                <span class="font-medium text-gray-900">
+                                    <?php 
+                                    $dateNeeded = new DateTime($request['date_needed']);
+                                    echo $dateNeeded->format('M d, Y');
+                                    ?>
+                                </span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Justification -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="300">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                <i class='bx bx-comment-detail text-primary-500 text-xl mr-2'></i>
-                Justification
-            </h3>
-            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                <?php echo nl2br(htmlspecialchars($request['justification'] ?? 'No justification provided.')); ?>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg mt-4">
+                    <h4 class="text-sm font-medium text-gray-600 mb-2">Justification</h4>
+                    <div class="text-gray-700">
+                        <?php echo nl2br(htmlspecialchars($request['justification'] ?? 'No justification provided.')); ?>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -320,13 +246,8 @@ try {
         <?php endif; ?>
         
         <!-- Actions -->
-        <div class="flex justify-between items-center" data-aos="fade-up" data-aos-duration="800" data-aos-delay="500">
-            <div class="flex space-x-2">
-                <a href="my_requests.php" 
-                   class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                    <i class='bx bx-arrow-back mr-2'></i> Back to Requests
-                </a>
-            </div>
+        <div class="flex justify-end items-center" data-aos="fade-up" data-aos-duration="800" data-aos-delay="500">
+
             <?php 
             $status = strtolower($request['status']);
             $adminReviewDate = $request['admin_review_date'] ?? null;
@@ -334,7 +255,7 @@ try {
             if ($status === 'pending' || ($status !== 'approved' && $status !== 'rejected' && !$adminReviewDate)): 
             ?>
             <button onclick="cancelRequest(<?php echo $request['id']; ?>)"
-                    class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    class="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg mr-5 hover:bg-red-700 transition-colors">
                 <i class='bx bx-x mr-2'></i> Cancel Request
             </button>
             <?php endif; ?>
