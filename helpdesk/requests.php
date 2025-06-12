@@ -194,18 +194,21 @@ try {
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($requests)): ?>
                                     <?php foreach ($requests as $request): ?>
-                                        <tr class="hover:bg-gray-50">
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -213,10 +216,24 @@ try {
                                                 <?php echo htmlspecialchars($request['requestor_name']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php echo htmlspecialchars($request['business_unit']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php echo htmlspecialchars($request['department']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['access_type']); ?>
+                                                <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php 
+                                                    $submission_date = new DateTime($request['submission_date']);
+                                                    $today = new DateTime();
+                                                    $interval = $submission_date->diff($today);
+                                                    echo $interval->days . ' days';
+                                                ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php echo $request['date_needed'] ? date('M d, Y', strtotime($request['date_needed'])) : 'N/A'; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -224,57 +241,13 @@ try {
                                                 </span>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                                <button onclick="showRequestDetails(<?php echo $request['id']; ?>)" 
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-primary-600 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                                    <i class='bx bx-show align-middle'></i>
-                                                    <span class="ml-1.5">View</span>
-                                                </button>
-                                                <?php if ($request['status'] === 'pending_help_desk'): ?>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'approve')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                                    <i class='bx bx-share align-middle'></i>
-                                                    <span class="ml-1.5">Forward</span>
-                                                </button>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'decline')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                    <i class='bx bx-x align-middle'></i>
-                                                    <span class="ml-1.5">Decline</span>
-                                                </button>
-                                                <?php elseif ($request['status'] === 'pending_technical'): ?>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'approve')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                                    <i class='bx bx-check align-middle'></i>
-                                                    <span class="ml-1.5">Recommend</span>
-                                                </button>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'decline')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                    <i class='bx bx-x align-middle'></i>
-                                                    <span class="ml-1.5">Decline</span>
-                                                </button>
-                                                <?php elseif ($request['status'] === 'pending_testing_setup'): ?>
-                                                <button onclick="handleTestingSetup(<?php echo $request['id']; ?>)"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                                    <i class='bx bx-test-tube align-middle'></i>
-                                                    <span class="ml-1.5">Send Testing Instructions</span>
-                                                </button>
-                                                <?php elseif ($request['status'] === 'pending_testing_review' && $request['testing_status'] === 'failed'): ?>
-                                                    <button onclick="showActionModal(<?php echo $request['id']; ?>, 'approve')" 
-                                                            class="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100">
-                                                        <i class='bx bx-refresh'></i>
-                                                        <span class="ml-1">Send for Retest</span>
-                                                    </button>
-                                                    <button onclick="showActionModal(<?php echo $request['id']; ?>, 'decline')" 
-                                                            class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
-                                                        <i class='bx bx-x'></i>
-                                                        <span class="ml-1">Reject Access</span>
-                                                    </button>
-                                                <?php endif; ?>
+                                                <!-- Action buttons will be moved to modal -->
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
                                             No pending technical reviews found
                                         </td>
                                     </tr>
@@ -504,6 +477,59 @@ try {
                             ${data.testing_notes ? `<div class="mt-4"><span class="text-gray-600">Testing Notes:</span><div class="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">${data.testing_notes}</div></div>` : ''}
                         </div>
                         ` : ''}
+                        
+                        <!-- Action Buttons -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                <i class='bx bx-cog text-primary-600 text-xl mr-2'></i>
+                                Actions
+                            </h3>
+                            <div class="flex flex-wrap gap-3">
+                                ${data.status === 'pending_help_desk' ? `
+                                    <button onclick="handleRequest(${data.id}, 'approve')"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        <i class='bx bx-share align-middle'></i>
+                                        <span class="ml-1.5">Forward</span>
+                                    </button>
+                                    <button onclick="handleRequest(${data.id}, 'decline')"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        <i class='bx bx-x align-middle'></i>
+                                        <span class="ml-1.5">Decline</span>
+                                    </button>
+                                ` : ''}
+                                ${data.status === 'pending_technical' ? `
+                                    <button onclick="handleRequest(${data.id}, 'approve')"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                        <i class='bx bx-check align-middle'></i>
+                                        <span class="ml-1.5">Recommend</span>
+                                    </button>
+                                    <button onclick="handleRequest(${data.id}, 'decline')"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        <i class='bx bx-x align-middle'></i>
+                                        <span class="ml-1.5">Decline</span>
+                                    </button>
+                                ` : ''}
+                                ${data.status === 'pending_testing_setup' ? `
+                                    <button onclick="handleTestingSetup(${data.id})"
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <i class='bx bx-test-tube align-middle'></i>
+                                        <span class="ml-1.5">Send Testing Instructions</span>
+                                    </button>
+                                ` : ''}
+                                ${data.status === 'pending_testing_review' && data.testing_status === 'failed' ? `
+                                    <button onclick="showActionModal(${data.id}, 'approve')" 
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-yellow-600 bg-yellow-50 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                                        <i class='bx bx-refresh'></i>
+                                        <span class="ml-1">Send for Retest</span>
+                                    </button>
+                                    <button onclick="showActionModal(${data.id}, 'decline')" 
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                        <i class='bx bx-x'></i>
+                                        <span class="ml-1">Reject Access</span>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </div>
                     `;
                 })
                 .catch(error => {

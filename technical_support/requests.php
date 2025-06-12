@@ -20,9 +20,8 @@ try {
     $sql = "SELECT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
+                WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'
                 WHEN ar.status = 'pending_technical' THEN 'Pending Your Review'
-                WHEN ar.status = 'pending_testing_setup' THEN 'Pending Testing Setup'
-                WHEN ar.status = 'pending_testing_review' THEN 'Pending Testing Review'
                 WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
                 WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'
                 WHEN ar.status = 'approved' THEN 'Approved'
@@ -30,7 +29,7 @@ try {
                 ELSE ar.status
             END as status_display
             FROM access_requests ar 
-            WHERE ar.status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')
+            WHERE ar.status = 'pending_technical'
             ORDER BY ar.submission_date DESC";
             
     $stmt = $pdo->prepare($sql);
@@ -193,18 +192,20 @@ try {
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($requests)): ?>
                                     <?php foreach ($requests as $request): ?>
-                                        <tr class="hover:bg-gray-50">
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -212,58 +213,36 @@ try {
                                                 <?php echo htmlspecialchars($request['requestor_name']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php echo htmlspecialchars($request['business_unit']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php echo htmlspecialchars($request['department']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['access_type']); ?>
+                                                <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php 
+                                                    $submission_date = new DateTime($request['submission_date']);
+                                                    $today = new DateTime();
+                                                    $interval = $submission_date->diff($today);
+                                                    echo $interval->days . ' day/s';
+                                                ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
+                                                <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                                     <?php echo htmlspecialchars($request['status_display']); ?>
                                                 </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                                <button onclick="showRequestDetails(<?php echo $request['id']; ?>)" 
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-primary-600 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                                    <i class='bx bx-show align-middle'></i>
-                                                    <span class="ml-1.5">View</span>
-                                                </button>
-                                                <?php if ($request['status'] === 'pending_technical'): ?>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'approve')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                                    <i class='bx bx-check align-middle'></i>
-                                                    <span class="ml-1.5">Recommend</span>
-                                                </button>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'decline')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                    <i class='bx bx-x align-middle'></i>
-                                                    <span class="ml-1.5">Decline</span>
-                                                </button>
-                                                <?php elseif ($request['status'] === 'pending_testing_setup'): ?>
-                                                <button onclick="handleTestingSetup(<?php echo $request['id']; ?>)"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                                    <i class='bx bx-test-tube align-middle'></i>
-                                                    <span class="ml-1.5">Send Testing Instructions</span>
-                                                </button>
-                                                <?php elseif ($request['status'] === 'pending_testing_review' && $request['testing_status'] === 'failed'): ?>
-                                                    <button onclick="showActionModal(<?php echo $request['id']; ?>, 'approve')" 
-                                                            class="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100">
-                                                        <i class='bx bx-refresh'></i>
-                                                        <span class="ml-1">Send for Retest</span>
-                                                    </button>
-                                                    <button onclick="showActionModal(<?php echo $request['id']; ?>, 'decline')" 
-                                                            class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
-                                                        <i class='bx bx-x'></i>
-                                                        <span class="ml-1">Reject Access</span>
-                                                    </button>
-                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                                            No pending technical reviews found
+                                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                                            No pending requests found
                                         </td>
                                     </tr>
                                 <?php endif; ?>
@@ -276,10 +255,10 @@ try {
     </div>
 
     <!-- Details Modal -->
-    <div id="detailsModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+    <div id="detailsModal" class="absolute top-0 left-0 w-full bg-gray-500 bg-opacity-75 hidden z-50">
         <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-xl w-[96%] max-w-7xl mx-auto shadow-xl flex flex-col max-h-[90vh]">
-                <div class="flex items-center px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <div class="bg-white rounded-xl w-[90%] max-w-7xl mx-auto shadow-xl">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200">
                     <div class="w-1/4">
                         <p class="text-sm font-medium text-gray-500">Request Number</p>
                         <p id="detail_request_number" class="text-lg font-semibold text-gray-900"></p>
@@ -293,9 +272,21 @@ try {
                         </button>
                     </div>
                 </div>
-                <div class="p-6 overflow-y-auto">
+                <div class="p-6">
                     <div id="detailsModalContent">
                         <!-- Modal content will be populated by JavaScript -->
+                    </div>
+                    <div id="modalActions" class="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-4">
+                        <button onclick="handleRequest(currentRequestId, 'approve')"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <i class='bx bx-check align-middle'></i>
+                            <span class="ml-1.5">Approve</span>
+                        </button>
+                        <button onclick="handleRequest(currentRequestId, 'decline')"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <i class='bx bx-x align-middle'></i>
+                            <span class="ml-1.5">Decline</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -303,7 +294,30 @@ try {
     </div>
 
     <script>
+        let currentRequestId = null;
+
+        // Function to check URL parameters
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // Check if we should show the modal on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const requestId = getUrlParameter('id');
+            const showModal = getUrlParameter('show_modal');
+            
+            if (requestId && showModal === 'true') {
+                showRequestDetails(requestId);
+                // Remove the parameters from URL without refreshing the page
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
         function showRequestDetails(requestId) {
+            currentRequestId = requestId;
             const modalContainer = document.getElementById('detailsModalContent');
             modalContainer.innerHTML = `
                 <div class="flex justify-center items-center p-8">
@@ -322,25 +336,8 @@ try {
                     
                     const data = response.data;
                     document.getElementById('detail_request_number').textContent = data.access_request_number;
-                    
-                    // Display superior's comments directly if they exist
-                    let superiorComments = '';
-                    if (data.superior_review_notes && data.superior_review_notes.trim() !== '') {
-                        superiorComments = `
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-message-detail text-primary-600 text-xl mr-2'></i>
-                                    Superior's Comments
-                                </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.superior_review_notes}
-                                </div>
-                            </div>
-                        `;
-                    }
-
                     modalContainer.innerHTML = `
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <!-- Request Overview -->
                             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
@@ -445,30 +442,15 @@ try {
                             </div>
                         </div>
                         
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                            <!-- Justification -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
-                                    Justification
-                                </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.justification || 'No justification provided.'}
-                                </div>
+                        <!-- Justification -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                                <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
+                                Justification
+                            </h3>
+                            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                                ${data.justification || 'No justification provided.'}
                             </div>
-                        
-                            <!-- Superior's Comments (if any) -->
-                            ${superiorComments ? `
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-message-detail text-primary-600 text-xl mr-2'></i>
-                                    Superior's Comments
-                                </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.superior_review_notes}
-                                </div>
-                            </div>
-                            ` : ''}
                         </div>
                         
                         ${data.review_history && data.review_history.length > 0 ? `
@@ -495,34 +477,6 @@ try {
                                     </div>
                                 `).join('')}
                             </div>
-                        </div>
-                        ` : ''}
-                        
-                        ${data.testing_status ? `
-                        <!-- Testing Status -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                <i class='bx bx-test-tube text-primary-600 text-xl mr-2'></i>
-                                Testing Status
-                            </h3>
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-600">Status:</span>
-                                <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                    data.testing_status === 'success' ? 'bg-green-100 text-green-700' :
-                                    data.testing_status === 'failed' ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                }">
-                                    ${data.testing_status.charAt(0).toUpperCase() + data.testing_status.slice(1)}
-                                </span>
-                            </div>
-                            ${data.testing_notes ? `
-                            <div class="mt-4">
-                                <span class="text-gray-600">Testing Notes:</span>
-                                <div class="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.testing_notes}
-                                </div>
-                            </div>
-                            ` : ''}
                         </div>
                         ` : ''}
                     `;
@@ -556,74 +510,22 @@ try {
             }
         });
 
-        function handleTestingSetup(requestId) {
-            Swal.fire({
-                title: 'Send Testing Instructions',
-                input: 'textarea',
-                inputLabel: 'Testing Instructions for Requestor',
-                inputPlaceholder: 'Enter detailed instructions for the requestor to test the access...',
-                inputAttributes: {
-                    'aria-label': 'Testing instructions',
-                    'rows': '6'
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Send to Requestor',
-                confirmButtonColor: '#3085d6',
-                showLoaderOnConfirm: true,
-                preConfirm: (instructions) => {
-                    if (!instructions || instructions.trim() === '') {
-                        Swal.showValidationMessage('Please enter testing instructions');
-                        return false;
-                    }
-                    
-                    return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=approve&review_notes=${encodeURIComponent(instructions)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: 'Testing instructions have been sent to the requestor.',
-                        icon: 'success'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        }
-
         function handleRequest(requestId, action) {
             Swal.fire({
-                title: action === 'approve' ? 'Recommend Request?' : 'Decline Request?',
+                title: action === 'approve' ? 'Approve Request?' : 'Decline Request?',
                 input: 'textarea',
-                inputLabel: 'Technical Review Notes',
-                inputPlaceholder: 'Enter your technical review notes...',
+                inputLabel: 'Review Notes',
+                inputPlaceholder: 'Enter your review notes...',
                 inputAttributes: {
-                    'aria-label': 'Technical review notes'
+                    'aria-label': 'Review notes'
                 },
                 showCancelButton: true,
-                confirmButtonText: action === 'approve' ? 'Recommend' : 'Decline',
+                confirmButtonText: action === 'approve' ? 'Approve' : 'Decline',
                 confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
                 showLoaderOnConfirm: true,
                 preConfirm: (notes) => {
                     if (!notes) {
-                        Swal.showValidationMessage('Please enter technical review notes');
+                        Swal.showValidationMessage('Please enter review notes');
                         return false;
                     }
                     
@@ -652,70 +554,6 @@ try {
                         title: 'Success!',
                         text: result.value.message,
                         icon: 'success'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        }
-
-        function showActionModal(requestId, action) {
-            const title = action === 'approve' ? 'Send for Retest?' : 'Reject Access Request?';
-            const buttonText = action === 'approve' ? 'Send for Retest' : 'Reject Access';
-            const buttonColor = action === 'approve' ? '#EAB308' : '#EF4444';
-            const placeholder = action === 'approve' ? 
-                'Enter instructions for retesting...' : 
-                'Enter reason for rejection...';
-
-            Swal.fire({
-                title: title,
-                input: 'textarea',
-                inputLabel: 'Technical Review Notes',
-                inputPlaceholder: placeholder,
-                inputAttributes: {
-                    'aria-label': 'Technical review notes',
-                    'rows': '4'
-                },
-                showCancelButton: true,
-                confirmButtonText: buttonText,
-                confirmButtonColor: buttonColor,
-                cancelButtonText: 'Cancel',
-                showLoaderOnConfirm: true,
-                preConfirm: (notes) => {
-                    if (!notes || notes.trim() === '') {
-                        Swal.showValidationMessage('Please enter review notes');
-                        return false;
-                    }
-                    
-                    return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: action === 'approve' ? 'Request Sent for Retesting!' : 'Request Rejected',
-                        text: action === 'approve' ? 
-                            'The request has been sent back to the user for retesting.' : 
-                            'The request has been rejected.',
-                        confirmButtonColor: '#3085d6',
-                        confirmButtonText: 'OK'
                     }).then(() => {
                         window.location.reload();
                     });

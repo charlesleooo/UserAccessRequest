@@ -393,7 +393,7 @@ try {
 
     <div class="p-8">
         <!-- Stats Cards -->
-        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-6 mb-8">
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
             <div onclick="filterRequests('all')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                 <div class="bg-gradient-to-br from-blue-500 via-white to-blue-300 p-3 rounded-full shadow-lg">
                     <i class='bx bx-folder text-2xl text-blue-600'></i>
@@ -407,7 +407,7 @@ try {
                 <div class="bg-gradient-to-br from-green-500 via-white to-green-300 p-3 rounded-full shadow-lg">
                     <i class='bx bx-check-circle text-2xl text-green-600'></i>
                 </div>
-                <div class="ml-4">
+                <div class="ml-4">  
                     <p class="text-sm text-white">Approved</p>
                     <h4 class="text-2xl font-bold text-white"><?php echo $approved; ?></h4>
                 </div>
@@ -428,15 +428,6 @@ try {
                 <div class="ml-4">
                     <p class="text-sm text-white">Rejected</p>
                     <h4 class="text-2xl font-bold text-white"><?php echo $rejected; ?></h4>
-                </div>
-            </div>
-            <div onclick="filterRequests('cancelled')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-gray-500 via-gray-400 to-gray-300 cursor-pointer hover:shadow-lg transition-all duration-300">
-                <div class="bg-gradient-to-br from-gray-500 via-white to-gray-300 p-3 rounded-full shadow-lg">
-                    <i class='bx bx-block text-2xl text-gray-600'></i>
-                </div>
-                <div class="ml-4">
-                    <p class="text-sm text-white">Canceled</p>
-                    <h4 class="text-2xl font-bold text-white"><?php echo $cancelled; ?></h4>
                 </div>
             </div>
         </div>
@@ -603,10 +594,6 @@ try {
                                                 case 'rejected':
                                                     $statusClass = 'bg-red-100 text-red-800';
                                                     $displayStatus = 'Rejected';
-                                                    break;
-                                                case 'cancelled':
-                                                    $statusClass = 'bg-gray-100 text-gray-800';
-                                                    $displayStatus = 'Canceled';
                                                     break;
                                                 default:
                                                     $statusClass = 'bg-gray-100 text-gray-800';

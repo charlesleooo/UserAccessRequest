@@ -189,33 +189,16 @@ try {
                 </div>
 
                 <!-- User Profile -->
-                <div class="px-4 py-4 border-t border-gray-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                                <i class='bx bxs-user text-xl'></i>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">
-                                <?php echo htmlspecialchars($_SESSION['admin_name'] ?? 'Superior'); ?>
-                            </p>
-                            <p class="text-xs text-gray-500 truncate">
-                                <?php echo htmlspecialchars($_SESSION['role'] ?? 'superior'); ?>
-                            </p>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="flex-1 ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Settings</h2>
-                    <p class="text-gray-600 text-sm mt-1">
+                    <h2 class="text-4xl font-bold text-white">Settings</h2>
+                    <p class="text-white text-sm mt-1">
                         Manage your account settings and preferences
                     </p>
                 </div>

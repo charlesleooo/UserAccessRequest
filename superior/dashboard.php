@@ -30,7 +30,20 @@ try {
     $rejectedToday = $stmt->fetchColumn();
     
     // Get recent requests
-    $stmt = $pdo->query("SELECT * FROM access_requests WHERE status = 'pending_superior' ORDER BY submission_date DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT ar.*, 
+            CASE 
+                WHEN ar.status = 'pending_superior' THEN 'Pending Your Review'
+                WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'
+                WHEN ar.status = 'pending_technical' THEN 'Pending Technical Review'
+                WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
+                WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'
+                WHEN ar.status = 'approved' THEN 'Approved'
+                WHEN ar.status = 'rejected' THEN 'Rejected'
+                ELSE ar.status
+            END as status_display
+            FROM access_requests ar 
+            WHERE ar.status = 'pending_superior' 
+            ORDER BY ar.submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get recent approval history
@@ -148,33 +161,17 @@ try {
                 </div>
 
                 <!-- User Profile -->
-                <div class="px-4 py-4 border-t border-gray-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                                <i class='bx bxs-user text-xl'></i>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">
-                                <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
-                            </p>
-                            <p class="text-xs text-gray-500 truncate">
-                                Superior
-                            </p>
-                        </div>
-                    </div>
-                </div>
+               
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="flex-1 ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Superior Dashboard</h1>
-                    <p class="text-gray-600 mt-1">Welcome back, <?php echo htmlspecialchars($_SESSION['admin_username']); ?></p>
+                    <h1 class="text-4xl font-bold text-white">Superior Dashboard</h1>
+                   
                 </div>
             </div>
 
@@ -182,38 +179,38 @@ try {
             <div class="p-8">
                 <!-- Quick Stats -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                    <div class="bg-white rounded-xl shadow p-6">
+                    <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                         <div class="flex items-center">
-                            <div class="bg-primary-100 p-3 rounded-lg">
+                            <div class="bg-gradient-to-br from-blue-500 via-white to-blue-300 p-3 rounded-full shadow-lg">
                                 <i class='bx bx-time text-2xl text-primary-600'></i>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm text-gray-500">Pending Requests</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $pendingRequests; ?></h4>
+                                <p class="text-lg font-bold text-white">Pending Requests</p>
+                                <h4 class="text-2xl font-bold text-white"><?php echo $pendingRequests; ?></h4>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow p-6">
+                    <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-green-500 via-green-400 to-green-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                         <div class="flex items-center">
-                            <div class="bg-green-100 p-3 rounded-lg">
+                            <div class="bg-gradient-to-br from-green-500 via-white to-green-300 p-3 rounded-full shadow-lg">
                                 <i class='bx bx-check-circle text-2xl text-green-600'></i>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm text-gray-500">Approved Today</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $approvedToday; ?></h4>
+                                <p class="text-lg font-bold text-white">Approved Today</p>
+                                <h4 class="text-2xl font-bold text-white"><?php echo $approvedToday; ?></h4>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow p-6">
+                    <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-red-500 via-red-400 to-red-300 cursor-pointer hover:shadow-lg transition-all duration-300">
                         <div class="flex items-center">
-                            <div class="bg-red-100 p-3 rounded-lg">
+                            <div class="bg-gradient-to-br from-red-500 via-white to-red-300 p-3 rounded-full shadow-lg">
                                 <i class='bx bx-x-circle text-2xl text-red-600'></i>
                             </div>
                             <div class="ml-4">
-                                <p class="text-sm text-gray-500">Rejected Today</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $rejectedToday; ?></h4>
+                                <p class="text-lg font-bold text-white">Rejected Today</p>
+                                <h4 class="text-2xl font-bold text-white"><?php echo $rejectedToday; ?></h4>
                             </div>
                         </div>
                     </div>
@@ -224,43 +221,50 @@ try {
                     <div class="px-6 py-4 border-b border-gray-100">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-800">Recent Requests</h3>
-                            <a href="requests.php" class="text-primary-600 hover:text-primary-700 text-sm font-medium">View All</a>
+                            
                         </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Business Unit</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($recentRequests)): ?>
                                     <?php foreach($recentRequests as $request): ?>
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                            <?php echo htmlspecialchars($request['requestor_name']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?php echo htmlspecialchars($request['business_unit']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?php echo htmlspecialchars($request['access_type']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                <?php echo $request['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                                    ($request['status'] === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'); ?>">
-                                                <?php echo ucfirst($request['status']); ?>
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
-                                        </td>
+                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                <?php echo htmlspecialchars($request['access_request_number']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php echo htmlspecialchars($request['requestor_name']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php 
+                                                    $submission_date = new DateTime($request['submission_date']);
+                                                    $today = new DateTime();
+                                                    $interval = $submission_date->diff($today);
+                                                    echo $interval->days . ' day/s';
+                                                ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
+                                                <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                    <?php echo htmlspecialchars($request['status_display']); ?>
+                                                </span>
+                                            </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -277,5 +281,12 @@ try {
             </div>
         </div>
     </div>
+
+    <script>
+        function showRequestDetails(requestId) {
+            // Redirect to requests page with the request ID and show_modal parameter
+            window.location.href = `requests.php?id=${requestId}&show_modal=true`;
+        }
+    </script>
 </body>
 </html>

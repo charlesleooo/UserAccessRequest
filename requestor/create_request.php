@@ -7,6 +7,10 @@ if (!isset($_SESSION['requestor_id'])) {
     exit();
 }
 
+// Set verification flag directly
+$_SESSION['requests_verified'] = true;
+$_SESSION['requests_verified_time'] = time();
+
 $requestorId = $_SESSION['requestor_id'];
 $username = $_SESSION['username'] ?? 'User';
 
@@ -746,7 +750,7 @@ try {
             const lastRow = rows[rows.length - 1];
             
             // Check if the last row is complete
-            const username = lastRow.querySelector('input[name="ind_username"]').value;
+            const username = lastRow.querySelector('input[name="ind_user_names"]').value;
             const application = lastRow.querySelector('select[name="ind_application[]"]').value;
             const accessType = lastRow.querySelector('select[name="ind_access_type[]"]').value;
             const durationType = lastRow.querySelector('select[name="ind_duration_type[]"]').value;
@@ -1112,7 +1116,7 @@ try {
         
         if(accessType === 'individual') {
             // Process individual access requests
-            const username = $('input[name="ind_username"]').val();
+            const username = $('input[name="ind_user_names"]').val();
             
             // Get all rows from individual table
             $('#individualTable tbody tr').each(function(index) {

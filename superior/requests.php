@@ -131,33 +131,17 @@ try {
                 </div>
 
                 <!-- User Profile -->
-                <div class="px-4 py-4 border-t border-gray-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                                <i class='bx bxs-user text-xl'></i>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">
-                                <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
-                            </p>
-                            <p class="text-xs text-gray-500 truncate">
-                                Superior
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="flex-1 ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Pending Requests</h1>
-                    <p class="text-gray-600 mt-1">Review and manage access requests</p>
+                    <h1 class="text-4xl font-bold text-white">Pending Requests</h1>
+                    <p class="text-white mt-1">Review and manage access requests</p>
                 </div>
             </div>
 
@@ -168,18 +152,19 @@ try {
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($requests)): ?>
                                     <?php foreach ($requests as $request): ?>
-                                        <tr class="hover:bg-gray-50">
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -187,38 +172,30 @@ try {
                                                 <?php echo htmlspecialchars($request['requestor_name']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['department']); ?>
+                                                <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['access_type']); ?>
+                                                <?php 
+                                                    $submission_date = new DateTime($request['submission_date']);
+                                                    $today = new DateTime();
+                                                    $interval = $submission_date->diff($today);
+                                                    echo $interval->days . ' day/s';
+                                                ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
+                                                <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
                                                     <?php echo htmlspecialchars($request['status_display']); ?>
                                                 </span>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                                <button onclick="showRequestDetails(<?php echo $request['id']; ?>)" 
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-primary-600 bg-primary-50 hover:bg-primary-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                                    <i class='bx bx-show align-middle'></i>
-                                                    <span class="ml-1.5">View</span>
-                                                </button>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'approve')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                                    <i class='bx bx-check align-middle'></i>
-                                                    <span class="ml-1.5">Recommend</span>
-                                                </button>
-                                                <button onclick="handleRequest(<?php echo $request['id']; ?>, 'decline')"
-                                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                                                    <i class='bx bx-x align-middle'></i>
-                                                    <span class="ml-1.5">Decline</span>
-                                                </button>
-                                            </td>
+                                            
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">
                                             No pending requests found
                                         </td>
                                     </tr>
@@ -232,7 +209,7 @@ try {
     </div>
 
     <!-- Details Modal -->
-    <div id="detailsModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+    <div id="detailsModal" class="absolute top-0 left-0 w-full bg-gray-500 bg-opacity-75 hidden z-50">
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="bg-white rounded-xl w-[90%] max-w-7xl mx-auto shadow-xl">
                 <div class="flex items-center px-6 py-4 border-b border-gray-200">
@@ -253,13 +230,48 @@ try {
                     <div id="detailsModalContent">
                         <!-- Modal content will be populated by JavaScript -->
                     </div>
+                    <div id="modalActions" class="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-4">
+                        <button onclick="handleRequest(currentRequestId, 'approve')"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <i class='bx bx-check align-middle'></i>
+                            <span class="ml-1.5">Recommend</span>
+                        </button>
+                        <button onclick="handleRequest(currentRequestId, 'decline')"
+                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <i class='bx bx-x align-middle'></i>
+                            <span class="ml-1.5">Decline</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        let currentRequestId = null;
+
+        // Function to check URL parameters
+        function getUrlParameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        // Check if we should show the modal on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const requestId = getUrlParameter('id');
+            const showModal = getUrlParameter('show_modal');
+            
+            if (requestId && showModal === 'true') {
+                showRequestDetails(requestId);
+                // Remove the parameters from URL without refreshing the page
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
         function showRequestDetails(requestId) {
+            currentRequestId = requestId;
             const modalContainer = document.getElementById('detailsModalContent');
             modalContainer.innerHTML = `
                 <div class="flex justify-center items-center p-8">

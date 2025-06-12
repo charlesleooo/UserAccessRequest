@@ -138,7 +138,7 @@ try {
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
-                        <span class="ml-3">Superior Reviews</span>
+                        <span class="ml-3">Requests</span>
                     </a>
                     
                     <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
@@ -166,33 +166,17 @@ try {
                 </div>
 
                 <!-- User Profile -->
-                <div class="px-4 py-4 border-t border-gray-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                                <i class='bx bxs-user text-xl'></i>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">
-                                <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
-                            </p>
-                            <p class="text-xs text-gray-500 truncate">
-                                Superior
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                
             </div>
         </div>
 
         <!-- Main Content -->
         <div class="flex-1 ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Review History</h1>
-                    <p class="text-gray-600 mt-1">Historical record of all requests you have reviewed</p>
+                    <h1 class="text-4xl font-bold text-white">Review History</h1>
+                    <p class="text-white mt-1">Historical record of all requests you have reviewed</p>
                 </div>
             </div>
 

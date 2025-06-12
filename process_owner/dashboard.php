@@ -22,7 +22,23 @@ try {
     $processReviewsToday = $stmt->fetchColumn();
     
     // Get recent requests
-    $stmt = $pdo->query("SELECT * FROM access_requests ORDER BY submission_date DESC LIMIT 5");
+    $stmt = $pdo->prepare("
+        SELECT ar.*, 
+            CASE 
+                WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
+                WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'
+                WHEN ar.status = 'pending_technical' THEN 'Pending Technical Review'
+                WHEN ar.status = 'pending_process_owner' THEN 'Pending Your Review'
+                WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'
+                WHEN ar.status = 'approved' THEN 'Approved'
+                WHEN ar.status = 'rejected' THEN 'Rejected'
+                ELSE ar.status
+            END as status_display
+        FROM access_requests ar 
+        WHERE ar.status = 'pending_process_owner' 
+        ORDER BY ar.submission_date DESC LIMIT 5
+    ");
+    $stmt->execute();
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
 } catch (PDOException $e) {
@@ -195,41 +211,56 @@ try {
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Business Unit</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($recentRequests)): ?>
                                     <?php foreach($recentRequests as $request): ?>
-                                    <tr class="hover:bg-gray-50">
+                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <?php echo htmlspecialchars($request['access_request_number']); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo htmlspecialchars($request['requestor_name']); ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo htmlspecialchars($request['business_unit']); ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            <?php echo htmlspecialchars($request['access_type']); ?>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                <?php echo $request['status'] === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
-                                                    ($request['status'] === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'); ?>">
-                                                <?php echo ucfirst($request['status']); ?>
-                                            </span>
+                                            <?php echo htmlspecialchars($request['department']); ?>
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <?php 
+                                                $submission_date = new DateTime($request['submission_date']);
+                                                $today = new DateTime();
+                                                $interval = $submission_date->diff($today);
+                                                echo $interval->days . ' day/s';
+                                            ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
+                                            <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                <?php echo htmlspecialchars($request['status_display']); ?>
+                                            </span>
                                         </td>
                                     </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
                                             No recent requests found
                                         </td>
                                     </tr>
