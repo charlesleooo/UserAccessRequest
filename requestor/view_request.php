@@ -400,7 +400,14 @@ try {
                 <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
                         <p class="text-gray-700 font-medium mb-2">System Access Testing Required</p>
-                        <p class="text-sm text-gray-600">Please test your system access and update the status below.</p>
+                        <p class="text-sm text-gray-600">
+                            <?php 
+                            $testing_reason = $request['access_type'] === 'System Application' ? 
+                                'System Application access' : 
+                                'Admin role access';
+                            echo "Testing is required for your {$testing_reason}. Please test your system access and update the status below."; 
+                            ?>
+                        </p>
                     </div>
                     <div class="flex flex-col sm:flex-row gap-3">
                         <button onclick="updateTestingStatus(<?php echo $request['id']; ?>, 'success')" 

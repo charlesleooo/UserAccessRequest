@@ -24,12 +24,13 @@ try {
                 WHEN ar.status = 'pending_technical' THEN 'Pending Your Review'
                 WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
                 WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'
+                WHEN ar.status = 'pending_testing_review' THEN 'Pending Testing Review'
                 WHEN ar.status = 'approved' THEN 'Approved'
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display
             FROM access_requests ar 
-            WHERE ar.status = 'pending_technical'
+            WHERE ar.status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
             
     $stmt = $pdo->prepare($sql);
@@ -557,6 +558,86 @@ try {
                     }).then(() => {
                         window.location.reload();
                     });
+                }
+            });
+        }
+
+        // Add new function for handling test review
+        function handleTestReview(requestId, action, notes) {
+            return fetch('../api/handle_test_review.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: action,
+                    notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: data.message,
+                        icon: 'success'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message,
+                    icon: 'error'
+                });
+            });
+        }
+
+        // Update the showActionModal function to handle test reviews
+        function showActionModal(requestId, action) {
+            const request = requests.find(r => r.id === requestId);
+            if (!request) return;
+
+            let title, buttonText, buttonColor, placeholder;
+            
+            if (request.status === 'pending_testing_review') {
+                if (action === 'approve') {
+                    title = 'Approve Test Results?';
+                    buttonText = 'Approve & Forward to Admin';
+                    buttonColor = '#10B981';
+                    placeholder = 'Enter any additional notes about the test results...';
+                } else {
+                    title = 'Request Retest?';
+                    buttonText = 'Send for Retest';
+                    buttonColor = '#EAB308';
+                    placeholder = 'Enter instructions for retesting...';
+                }
+            } else {
+                title = action === 'approve' ? 'Approve Request?' : 'Reject Request?';
+                buttonText = action === 'approve' ? 'Approve Request' : 'Reject Request';
+                buttonColor = action === 'approve' ? '#10B981' : '#EF4444';
+                placeholder = action === 'approve' ? 'Enter any notes...' : 'Enter reason for rejection...';
+            }
+
+            Swal.fire({
+                title: title,
+                input: 'textarea',
+                inputPlaceholder: placeholder,
+                showCancelButton: true,
+                confirmButtonText: buttonText,
+                confirmButtonColor: buttonColor,
+                showLoaderOnConfirm: true,
+                preConfirm: (notes) => {
+                    if (request.status === 'pending_testing_review') {
+                        return handleTestReview(requestId, action, notes);
+                    } else {
+                        return handleRequest(requestId, action, notes);
+                    }
                 }
             });
         }

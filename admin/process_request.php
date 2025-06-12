@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../config.php';
+require_once '../vendor/autoload.php';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 // Set JSON header
 header('Content-Type: application/json');
@@ -128,8 +131,156 @@ try {
             break;
 
         case 'admin':
-            $can_handle = ($current_status === 'pending_admin');
-            $next_status = ($action === 'approve') ? 'approved' : 'rejected';
+            $can_handle = ($current_status === 'pending_admin' || 
+                         ($current_status === 'pending_testing' && in_array($action, ['finalize_approval', 'reject_after_testing', 'retry_testing'])));
+            
+            if ($action === 'approve') {
+                // After admin approval, send to technical support for testing setup
+                if ($current_status === 'pending_admin') {
+                    $next_status = 'pending_testing_setup';
+                    
+                    // Update the request to include admin approval and move to technical support
+                    $sql = "UPDATE access_requests SET 
+                            status = :next_status,
+                            admin_id = :admin_users_id,
+                            admin_review_date = NOW(),
+                            admin_notes = :review_notes,
+                            testing_status = 'awaiting_setup'
+                            WHERE id = :request_id";
+                            
+                    $stmt = $pdo->prepare($sql);
+                    $result = $stmt->execute([
+                        'next_status' => $next_status,
+                        'admin_users_id' => $admin_users_id,
+                        'review_notes' => $review_notes,
+                        'request_id' => $request_id
+                    ]);
+                    
+                    if (!$result) {
+                        throw new Exception('Failed to update request status');
+                    }
+                    
+                    // Send email notification to technical support team
+                    require_once '../vendor/autoload.php';
+                    $mail = new PHPMailer(true);
+                    
+                    try {
+                        // Server settings
+                        $mail->isSMTP();
+                        $mail->Host = 'smtp.gmail.com';
+                        $mail->SMTPAuth = true;
+                        $mail->Username = 'charlesondota@gmail.com';
+                        $mail->Password = 'crpf bbcb vodv xbjk';
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port = 587;
+
+                        // Recipients
+                        $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                        // Add technical support team email here
+                        $mail->addAddress('tech.support@example.com', 'Technical Support Team');
+
+                        // Content
+                        $mail->isHTML(true);
+                        $mail->Subject = 'Testing Setup Required - ' . $request['access_request_number'];
+                        $mail->Body = "
+                            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                                <h2 style='color: #1F2937;'>Testing Setup Required</h2>
+                                <p>A new access request requires testing setup:</p>
+                                
+                                <div style='margin-top: 20px;'>
+                                    <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
+                                    <table style='width: 100%; border-collapse: collapse; margin-top: 10px;'>
+                                        <tr>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'><strong>Request Number:</strong></td>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'>{$request['access_request_number']}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'><strong>Requestor:</strong></td>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'>{$request['requestor_name']}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'><strong>Department:</strong></td>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'>{$request['department']}</td>
+                                        </tr>
+                                        <tr>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'><strong>Access Type:</strong></td>
+                                            <td style='padding: 8px; border: 1px solid #E5E7EB;'>{$request['access_type']}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                
+                                <div style='margin-top: 30px;'>
+                                    <h3 style='color: #1F2937;'>Required Actions:</h3>
+                                    <ol style='margin-left: 20px; line-height: 1.6;'>
+                                        <li>Review the access request details</li>
+                                        <li>Set up the necessary testing environment</li>
+                                        <li>Provide testing credentials and instructions</li>
+                                        <li>Update the request with testing details</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        ";
+
+                        $mail->send();
+                        $message = "Request approved and sent to technical support for testing setup.";
+                    } catch (Exception $e) {
+                        error_log("Email sending failed: {$mail->ErrorInfo}");
+                        $message = "Request approved and sent to technical support, but email notification failed.";
+                    }
+                    
+                    // Return early since we've handled everything for testing setup phase
+                    $pdo->commit();
+                    $transaction_active = false;
+                    
+                    echo json_encode([
+                        'success' => true,
+                        'message' => $message
+                    ]);
+                    return;
+                } else {
+                    $next_status = 'approved';
+                }
+            } else if ($action === 'finalize_approval' && $current_status === 'pending_testing' && $routeCheck['testing_status'] === 'success') {
+                // Final approval after successful testing
+                $next_status = 'approved';
+                $review_notes = "Access request approved after successful testing. " . $review_notes;
+            } else if ($action === 'reject_after_testing' && $current_status === 'pending_testing' && $routeCheck['testing_status'] === 'failed') {
+                // Rejection after failed testing
+                $next_status = 'rejected';
+                $review_notes = "Access request rejected due to failed testing. " . $review_notes;
+            } else if ($action === 'retry_testing' && $current_status === 'pending_testing' && $routeCheck['testing_status'] === 'failed') {
+                // Reset testing status for retry
+                $next_status = 'pending_testing_setup';
+                $sql = "UPDATE access_requests SET 
+                        status = :next_status,
+                        testing_status = 'awaiting_setup',
+                        testing_notes = CONCAT('Previous testing failed. Retrying testing. ', :review_notes)
+                        WHERE id = :request_id";
+                        
+                $stmt = $pdo->prepare($sql);
+                $result = $stmt->execute([
+                    'next_status' => $next_status,
+                    'review_notes' => $review_notes,
+                    'request_id' => $request_id
+                ]);
+                
+                if (!$result) {
+                    throw new Exception('Failed to update request status for testing retry');
+                }
+                
+                $message = "Request has been sent back for testing retry.";
+                $pdo->commit();
+                $transaction_active = false;
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => $message
+                ]);
+                return;
+            } else {
+                $next_status = 'rejected';
+            }
+            
             $id_field = 'admin_id';
             $date_field = 'admin_review_date';
             $notes_field = 'admin_notes';
@@ -197,6 +348,80 @@ try {
         throw new Exception('Failed to update request status');
     }
 
+    // Special handling for testing phase
+    if ($next_status === 'pending_testing_setup') {
+        // Send email notification for testing phase
+        $mail = new PHPMailer(true);
+        
+        try {
+            // Server settings
+            $mail->isSMTP();
+            $mail->Host = 'smtp.gmail.com';
+            $mail->SMTPAuth = true;
+            $mail->Username = 'charlesondota@gmail.com';
+            $mail->Password = 'crpf bbcb vodv xbjk';
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = 587;
+
+            // Recipients
+            $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+            $mail->addAddress($request['email'], $request['requestor_name']);
+
+            // Content
+            $mail->isHTML(true);
+            $mail->Subject = 'Access Request Testing Phase - ' . $request['access_request_number'];
+            $mail->Body = "
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2 style='color: #1F2937;'>Access Request Testing Phase</h2>
+                    <p>Dear {$request['requestor_name']},</p>
+                    
+                    <p>Your access request has been provisionally approved and is now ready for testing. Please proceed with testing the application access and confirm the results.</p>
+                    
+                    <div style='margin-top: 30px;'>
+                        <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Request Details</h3>
+                        
+                        <table style='border-collapse: collapse; width: 100%; margin-bottom: 20px;'>
+                            <tr style='background-color: #f8f9fa;'>
+                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Request Number:</strong></td>
+                                <td style='padding: 12px; border: 1px solid #ddd;'>{$request['access_request_number']}</td>
+                            </tr>
+                            <tr>
+                                <td style='padding: 12px; border: 1px solid #ddd;'><strong>Status:</strong></td>
+                                <td style='padding: 12px; border: 1px solid #ddd;'>
+                                    <span style='color: #f59e0b; font-weight: bold;'>
+                                        PENDING TESTING
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                        
+                        <p>Please follow these steps:</p>
+                        <ol style='margin-left: 20px; line-height: 1.6;'>
+                            <li>Attempt to access the application with your credentials</li>
+                            <li>Test all the functionalities that were requested</li>
+                            <li>Return to the Access Request System to confirm the testing results</li>
+                        </ol>
+                    </div>
+                    
+                    <div style='margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px;'>
+                        <p style='margin: 0; color: #4B5563;'>
+                            <strong>Note:</strong> If you encounter any issues during testing, please contact the IT Help Desk for assistance.
+                        </p>
+                    </div>
+                </div>
+            ";
+
+            $mail->send();
+            $message = "Request has been provisionally approved and moved to testing phase. The user has been notified.";
+        } catch (Exception $e) {
+            // Log email error but don't prevent successful update
+            error_log("Email sending failed: {$mail->ErrorInfo}");
+            $message = "Request has been provisionally approved and moved to testing phase, but email notification failed.";
+        }
+    } else {
+        $message = "Request has been " . ($action === 'approve' ? 'approved' : 'declined') . " successfully";
+    }
+
     // If request is approved by admin or rejected by anyone, move to history
     if ($next_status === 'approved' || $next_status === 'rejected') {
         // ... rest of the code for moving to history ...
@@ -204,14 +429,6 @@ try {
 
     $pdo->commit();
     $transaction_active = false;
-    
-    // Create a more descriptive message
-    if ($role === 'help_desk' && $action === 'approve') {
-        $destination = $forward_to === 'technical' ? 'Technical Support' : 'Process Owner';
-        $message = "Request has been forwarded to $destination successfully";
-    } else {
-        $message = "Request has been " . ($action === 'approve' ? 'approved' : 'declined') . " successfully";
-    }
     
     echo json_encode([
         'success' => true,

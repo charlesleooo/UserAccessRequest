@@ -113,6 +113,16 @@ try {
                 ];
             }
             
+            // Add Help Desk review if exists
+            if ($request['help_desk_review_date']) {
+                $review_history[] = [
+                    'role' => 'Help Desk',
+                    'action' => $request['status'] === 'rejected' ? 'Declined' : 'Forwarded',
+                    'note' => $request['help_desk_notes'],
+                    'date' => date('Y-m-d H:i:s', strtotime($request['help_desk_review_date']))
+                ];
+            }
+            
             // Add Technical review if exists
             if ($request['technical_review_date']) {
                 $review_history[] = [

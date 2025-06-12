@@ -322,32 +322,17 @@ try {
                                         <span class="text-gray-600">Request Number:</span>
                                         <span class="font-medium text-gray-900">${data.access_request_number}</span>
                                     </div>
-                                    <div class="flex justify-between items-center">
+                                    <div class="flex justify-between">
                                         <span class="text-gray-600">Status:</span>
-                                        <div class="flex items-center ${
-                                            data.status.includes('pending') ? 'bg-yellow-50' : 
-                                            (data.status === 'approved' ? 'bg-green-50' : 'bg-red-50')
-                                        } rounded-lg px-2 py-1">
-                                            <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                                data.status.includes('pending') ? 'bg-yellow-100 text-yellow-700' : 
-                                                (data.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
-                                            }">
-                                                ${data.status_display}
-                                            </span>
-                                        </div>
+                                        <span class="font-medium text-gray-900">${data.status_display}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Submitted:</span>
-                                        <span class="font-medium text-gray-900">
-                                            ${new Date(data.submission_date).toLocaleString()}
-                                        </span>
+                                        <span class="font-medium text-gray-900">${new Date(data.submission_date).toLocaleString()}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Duration:</span>
-                                        <span class="font-medium text-gray-900">
-                                            ${data.duration_type === 'permanent' ? 'Permanent' : 
-                                            `${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}`}
-                                        </span>
+                                        <span class="font-medium text-gray-900">${data.duration_type === 'permanent' ? 'Permanent' : 'Temporary'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -373,11 +358,7 @@ try {
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Email:</span>
-                                        <span class="font-medium text-gray-900">${data.email}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Employee ID:</span>
-                                        <span class="font-medium text-gray-900">${data.employee_id}</span>
+                                        <span class="font-medium text-gray-900">${data.email || 'N/A'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -393,43 +374,29 @@ try {
                                         <span class="text-gray-600">Access Type:</span>
                                         <span class="font-medium text-gray-900">${data.access_type}</span>
                                     </div>
-                                    ${data.system_type ? `
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">System Type:</span>
-                                        <span class="font-medium text-gray-900">${data.system_type}</span>
+                                        <span class="font-medium text-gray-900">${data.system_type || 'N/A'}</span>
                                     </div>
-                                    ` : ''}
-                                    ${data.other_system_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Other System:</span>
-                                        <span class="font-medium text-gray-900">${data.other_system_type}</span>
-                                    </div>
-                                    ` : ''}
-                                    ${data.role_access_type ? `
                                     <div class="flex justify-between">
                                         <span class="text-gray-600">Role Access Type:</span>
-                                        <span class="font-medium text-gray-900">${data.role_access_type}</span>
+                                        <span class="font-medium text-gray-900">${data.role_access_type || 'N/A'}</span>
                                     </div>
-                                    ` : ''}
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+
                             <!-- Justification -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:col-span-3">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
+                                    <i class='bx bx-message-square-detail text-primary-600 text-xl mr-2'></i>
                                     Justification
                                 </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.justification || 'No justification provided.'}
-                                </div>
+                                <p class="text-gray-700 whitespace-pre-wrap">${data.justification}</p>
                             </div>
-                        
+
                             ${data.review_history && data.review_history.length > 0 ? `
                             <!-- Review History -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 lg:col-span-3">
                                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                                     <i class='bx bx-history text-primary-600 text-xl mr-2'></i>
                                     Review History
@@ -454,59 +421,20 @@ try {
                             </div>
                             ` : ''}
                         </div>
-                        
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                            <!-- Previous Review Comments (if any) -->
-                            ${superiorComments ? `
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-message-detail text-primary-600 text-xl mr-2'></i>
-                                    Superior's Comments
-                                </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.superior_review_notes}
-                                </div>
-                            </div>
-                            ` : ''}
-                            
-                            ${technicalComments ? `
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-code-alt text-primary-600 text-xl mr-2'></i>
-                                    Technical Review Comments
-                                </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.technical_review_notes}
-                                </div>
-                            </div>
-                            ` : ''}
-                        </div>
-                        
-                        ${data.testing_status ? `
-                        <!-- Testing Status -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                <i class='bx bx-test-tube text-primary-600 text-xl mr-2'></i>
-                                Testing Status
-                            </h3>
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-600">Status:</span>
-                                <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                    data.testing_status === 'success' ? 'bg-green-100 text-green-700' :
-                                    data.testing_status === 'failed' ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                }">
-                                    ${data.testing_status.charAt(0).toUpperCase() + data.testing_status.slice(1)}
-                                </span>
-                            </div>
-                            ${data.testing_notes ? `
-                            <div class="mt-4">
-                                <span class="text-gray-600">Testing Notes:</span>
-                                <div class="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.testing_notes}
-                                </div>
-                            </div>
-                            ` : ''}
+
+                        ${data.status === 'pending_process_owner' ? `
+                        <!-- Action Buttons -->
+                        <div class="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-4">
+                            <button onclick="handleRequest(${data.id}, 'approve')"
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                <i class='bx bx-check align-middle'></i>
+                                <span class="ml-1.5">Forward</span>
+                            </button>
+                            <button onclick="handleRequest(${data.id}, 'decline')"
+                                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                <i class='bx bx-x align-middle'></i>
+                                <span class="ml-1.5">Decline</span>
+                            </button>
                         </div>
                         ` : ''}
                     `;

@@ -835,155 +835,112 @@ try {
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Request Number
-                                                </th>
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Requestor
-                                                </th>
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Access Type
-                                                </th>
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Status
-                                                </th>
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                    Submitted
-                                                </th>
-                                                <th scope="col" class="relative px-6 py-3">
-                                                    <span class="sr-only">Actions</span>
-                                                </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        UAR REF NO.
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Requestor
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Business Unit
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Department
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date Requested
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Days Pending
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Date Needed
+                                    </th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php foreach ($requests as $request): ?>
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    <?php echo htmlspecialchars($request['access_request_number']); ?>
+                                <tr class="cursor-pointer hover:bg-gray-50" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <?php echo htmlspecialchars($request['access_request_number']); ?>
                                     </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    <?php echo htmlspecialchars($request['requestor_name']); ?>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?php echo htmlspecialchars($request['requestor_name']); ?>
                                     </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    <?php echo htmlspecialchars($request['access_type']); ?>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?php echo htmlspecialchars($request['business_unit']); ?>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                                    <?php 
-                                                    $statusClass = '';
-                                                    $status = strtolower($request['status']);
-                                                    
-                                                    switch ($status) {
-                                                        case 'pending_superior':
-                                                            $statusClass = 'bg-yellow-100 text-yellow-800';
-                                                            $displayStatus = 'Pending Superior Review';
-                                                            break;
-                                                        case 'pending_technical':
-                                                            $statusClass = 'bg-blue-100 text-blue-800';
-                                                            $displayStatus = 'Pending Technical Review';
-                                                            break;
-                                                        case 'pending_process_owner':
-                                                            $statusClass = 'bg-indigo-100 text-indigo-800';
-                                                            $displayStatus = 'Pending Process Owner Review';
-                                                            break;
-                                                        case 'pending_admin':
-                                                            $statusClass = 'bg-purple-100 text-purple-800';
-                                                            $displayStatus = 'Pending Admin Review';
-                                                            break;
-                                                        case 'pending_testing_setup':
-                                                            $statusClass = 'bg-amber-100 text-amber-800';
-                                                            $displayStatus = 'Pending Test Setup';
-                                                            break;
-                                                        case 'pending_testing':
-                                                            $statusClass = 'bg-cyan-100 text-cyan-800';
-                                                            $displayStatus = 'Pending Testing';
-                                                            break;
-                                                        case 'approved':
-                                                            $statusClass = 'bg-green-100 text-green-800';
-                                                            $displayStatus = 'Approved';
-                                                            break;
-                                                        case 'rejected':
-                                                            $statusClass = 'bg-red-100 text-red-800';
-                                                            $displayStatus = 'Rejected';
-                                                            break;
-                                                        default:
-                                                            $statusClass = 'bg-gray-100 text-gray-800';
-                                                            $displayStatus = ucfirst($status);
-                                                    }
-                                                    ?>
-                                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
-                                                        <?php echo $displayStatus; ?>
-                                        </span>
-                                                    <?php if ($status === 'pending_testing'): ?>
-                                                    <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $request['testing_status'] === 'success' ? 'bg-green-100 text-green-800' : ($request['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
-                                                <?php echo ucfirst($request['testing_status']); ?>
-                                            </span>
-                                        <?php endif; ?>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?php echo htmlspecialchars($request['department']); ?>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div class="flex justify-end gap-2">
-                                            <button onclick="showRequestDetails(<?php echo $request['id']; ?>)" 
-                                                    class="inline-flex items-center px-3 py-1 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100">
-                                                <i class='bx bx-info-circle'></i>
-                                                <span class="ml-1">View</span>
-                                            </button>
-
-                                                        <?php
-                                                        $canHandle = false;
-                                                        $admin_role = $_SESSION['role'] ?? 'admin';
-
-                                                        switch ($admin_role) {
-                                                            case 'superior':
-                                                                $canHandle = ($status === 'pending_superior');
-                                                                break;
-                                                            case 'technical_support':
-                                                                $canHandle = ($status === 'pending_technical');
-                                                                break;
-                                                            case 'process_owner':
-                                                                $canHandle = ($status === 'pending_process_owner');
-                                                                break;
-                                                            case 'admin':
-                                                                $canHandle = ($status === 'pending_admin');
-                                                                break;
-                                                        }
-
-                                                        if ($canHandle):
-                                                        ?>
-                                            <button onclick="showActionModal(<?php echo $request['id']; ?>, 'approve')" 
-                                                    class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
-                                                <i class='bx bx-check'></i>
-                                                <span class="ml-1">Approve</span>
-                                            </button>
-                                            <button onclick="showActionModal(<?php echo $request['id']; ?>, 'decline')" 
-                                                    class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
-                                                <i class='bx bx-x'></i>
-                                                <span class="ml-1">Decline</span>
-                                            </button>
-                                            <?php endif; ?>
-                                            
-                                                        <?php if ($admin_role === 'admin' && $status === 'pending_testing'): ?>
-                                                            <?php if ($request['testing_status'] === 'success'): ?>
-                                            <button onclick="showActionModal(<?php echo $request['id']; ?>, 'finalize_approval')" 
-                                                    class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
-                                                <i class='bx bx-check-double'></i>
-                                                <span class="ml-1">Finalize Approval</span>
-                                            </button>
-                                                            <?php elseif ($request['testing_status'] === 'failed'): ?>
-                                                            <button onclick="showActionModal(<?php echo $request['id']; ?>, 'reject_after_testing')" 
-                                                                    class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
-                                                                <i class='bx bx-x'></i>
-                                                                <span class="ml-1">Reject</span>
-                                                            </button>
-                                                <button onclick="showActionModal(<?php echo $request['id']; ?>, 'retry_testing')" 
-                                                        class="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100">
-                                                    <i class='bx bx-refresh'></i>
-                                                    <span class="ml-1">Retry Testing</span>
-                                                </button>
-                                                            <?php endif; ?>
-                                            <?php endif; ?>
-                                        </div>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?php 
+                                            $submission_date = new DateTime($request['submission_date']);
+                                            $today = new DateTime();
+                                            $interval = $submission_date->diff($today);
+                                            echo $interval->days . ' day/s';
+                                        ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <?php echo date('M d, Y', strtotime($request['date_needed'] ?? $request['submission_date'])); ?>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <?php 
+                                        $statusClass = '';
+                                        $status = strtolower($request['status']);
+                                        
+                                        switch ($status) {
+                                            case 'pending_superior':
+                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                $displayStatus = 'Pending Superior Review';
+                                                break;
+                                            case 'pending_technical':
+                                                $statusClass = 'bg-blue-100 text-blue-800';
+                                                $displayStatus = 'Pending Technical Review';
+                                                break;
+                                            case 'pending_process_owner':
+                                                $statusClass = 'bg-indigo-100 text-indigo-800';
+                                                $displayStatus = 'Pending Process Owner Review';
+                                                break;
+                                            case 'pending_admin':
+                                                $statusClass = 'bg-purple-100 text-purple-800';
+                                                $displayStatus = 'Pending Admin Review';
+                                                break;
+                                            case 'pending_testing_setup':
+                                                $statusClass = 'bg-amber-100 text-amber-800';
+                                                $displayStatus = 'Pending Test Setup';
+                                                break;
+                                            case 'pending_testing':
+                                                $statusClass = 'bg-cyan-100 text-cyan-800';
+                                                $displayStatus = 'Pending Testing';
+                                                break;
+                                            case 'approved':
+                                                $statusClass = 'bg-green-100 text-green-800';
+                                                $displayStatus = 'Approved';
+                                                break;
+                                            case 'rejected':
+                                                $statusClass = 'bg-red-100 text-red-800';
+                                                $displayStatus = 'Rejected';
+                                                break;
+                                            default:
+                                                $statusClass = 'bg-gray-100 text-gray-800';
+                                                $displayStatus = ucfirst($status);
+                                        }
+                                        ?>
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
+                                            <?php echo $displayStatus; ?>
+                                        </span>
+                                        <?php if ($status === 'pending_testing'): ?>
+                                        <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $request['testing_status'] === 'success' ? 'bg-green-100 text-green-800' : ($request['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
+                                            <?php echo ucfirst($request['testing_status']); ?>
+                                        </span>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                                 <?php endforeach; ?>
@@ -1171,6 +1128,26 @@ try {
                     const data = response.data;
                     document.getElementById('detail_request_number').textContent = data.access_request_number;
                     
+                    // Get the admin role from PHP session
+                    const adminRole = '<?php echo $_SESSION['role'] ?? 'admin'; ?>';
+                    
+                    // Determine if user can handle this request
+                    let canHandle = false;
+                    switch (adminRole) {
+                        case 'superior':
+                            canHandle = (data.status === 'pending_superior');
+                            break;
+                        case 'technical_support':
+                            canHandle = (data.status === 'pending_technical');
+                            break;
+                        case 'process_owner':
+                            canHandle = (data.status === 'pending_process_owner');
+                            break;
+                        case 'admin':
+                            canHandle = (data.status === 'pending_admin');
+                            break;
+                    }
+                    
                     // Previous review comments
                     let reviewComments = '';
                     
@@ -1255,6 +1232,45 @@ try {
                                             ${data.duration_type === 'permanent' ? 'Permanent' : 
                                             `${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}`}
                                         </span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="mt-6 pt-6 border-t border-gray-100">
+                                    <div class="flex flex-wrap gap-2">
+                                        ${canHandle ? `
+                                            <button onclick="showActionModal(${data.id}, 'approve')" 
+                                                    class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
+                                                <i class='bx bx-check'></i>
+                                                <span class="ml-1">Approve</span>
+                                            </button>
+                                            <button onclick="showActionModal(${data.id}, 'decline')" 
+                                                    class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
+                                                <i class='bx bx-x'></i>
+                                                <span class="ml-1">Decline</span>
+                                            </button>
+                                        ` : ''}
+                                        
+                                        ${adminRole === 'admin' && data.status === 'pending_testing' ? `
+                                            ${data.testing_status === 'success' ? `
+                                                <button onclick="showActionModal(${data.id}, 'finalize_approval')" 
+                                                        class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100">
+                                                    <i class='bx bx-check-double'></i>
+                                                    <span class="ml-1">Finalize Approval</span>
+                                                </button>
+                                            ` : data.testing_status === 'failed' ? `
+                                                <button onclick="showActionModal(${data.id}, 'reject_after_testing')" 
+                                                        class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100">
+                                                    <i class='bx bx-x'></i>
+                                                    <span class="ml-1">Reject</span>
+                                                </button>
+                                                <button onclick="showActionModal(${data.id}, 'retry_testing')" 
+                                                        class="inline-flex items-center px-3 py-1 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100">
+                                                    <i class='bx bx-refresh'></i>
+                                                    <span class="ml-1">Retry Testing</span>
+                                                </button>
+                                            ` : ''}
+                                        ` : ''}
                                     </div>
                                 </div>
                             </div>

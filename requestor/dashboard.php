@@ -14,28 +14,59 @@ $username = $_SESSION['username'] ?? 'User';
 $firstName = explode(' ', $username)[0];
 
 try {
-    $stmt = $pdo->prepare("SELECT 
-        COUNT(*) as total,
-        SUM(status = 'approved') as approved,
-        SUM(status = 'rejected') as rejected,
-        SUM(status LIKE 'pending%') as pending,
-        SUM(status = 'cancelled') as cancelled
-        FROM access_requests
-        WHERE employee_id = ?");
-    $stmt->execute([$requestorId]);
+    // Get counts from both access_requests and approval_history
+    $stmt = $pdo->prepare("
+        SELECT 
+            (SELECT COUNT(*) FROM access_requests WHERE employee_id = ?) as total_pending,
+            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'approved') as approved,
+            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'rejected') as rejected,
+            (SELECT COUNT(*) FROM access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
+            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'cancelled') as cancelled
+    ");
+    
+    $stmt->execute([$requestorId, $username, $username, $requestorId, $username]);
     $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    $total = $data['total'] ?? 0;
+    $pending = $data['pending'] ?? 0;
     $approved = $data['approved'] ?? 0;
     $rejected = $data['rejected'] ?? 0;
-    $pending = $data['pending'] ?? 0;
     $cancelled = $data['cancelled'] ?? 0;
+    $total = $data['total_pending'] + $approved + $rejected + $cancelled;
 
     $approvalRate = $total > 0 ? round(($approved / $total) * 100, 1) : 0;
     $declineRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
 
-    $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE employee_id = ? ORDER BY submission_date DESC LIMIT 5");
-    $stmt->execute([$requestorId]);
+    // Get recent requests from both tables
+    $recentRequestsQuery = "
+        (SELECT 
+            id,
+            access_request_number,
+            'pending' as source,
+            status,
+            submission_date as request_date,
+            system_type,
+            access_type
+         FROM access_requests 
+         WHERE employee_id = :employee_id)
+        UNION ALL
+        (SELECT 
+            history_id as id,
+            access_request_number,
+            'history' as source,
+            action as status,
+            created_at as request_date,
+            system_type,
+            access_type
+         FROM approval_history 
+         WHERE requestor_name = :username)
+        ORDER BY request_date DESC 
+        LIMIT 5";
+
+    $stmt = $pdo->prepare($recentRequestsQuery);
+    $stmt->execute([
+        'employee_id' => $requestorId,
+        'username' => $username
+    ]);
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Dashboard error: " . $e->getMessage());
@@ -491,7 +522,13 @@ try {
                                     </div>
                                     <?php if ($request['testing_status'] === 'pending'): ?>
                                     <div class="mt-2 text-xs text-yellow-700">
-                                        <i class='bx bx-info-circle'></i> Please test your access and provide feedback
+                                        <i class='bx bx-info-circle'></i> 
+                                        <?php 
+                                        $testing_reason = $request['access_type'] === 'System Application' ? 
+                                            'System Application access' : 
+                                            'Admin role access';
+                                        echo "Testing required for {$testing_reason}. Please test and provide feedback."; 
+                                        ?>
                                     </div>
                                     <?php elseif ($request['testing_status'] === 'success'): ?>
                                     <div class="mt-2 text-xs text-green-700">

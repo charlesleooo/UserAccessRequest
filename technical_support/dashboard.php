@@ -44,7 +44,7 @@ try {
                 ELSE ar.status
             END as status_display
             FROM access_requests ar 
-            WHERE ar.status = 'pending_technical' 
+            WHERE ar.status IN ('pending_technical', 'pending_testing_setup')
             ORDER BY ar.submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     

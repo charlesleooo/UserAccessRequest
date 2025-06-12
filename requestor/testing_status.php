@@ -1,6 +1,9 @@
 <?php
 session_start();
 require_once '../config.php';
+require_once '../vendor/autoload.php';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
 // Debugging
 error_reporting(E_ALL);
@@ -16,18 +19,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Check if user is logged in
 if (!isset($_SESSION['requestor_id'])) {
-    header('Location: login.php');
+    header('Location: ../login.php');
     exit();
 }
 
-// Get the user's ID from session
 $requestor_id = $_SESSION['requestor_id'];
+
+// Get the user's ID from session
 $user_email = $_SESSION['employee_email'] ?? '';
 
 // Add debug code to see session variables
 // echo '<pre>'; print_r($_SESSION); echo '</pre>'; exit;
 
-// Process form submission for updating testing status
+// Process form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isset($_POST['testing_status'])) {
     error_log("Processing form submission");
     error_log("Request ID: " . $_POST['request_id']);
@@ -46,12 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         // Verify this request belongs to the current user and is in pending_testing status
         $sql = "SELECT * FROM access_requests 
                 WHERE id = :request_id 
+                AND requestor_id = :requestor_id
                 AND testing_status = 'pending'
-                AND (status = 'pending_testing' OR status = 'pending_testing_setup')";
+                AND status = 'pending_testing'";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
-            'request_id' => $request_id
+            'request_id' => $request_id,
+            'requestor_id' => $requestor_id
         ]);
         
         error_log("Checking request: ID=$request_id");
@@ -59,136 +65,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
         error_log("Request data: " . print_r($request, true));
         
-        if (!$request || $request['employee_id'] !== $requestor_id) {
+        if (!$request) {
             throw new Exception('Invalid request or you do not have permission to update this request.');
         }
         
-        if ($testing_status === 'success') {
-            error_log("Processing successful test");
-            // Update the request status and testing status
-            $sql = "UPDATE access_requests SET 
-                    status = 'approved',
-                    testing_status = 'success',
-                    testing_notes = :testing_notes,
-                    review_notes = 'Automatically approved after successful testing'
-                    WHERE id = :request_id";
-            
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
-                'testing_notes' => $testing_notes,
-                'request_id' => $request_id
-            ]);
-            
-            if (!$result) {
-                error_log("Database error: " . print_r($stmt->errorInfo(), true));
-                throw new Exception('Failed to update request status.');
-            }
-            
-            // After successful update, move to approval history
-            error_log("Moving request to approval history");
-            
-            // Get the full request details
-            $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE id = ?");
-            $stmt->execute([$request_id]);
-            $requestData = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$requestData) {
-                throw new Exception('Failed to retrieve request data for approval history.');
-            }
-            
-            // Insert into approval history
-            $sql = "INSERT INTO approval_history (
-                    access_request_number, action, requestor_name, business_unit, department,
-                    access_type, admin_id, comments, system_type, duration_type,
-                    start_date, end_date, justification, email, contact_number,
-                    testing_status, employee_id
-                ) VALUES (
-                    :access_request_number, 'approved', :requestor_name, :business_unit, :department,
-                    :access_type, :admin_id, :comments, :system_type, :duration_type,
-                    :start_date, :end_date, :justification, :email, 'Not provided',
-                    'success', :employee_id
-                )";
-            
-            // Get the admin_users id for the admin who approved this request
-            $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE id = :admin_id OR username = :admin_id");
-            $adminQuery->execute(['admin_id' => $requestData['admin_id']]);
-            $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
-            $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
-            
-            // If no admin_users id found, try to get any admin user as fallback
-            if (!$admin_users_id) {
-                $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE role = 'admin' LIMIT 1");
-                $adminQuery->execute();
-                $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
-                $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
-                
-                if (!$admin_users_id) {
-                    throw new Exception('Admin user record not found. Cannot complete approval process.');
-                }
-            }
-            
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
-                'access_request_number' => $requestData['access_request_number'],
-                'requestor_name' => $requestData['requestor_name'],
-                'business_unit' => $requestData['business_unit'],
-                'department' => $requestData['department'],
-                'access_type' => $requestData['access_type'],
-                'admin_id' => $admin_users_id,
-                'comments' => 'Automatically approved after successful testing',
-                'system_type' => $requestData['system_type'],
-                'duration_type' => $requestData['duration_type'],
-                'start_date' => $requestData['start_date'],
-                'end_date' => $requestData['end_date'],
-                'justification' => $requestData['justification'],
-                'email' => $requestData['email'],
-                'employee_id' => $requestData['employee_id']
-            ]);
-            
-            if (!$result) {
-                error_log("Database error when inserting to history: " . print_r($stmt->errorInfo(), true));
-                throw new Exception('Failed to insert into approval history.');
-            }
-            
-            // Delete from access_requests after successful move to history
-            $stmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
-            $result = $stmt->execute([$request_id]);
-            
-            if (!$result) {
-                error_log("Database error when deleting: " . print_r($stmt->errorInfo(), true));
-                throw new Exception('Failed to remove request after approval.');
-            }
-            
-            error_log("Successfully moved approved request to history");
-            $_SESSION['success_message'] = "Testing successful! Your access request has been automatically approved.";
-        } else {
-            // If testing failed, update status for technical support review
-            $sql = "UPDATE access_requests 
-                    SET testing_status = :testing_status, 
-                        testing_notes = :testing_notes,
-                        status = 'pending_testing_review'
-                    WHERE id = :request_id";
-            
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
-                'testing_status' => $testing_status,
-                'testing_notes' => $testing_notes,
-                'request_id' => $request_id
-            ]);
-            
-            if (!$result) {
-                throw new Exception('Failed to update testing status.');
-            }
-            
-            $_SESSION['success_message'] = "Testing status has been updated. The technical support team will review your testing results.";
+        // Update the request status and testing status
+        $sql = "UPDATE access_requests SET 
+                testing_status = :testing_status,
+                testing_notes = :testing_notes,
+                status = 'pending_testing_review'
+                WHERE id = :request_id 
+                AND requestor_id = :requestor_id";
+        
+        $stmt = $pdo->prepare($sql);
+        $result = $stmt->execute([
+            'testing_status' => $testing_status,
+            'testing_notes' => $testing_notes,
+            'request_id' => $request_id,
+            'requestor_id' => $requestor_id
+        ]);
+        
+        if (!$result) {
+            throw new Exception('Failed to update request status.');
         }
         
-        // Commit the transaction
+        // Send email notification to technical support
+        try {
+            $mail = new PHPMailer(true);
+            $mail->isSMTP();
+            $mail->Host = SMTP_HOST;
+            $mail->SMTPAuth = true;
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
+            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+            $mail->Port = SMTP_PORT;
+            
+            $mail->setFrom(SMTP_USERNAME, 'Access Request System');
+            
+            // Get technical support email
+            $techSql = "SELECT email FROM admin_users WHERE id = :tech_id";
+            $techStmt = $pdo->prepare($techSql);
+            $techStmt->execute(['tech_id' => $request['technical_id']]);
+            $techEmail = $techStmt->fetchColumn();
+            
+            if ($techEmail) {
+                $mail->addAddress($techEmail);
+                $mail->isHTML(true);
+                $mail->Subject = "Testing Results Available - Access Request {$request['access_request_number']}";
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; padding: 20px;'>
+                        <h2>Testing Results Available</h2>
+                        <p>The user has completed testing for access request {$request['access_request_number']}.</p>
+                        <p><strong>Testing Status:</strong> " . ucfirst($testing_status) . "</p>
+                        <p><strong>Testing Notes:</strong> {$testing_notes}</p>
+                        <p>Please review the testing results and take appropriate action.</p>
+                        <p><a href='" . BASE_URL . "technical_support/requests.php'>Click here to review</a></p>
+                    </div>
+                ";
+                $mail->send();
+            }
+        } catch (Exception $e) {
+            error_log("Failed to send email notification: " . $e->getMessage());
+            // Continue processing even if email fails
+        }
+        
         $pdo->commit();
         $transaction_active = false;
         error_log("Transaction committed");
         
-        // Redirect back to dashboard
+        $_SESSION['success_message'] = "Testing status updated successfully. Technical support will review your results.";
         header('Location: dashboard.php');
         exit();
         
@@ -227,7 +172,8 @@ if ($current_status && $current_status !== 'pending') {
 try {
     $sql = "SELECT * FROM access_requests 
             WHERE id = :request_id 
-            AND (status = 'pending_testing' OR status = 'pending_testing_setup')
+            AND requestor_id = :requestor_id
+            AND status = 'pending_testing'
             AND testing_status = 'pending'";
     
     // Debug SQL
@@ -237,12 +183,13 @@ try {
     
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
-        'request_id' => $request_id
+        'request_id' => $request_id,
+        'requestor_id' => $requestor_id
     ]);
     
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
     
-    if (!$request || $request['employee_id'] !== $requestor_id) {
+    if (!$request) {
         // Debug message for troubleshooting
         // echo "Request not found. Please check your query parameters.";
         // exit;
@@ -305,7 +252,12 @@ try {
                                 <div class="ml-3">
                                     <h3 class="text-sm font-medium text-blue-800">Testing Instructions</h3>
                                     <div class="mt-2 text-sm text-blue-700">
-                                        <p>After testing your application access, please update the status:</p>
+                                        <?php 
+                                        $testing_reason = $request['access_type'] === 'System Application' ? 
+                                            'System Application access' : 
+                                            'Admin role access';
+                                        ?>
+                                        <p>Testing is required for your <?php echo $testing_reason; ?>. After testing your application access, please update the status:</p>
                                         <ul class="list-disc pl-5 mt-1 space-y-1">
                                             <li>Select "Testing Successful" if you were able to access the system properly</li>
                                             <li>Select "Testing Failed" if you encountered any issues with the access</li>

@@ -15,20 +15,51 @@ $statusFilter = $_GET['status'] ?? 'all';
 $dateFilter = $_GET['date'] ?? 'all';
 $searchQuery = $_GET['search'] ?? '';
 
-// Prepare base query for approval history
-$query = "SELECT ah.*, admin.username as admin_username
-          FROM approval_history ah 
-          LEFT JOIN admin_users admin ON ah.admin_id = admin.id
-          WHERE ah.requestor_name = :requestor_name";
+// Prepare base query for all requests (both pending and processed)
+$query = "SELECT 
+            'pending' as source,
+            id as request_id,
+            access_request_number,
+            status,
+            submission_date as created_at,
+            NULL as admin_username,
+            business_unit,
+            department,
+            access_type,
+            system_type,
+            justification,
+            email,
+            employee_id
+          FROM access_requests 
+          WHERE requestor_name = :requestor_name
+          UNION ALL
+          SELECT 
+            'history' as source,
+            history_id as request_id,
+            access_request_number,
+            action as status,
+            created_at,
+            (SELECT username FROM admin_users WHERE id = admin_id) as admin_username,
+            business_unit,
+            department,
+            access_type,
+            system_type,
+            justification,
+            email,
+            employee_id
+          FROM approval_history 
+          WHERE requestor_name = :requestor_name";
 
 // Add filters
 $params = [':requestor_name' => $username];
 
 if ($statusFilter !== 'all') {
     if ($statusFilter === 'history') {
-        $query .= " AND ah.action IN ('approved', 'rejected', 'cancelled')";
+        $query .= " HAVING source = 'history'";
+    } elseif ($statusFilter === 'pending') {
+        $query .= " HAVING source = 'pending'";
     } else {
-        $query .= " AND ah.action = :status";
+        $query .= " HAVING status = :status";
         $params[':status'] = $statusFilter;
     }
 }
@@ -36,27 +67,28 @@ if ($statusFilter !== 'all') {
 if ($dateFilter !== 'all') {
     switch ($dateFilter) {
         case 'today':
-            $query .= " AND DATE(ah.created_at) = CURDATE()";
+            $query .= " AND DATE(created_at) = CURDATE()";
             break;
         case 'week':
-            $query .= " AND ah.created_at >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
+            $query .= " AND created_at >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
             break;
         case 'month':
-            $query .= " AND ah.created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
+            $query .= " AND created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
             break;
     }
 }
 
 if (!empty($searchQuery)) {
-    $query .= " AND (ah.access_type LIKE :search 
-               OR ah.access_request_number LIKE :search 
-               OR ah.business_unit LIKE :search
-               OR ah.requestor_name LIKE :search)";
+    $query .= " AND (access_request_number LIKE :search 
+                OR business_unit LIKE :search 
+                OR department LIKE :search
+                OR access_type LIKE :search
+                OR system_type LIKE :search)";
     $params[':search'] = "%$searchQuery%";
 }
 
-// Sort by access request number in descending order (newest first)
-$query .= " ORDER BY ah.access_request_number DESC";
+// Sort by created date in descending order (newest first)
+$query .= " ORDER BY created_at DESC";
 
 try {
     // Prepare and execute the query
@@ -65,24 +97,26 @@ try {
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     // Get counts for the dashboard
-    $countStmt = $pdo->prepare("SELECT 
-        COUNT(*) as total,
-        SUM(action = 'approved') as approved,
-        SUM(action = 'rejected') as rejected,
-        SUM(action = 'cancelled') as cancelled
-        FROM approval_history
-        WHERE requestor_name = ?");
-    $countStmt->execute([$username]);
+    $countStmt = $pdo->prepare("
+        SELECT
+            (SELECT COUNT(*) FROM access_requests WHERE requestor_name = ? AND status = 'pending') as pending,
+            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'approved') as approved,
+            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'rejected') as rejected,
+            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'cancelled') as cancelled
+    ");
+    
+    $countStmt->execute([$username, $username, $username, $username]);
     $counts = $countStmt->fetch(PDO::FETCH_ASSOC);
     
-    $total = $counts['total'] ?? 0;
+    $pending = $counts['pending'] ?? 0;
     $approved = $counts['approved'] ?? 0;
     $rejected = $counts['rejected'] ?? 0;
     $cancelled = $counts['cancelled'] ?? 0;
+    $total = $pending + $approved + $rejected + $cancelled;
 } catch (PDOException $e) {
     error_log("Error fetching request history: " . $e->getMessage());
     $requests = [];
-    $total = $approved = $rejected = $cancelled = 0;
+    $total = $approved = $rejected = $cancelled = $pending = 0;
 }
 ?>
 
@@ -188,19 +222,27 @@ try {
         
         /* Status Badge Styles */
         .status-badge {
-            @apply px-3 py-1.5 text-xs font-bold rounded-full shadow-md inline-block;
+            padding: 4px 12px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 9999px;
+            display: inline-block;
         }
         .status-pending {
-            @apply bg-yellow-500 text-white border-2 border-yellow-600;
+            background-color: #fbbf24;
+            color: white;
         }
         .status-approved {
-            @apply bg-green-600 text-white border-2 border-green-700;
+            background-color: #10b981;
+            color: white;
         }
         .status-rejected {
-            @apply bg-red-600 text-white border-2 border-red-700;
+            background-color: #ef4444;
+            color: white;
         }
         .status-cancelled {
-            @apply bg-gray-600 text-white border-2 border-gray-700;
+            background-color: #6b7280;
+            color: white;
         }
         
         /* Responsive table */
@@ -424,7 +466,18 @@ try {
 
     <div class="p-6" data-aos="fade-up" data-aos-duration="800">
         <!-- Stats Overview -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-yellow-500 via-yellow-400 to-yellow-300">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 p-3 mr-4 bg-gradient-to-br from-yellow-500 via-white to-yellow-300 rounded-full shadow-lg">
+                        <i class='bx bx-time text-2xl text-yellow-600'></i>
+                    </div>
+                    <div>
+                        <p class="text-sm text-white">Pending</p>
+                        <p class="text-2xl font-bold text-white"><?php echo $pending; ?></p>
+                    </div>
+                </div>
+            </div>
             <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300">
                 <div class="flex items-center">
                     <div class="flex-shrink-0 p-3 mr-4 bg-gradient-to-br from-blue-500 via-white to-blue-300 rounded-full shadow-lg">
@@ -468,6 +521,7 @@ try {
                     <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select id="status" name="status" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                         <option value="all" <?php echo $statusFilter === 'all' ? 'selected' : ''; ?>>All</option>
+                        <option value="pending" <?php echo $statusFilter === 'pending' ? 'selected' : ''; ?>>Pending</option>
                         <option value="approved" <?php echo $statusFilter === 'approved' ? 'selected' : ''; ?>>Approved</option>
                         <option value="rejected" <?php echo $statusFilter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
                         <option value="cancelled" <?php echo $statusFilter === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
@@ -510,34 +564,35 @@ try {
                     <tbody class="bg-white divide-y divide-gray-200">
                         <?php if(count($requests) > 0): ?>
                             <?php foreach($requests as $request): ?>
-                                <tr class="hover:bg-gray-50" data-history-id="<?php echo $request['history_id']; ?>">
+                                <tr class="hover:bg-gray-50" data-request-id="<?php echo $request['request_id']; ?>">
                                     <td class="px-6 py-4 whitespace-nowrap" data-label="Request No.">
                                         <div class="text-sm font-medium text-gray-900">
                                             <?php echo htmlspecialchars($request['access_request_number']); ?>
                                         </div>
                                     </td>
-                                   
-                                    <td class="px-6 py-4 whitespace-nowrap" data-label="Status">
+                                    <td class="px-6 py-4 whitespace-nowrap text-center" data-label="Status">
                                         <?php 
                                         $statusClass = '';
-                                        $status = strtolower($request['action'] ?? '');
+                                        $status = $request['source'] === 'pending' ? 'Pending' : ucfirst(strtolower($request['status']));
                                         
-                                        if ($status === 'approved') {
-                                            $statusClass = 'status-approved';
-                                            $bgClass = 'bg-green-100';
-                                        } elseif ($status === 'rejected') {
-                                            $statusClass = 'status-rejected';
-                                            $bgClass = 'bg-red-100';
-                                        } elseif ($status === 'cancelled') {
-                                            $statusClass = 'status-cancelled';
-                                            $bgClass = 'bg-gray-100';
+                                        switch($status) {
+                                            case 'Pending':
+                                                $statusClass = 'status-pending';
+                                                break;
+                                            case 'Approved':
+                                                $statusClass = 'status-approved';
+                                                break;
+                                            case 'Rejected':
+                                                $statusClass = 'status-rejected';
+                                                break;
+                                            case 'Cancelled':
+                                                $statusClass = 'status-cancelled';
+                                                break;
                                         }
                                         ?>
-                                        <div class="flex justify-center items-center <?php echo $bgClass; ?> rounded-lg px-2 py-1">
-                                            <span class="status-badge <?php echo $statusClass; ?>">
-                                                <?php echo ucfirst($status); ?>
-                                            </span>
-                                        </div>
+                                        <span class="status-badge <?php echo $statusClass; ?>">
+                                            <?php echo $status; ?>
+                                        </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-700" data-label="Processed Date">
                                         <?php 
@@ -547,7 +602,6 @@ try {
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-700" data-label="Days Since">
                                         <?php 
-                                        // Calculate days since processed
                                         $today = new DateTime('now');
                                         $date = new DateTime($request['created_at'] ?? 'now');
                                         $interval = $today->diff($date);
@@ -558,6 +612,16 @@ try {
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                        <?php else: ?>
+                            <tr>
+                                <td colspan="4" class="px-6 py-4 text-center">
+                                    <div class="flex flex-col items-center justify-center py-6">
+                                        <i class='bx bx-folder-open text-5xl text-gray-300 mb-2'></i>
+                                        <p>No request history found</p>
+                                        <p class="text-sm mt-1">Try adjusting your filters or create new access requests</p>
+                                    </div>
+                                </td>
+                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -630,8 +694,8 @@ try {
                 $('#requests-table tbody tr').css('cursor', 'pointer');
                 
                 $('#requests-table tbody tr').on('click', function() {
-                    const historyId = $(this).data('history-id');
-                    window.location.href = 'view_history_detail.php?id=' + historyId;
+                    const requestId = $(this).data('request-id');
+                    window.location.href = 'view_history_detail.php?id=' + requestId;
                 });
             }
         });

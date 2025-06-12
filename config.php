@@ -6,6 +6,13 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 define('BASE_URL', 'https://royalblue-chimpanzee-160919.hostingersite.com'); // Replace with your actual domain
 
+// SMTP configuration
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_PORT', 587);
+define('SMTP_USERNAME', 'your-email@gmail.com'); // Replace with your email
+define('SMTP_PASSWORD', 'your-app-password'); // Replace with your app password
+define('SMTP_FROM_EMAIL', 'your-email@gmail.com'); // Replace with your email
+
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
