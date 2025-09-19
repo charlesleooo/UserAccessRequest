@@ -759,7 +759,7 @@ try {
             const pendingTestingSection = document.querySelector('.pending-testing-section');
 
             rows.forEach(row => {
-                const statusCell = row.querySelector('td:nth-child(3)');
+                const statusCell = row.querySelector('td:nth-child(2)');
                 const statusText = statusCell.textContent.toLowerCase();
 
                 if (status === 'all') {

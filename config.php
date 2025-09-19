@@ -1,22 +1,73 @@
 <?php
+// Load environment variables from .env file
+function loadEnv($path)
+{
+    if (!file_exists($path)) {
+        throw new Exception(".env file not found at {$path}");
+    }
+
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        // Skip comments
+        if (strpos(trim($line), '#') === 0) {
+            continue;
+        }
+
+        // Parse the line
+        list($name, $value) = explode('=', $line, 2);
+        $name = trim($name);
+        $value = trim($value);
+
+        // Remove quotes if present
+        if (strpos($value, '"') === 0 && strrpos($value, '"') === strlen($value) - 1) {
+            $value = substr($value, 1, -1);
+        } elseif (strpos($value, "'") === 0 && strrpos($value, "'") === strlen($value) - 1) {
+            $value = substr($value, 1, -1);
+        }
+
+        // Set environment variable
+        putenv("{$name}={$value}");
+        $_ENV[$name] = $value;
+        $_SERVER[$name] = $value;
+    }
+}
+
+// Load .env file
+try {
+    loadEnv(__DIR__ . '/.env');
+} catch (Exception $e) {
+    die("Error loading .env file: " . $e->getMessage());
+}
+
 // Database configuration
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'u742707152_uardb');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('BASE_URL', 'https://royalblue-chimpanzee-160919.hostingersite.com'); // Replace with your actual domain
+define('DB_HOST', getenv('DB_HOST') ?: '');
+define('DB_NAME', getenv('DB_NAME') ?: '');
+define('DB_USER', getenv('DB_USER') ?: '');
+define('DB_PASS', getenv('DB_PASS') ?: '');
+define('BASE_URL', getenv('BASE_URL') ?: 'https://royalblue-chimpanzee-160919.hostingersite.com');
 
 // SMTP configuration
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_USERNAME', 'your-email@gmail.com'); // Replace with your email
-define('SMTP_PASSWORD', 'your-app-password'); // Replace with your app password
-define('SMTP_FROM_EMAIL', 'your-email@gmail.com'); // Replace with your email
+define('SMTP_HOST', getenv('SMTP_HOST') ?: 'smtp.gmail.com');
+define('SMTP_PORT', getenv('SMTP_PORT') ?: 587);
+define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: '');
+define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: '');
+define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: '');
+
+// Additional configurations (optional, based on your .env)
+define('APP_DEBUG', getenv('APP_DEBUG') === 'true');
+define('ENCRYPTION_KEY', getenv('ENCRYPTION_KEY') ?: '');
+define('LOG_PATH', getenv('LOG_PATH') ?: 'error.log');
+define('COMPANY_NAME', getenv('COMPANY_NAME') ?: 'Alsons Agribusiness Unit');
+define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: '');
 
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    echo "Connection failed: " . $e->getMessage();
+} catch (PDOException $e) {
+    if (APP_DEBUG) {
+        echo "Connection failed: " . $e->getMessage();
+    } else {
+        error_log("Database connection failed: " . $e->getMessage(), 3, LOG_PATH);
+        echo "A database error occurred. Please try again later.";
+    }
 }
-?> 
