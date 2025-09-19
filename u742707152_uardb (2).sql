@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 27, 2025 at 02:29 AM
+-- Generation Time: Sep 19, 2025 at 10:46 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -46,7 +46,7 @@ CREATE TABLE `access_requests` (
   `end_date` date DEFAULT NULL,
   `date_needed` date DEFAULT NULL COMMENT 'Date when access is needed',
   `access_level` varchar(20) DEFAULT NULL,
-  `user_names` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`user_names`)),
+  `usernames` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`usernames`)),
   `status` enum('pending_superior','pending_help_desk','pending_technical','pending_process_owner','pending_admin','approved','rejected','pending_testing','pending_testing_setup','pending_testing_review') NOT NULL DEFAULT 'pending_superior',
   `testing_status` enum('not_required','pending','success','failed') DEFAULT 'not_required',
   `testing_notes` text DEFAULT NULL,
@@ -77,8 +77,22 @@ CREATE TABLE `access_requests` (
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `date_needed`, `access_level`, `user_names`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`, `application_system`) VALUES
-(55, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-022', 'INFORMATION TECHNOLOGY ', '', 'AAC052003', '2025-05-27', 'individual', 'qweqwe', NULL, NULL, 'full', 'permanent', NULL, NULL, '2025-05-27', NULL, '[\"qweqweqwe\"]', 'pending_technical', 'not_required', NULL, NULL, '2025-05-27 08:25:10', 6, '2025-05-27 08:25:21', 'qweqwe', 15, '2025-05-27 08:25:37', 'qweqwewqe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network');
+INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `date_needed`, `access_level`, `usernames`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`, `application_system`) VALUES
+(55, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-022', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-27', 'individual', 'qweqwe', NULL, NULL, 'full', 'permanent', NULL, NULL, '2025-05-27', NULL, '[\"qweqweqwe\"]', 'pending_admin', 'not_required', NULL, NULL, '2025-05-27 08:25:10', 6, '2025-05-27 08:25:21', 'qweqwe', 15, '2025-05-27 08:25:37', 'qweqwewqe', 13, '2025-05-29 07:49:14', 'qweqwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network'),
+(61, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-001', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', NULL, NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qwe\"]', '', 'not_required', NULL, NULL, '2025-05-30 09:03:23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP'),
+(62, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-002', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qeqwe', NULL, NULL, 'read', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qweqwewe\"]', 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:05:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Offsite Storage Facility Access'),
+(63, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-028', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', NULL, NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qwe\"]', '', 'not_required', NULL, NULL, '2025-05-30 09:06:02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Legacy Vouchering'),
+(64, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-003', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', 'ERP/NAV/SAP', NULL, 'read', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qweqwe\"]', 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:09:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP'),
+(65, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-004', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', 'Memorandum Receipt', NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:12:59', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Memorandum Receipt'),
+(66, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-005', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', 'Legacy Vouchering', NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:13:24', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Legacy Vouchering'),
+(67, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-006', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', 'PC Access - Local', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:37:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Local'),
+(68, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-007', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', 'PC Access - Local', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:39:35', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Local'),
+(69, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-008', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqeqwe', 'PC Access - Network', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:40:06', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network'),
+(70, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-009', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwewqe', 'ERP/NAV/SAP', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:40:46', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP'),
+(71, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-010', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', 'PC Access - Network', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:41:31', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network'),
+(72, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-011', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', '515', 'VPN Access', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 13:13:22', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'VPN Access'),
+(73, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-012', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'test 1', 'Piece Rate Payroll System', NULL, 'read', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 15:01:08', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Piece Rate Payroll System'),
+(74, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-013', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'i want access', 'ERP/NAV/SAP', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 16:07:10', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP');
 
 -- --------------------------------------------------------
 
@@ -91,23 +105,41 @@ CREATE TABLE `admin_users` (
   `role` varchar(255) DEFAULT NULL,
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `encryption_code` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `admin_users`
 --
 
-INSERT INTO `admin_users` (`id`, `role`, `username`, `password`, `created_at`) VALUES
-(3, 'admin', 'admin', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-03-26 01:56:34'),
-(6, 'superior', 'superior', '$2y$10$Pu46k5pVVhkX2oKpg4ZFy.BssUanZdGykoqRPPe6fuPSkfOA0ZuNe', '2025-05-05 05:31:07'),
-(9, 'technical_support', 'technical_support', '$2y$10$iNe0w0/K7F6rIgRsFHTlge7auKyZMW/fbCHmN2/CnGPdhbD7vsTcG', '2025-05-18 04:25:26'),
-(10, 'process_owner', 'process_owner', '$2y$10$IJrAULu0Y6ecrA6TcB7IsOJPkneQOkxL0/HVF1VGkNpvThwdiRiXS', '2025-05-18 04:25:34'),
-(11, 'superior', 'AAC052002', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', '2025-05-20 05:16:12'),
-(12, 'admin', 'AAC052003', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', '2025-05-20 05:17:50'),
-(13, 'technical_support', 'techsupp1', '$2y$10$ey1NtHsptYY.xhxccySrT.9r4.qRjNjgeaqF79V1KTqQWtDrkxBum', '2025-05-20 05:19:28'),
-(14, 'process_owner', 'process1', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', '2025-05-20 05:20:15'),
-(15, 'help_desk', 'helpdesk1', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-05-21 01:00:00');
+INSERT INTO `admin_users` (`id`, `role`, `username`, `password`, `created_at`, `encryption_code`) VALUES
+(3, 'admin', 'admin', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-03-26 01:56:34', NULL),
+(6, 'superior', 'superior', '$2y$10$Pu46k5pVVhkX2oKpg4ZFy.BssUanZdGykoqRPPe6fuPSkfOA0ZuNe', '2025-05-05 05:31:07', NULL),
+(9, 'technical_support', 'technical_support', '$2y$10$iNe0w0/K7F6rIgRsFHTlge7auKyZMW/fbCHmN2/CnGPdhbD7vsTcG', '2025-05-18 04:25:26', NULL),
+(10, 'process_owner', 'process_owner', '$2y$10$IJrAULu0Y6ecrA6TcB7IsOJPkneQOkxL0/HVF1VGkNpvThwdiRiXS', '2025-05-18 04:25:34', NULL),
+(11, 'superior', 'AAC052002', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', '2025-05-20 05:16:12', NULL),
+(12, 'admin', 'AAC052003', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', '2025-05-20 05:17:50', NULL),
+(13, 'technical_support', 'techsupp1', '$2y$10$ey1NtHsptYY.xhxccySrT.9r4.qRjNjgeaqF79V1KTqQWtDrkxBum', '2025-05-20 05:19:28', NULL),
+(14, 'process_owner', 'process1', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', '2025-05-20 05:20:15', NULL),
+(15, 'help_desk', 'helpdesk1', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-05-21 01:00:00', NULL),
+(16, 'superior', '123', '$2y$10$Ao6tJGW4vvECcFrK6IgPlO/Q08jbcMOIxMAFRpwp1.EZ8VRAllGT.', '2025-05-28 00:22:06', NULL),
+(17, 'help_desk', 'AAC000999', '$2y$10$22B/0RUgtNM7LAT2F43chuFWMwUGD4opTqN9lwqvgttRiIzx0uB0G', '2025-05-28 23:47:38', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `admin_verification_codes`
+--
+
+CREATE TABLE `admin_verification_codes` (
+  `id` int(11) NOT NULL,
+  `admin_id` int(11) NOT NULL,
+  `role` varchar(50) NOT NULL,
+  `code` varchar(255) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -151,25 +183,66 @@ CREATE TABLE `approval_history` (
 --
 
 INSERT INTO `approval_history` (`history_id`, `request_id`, `access_request_number`, `action`, `requestor_name`, `business_unit`, `department`, `access_type`, `admin_id`, `comments`, `system_type`, `duration_type`, `start_date`, `end_date`, `justification`, `email`, `employee_id`, `contact_number`, `testing_status`, `superior_id`, `superior_notes`, `help_desk_id`, `help_desk_notes`, `technical_id`, `technical_notes`, `process_owner_id`, `process_owner_notes`, `created_at`) VALUES
-(10, NULL, 'UAR-REQ2025-001', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY ', 'Server Access', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, '09606072661', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-13 06:02:15'),
-(11, NULL, 'UAR-REQ2025-003', 'rejected', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY ', 'PC Access - Network', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, '09606072661', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-13 06:06:26'),
-(12, NULL, 'UAR-REQ2025-002', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY ', 'PC Access - Network', 3, 'Email: clpalomares@saranganibay.com.ph\r\n\r\nPassword: clpalomares', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, '09606072661', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-14 01:29:07'),
-(13, NULL, 'UAR-REQ2025-005', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'PC Access - Network', 3, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-15 01:48:59'),
-(14, NULL, 'UAR-REQ2025-006', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'System Application', 3, 'haha', 'Legacy Vouchering', 'permanent', NULL, NULL, 'im newly hired and i want to have access to legacy vouchering', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-15 02:09:44'),
-(15, NULL, 'UAR-REQ2025-008', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'System Application', 3, 'wow nice!', 'Quickbooks', 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-15 04:02:19'),
-(16, NULL, 'UAR-REQ2025-004', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'PC Access - Network', 3, 'qwe', NULL, 'permanent', NULL, NULL, 'charles palomares', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', 6, 'e', NULL, NULL, 9, 'qwe', 10, 'qwe', '2025-05-18 08:29:31'),
-(17, NULL, 'UAR-REQ2025-012', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'System Application', NULL, 'Automatically approved after successful testing', 'Quickbooks', 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', 'AAC052003', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:08:47'),
-(18, NULL, 'UAR-REQ2025-011', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'System Application', 3, 'Automatically approved after successful testing', 'Canvasing System, Quickbooks', 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', 'AAC052003', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:12:41'),
-(19, NULL, 'UAR-REQ2025-013', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'System Application', 3, 'Automatically approved after successful testing', 'Canvasing System', 'permanent', NULL, NULL, 'qwewqe', 'charlesleohermano@gmail.com', 'AAC052003', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:26:33'),
-(20, NULL, 'UAR-REQ2025-014', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'PC Access - Network', 6, 'qwewqe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:32:40'),
-(21, NULL, 'UAR-REQ2025-015', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'TNA Biometric Device Access', 6, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:39:42'),
-(22, NULL, 'UAR-REQ2025-016', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'Printer Access', 6, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:42:03'),
-(23, NULL, 'UAR-REQ2025-017', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'TNA Biometric Device Access', 6, 'qwewqe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:45:02'),
-(24, NULL, 'UAR-REQ2025-018', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'Internet Access', 6, 'qwewqe', NULL, 'permanent', NULL, NULL, 'qweqwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:48:49'),
-(25, NULL, 'UAR-REQ2025-019', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'Printer Access', 6, 'qweqwe', NULL, 'permanent', NULL, NULL, 'qweqweqwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:58:55'),
-(26, NULL, 'UAR-REQ2025-021', 'approved', 'Jess Vitualla', 'AAC', 'INFORMATION TECHNOLOGY ', 'System Application', 12, 'Automatically approved after successful testing', 'Memorandum Receipt', 'temporary', '2025-05-20', '2025-09-30', 'I want to access the MR coz i wanna see a tutubi na walang tinatagong bato sa ilalim ng lupa tinuka ng manok na nanggaling pa sa bundok', 'jessvitualla@gmail.com', 'AAC000999', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-20 05:26:15'),
-(27, NULL, 'UAR-REQ2025-020', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'Wi-Fi/Access Point Access', 13, 'jjqwjeiqweiiqwe', NULL, 'permanent', NULL, NULL, 'qwewqe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-20 05:32:35'),
-(28, NULL, 'UAR-REQ2025-023', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY ', 'individual', 12, 'qweqwe', NULL, 'permanent', NULL, NULL, 'qweqweqwe', '', NULL, 'Not provided', 'not_required', 6, 'qwe', NULL, NULL, NULL, NULL, 14, 'qweqwe', '2025-05-27 00:29:32');
+(10, NULL, 'UAR-REQ2025-001', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'Server Access', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, '09606072661', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-13 06:02:15'),
+(11, NULL, 'UAR-REQ2025-003', 'rejected', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, '', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, '09606072661', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-13 06:06:26'),
+(12, NULL, 'UAR-REQ2025-002', 'approved', 'Charles Leo Palomares', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, 'Email: clpalomares@saranganibay.com.ph\r\n\r\nPassword: clpalomares', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, '09606072661', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-14 01:29:07'),
+(13, NULL, 'UAR-REQ2025-005', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-15 01:48:59'),
+(14, NULL, 'UAR-REQ2025-006', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', 3, 'haha', 'Legacy Vouchering', 'permanent', NULL, NULL, 'im newly hired and i want to have access to legacy vouchering', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-15 02:09:44'),
+(15, NULL, 'UAR-REQ2025-008', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', 3, 'wow nice!', 'Quickbooks', 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-15 04:02:19'),
+(16, NULL, 'UAR-REQ2025-004', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 3, 'qwe', NULL, 'permanent', NULL, NULL, 'charles palomares', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', 6, 'e', NULL, NULL, 9, 'qwe', 10, 'qwe', '2025-05-18 08:29:31'),
+(17, NULL, 'UAR-REQ2025-012', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', NULL, 'Automatically approved after successful testing', 'Quickbooks', 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', 'AAC052003', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:08:47'),
+(18, NULL, 'UAR-REQ2025-011', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', 3, 'Automatically approved after successful testing', 'Canvasing System, Quickbooks', 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', 'AAC052003', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:12:41'),
+(19, NULL, 'UAR-REQ2025-013', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', 3, 'Automatically approved after successful testing', 'Canvasing System', 'permanent', NULL, NULL, 'qwewqe', 'charlesleohermano@gmail.com', 'AAC052003', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:26:33'),
+(20, NULL, 'UAR-REQ2025-014', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'PC Access - Network', 6, 'qwewqe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:32:40'),
+(21, NULL, 'UAR-REQ2025-015', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'TNA Biometric Device Access', 6, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:39:42'),
+(22, NULL, 'UAR-REQ2025-016', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'Printer Access', 6, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:42:03'),
+(23, NULL, 'UAR-REQ2025-017', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'TNA Biometric Device Access', 6, 'qwewqe', NULL, 'permanent', NULL, NULL, 'qwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:45:02'),
+(24, NULL, 'UAR-REQ2025-018', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'Internet Access', 6, 'qwewqe', NULL, 'permanent', NULL, NULL, 'qweqwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:48:49'),
+(25, NULL, 'UAR-REQ2025-019', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'Printer Access', 6, 'qweqwe', NULL, 'permanent', NULL, NULL, 'qweqweqwe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-18 09:58:55'),
+(26, NULL, 'UAR-REQ2025-021', 'approved', 'Jess Vitualla', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'System Application', 12, 'Automatically approved after successful testing', 'Memorandum Receipt', 'temporary', '2025-05-20', '2025-09-30', 'I want to access the MR coz i wanna see a tutubi na walang tinatagong bato sa ilalim ng lupa tinuka ng manok na nanggaling pa sa bundok', 'jessvitualla@gmail.com', 'AAC000999', 'Not provided', 'success', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-20 05:26:15'),
+(27, NULL, 'UAR-REQ2025-020', 'rejected', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'Wi-Fi/Access Point Access', 13, 'jjqwjeiqweiiqwe', NULL, 'permanent', NULL, NULL, 'qwewqe', 'charlesleohermano@gmail.com', NULL, 'Not provided', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-20 05:32:35'),
+(28, NULL, 'UAR-REQ2025-023', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', 12, 'qweqwe', NULL, 'permanent', NULL, NULL, 'qweqweqwe', '', NULL, 'Not provided', 'not_required', 6, 'qwe', NULL, NULL, NULL, NULL, 14, 'qweqwe', '2025-05-27 00:29:32'),
+(29, NULL, 'UAR-REQ2025-024', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', 12, 'qweqwe', NULL, 'permanent', NULL, NULL, 'qwe', '', NULL, 'Not provided', 'not_required', 16, 'wqwqwe', NULL, NULL, 13, 'qwe', 14, 'qwe', '2025-05-28 23:54:00'),
+(30, NULL, 'UAR-REQ2025-025', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', 12, 'qweqweqwe', NULL, 'permanent', NULL, NULL, 'qwe', '', NULL, 'Not provided', 'not_required', 16, '444545', NULL, NULL, 13, 'qwe', 14, 'qweqwe', '2025-05-29 00:20:35'),
+(31, NULL, 'UAR-REQ2025-026', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', 12, 'qwe', NULL, 'permanent', NULL, NULL, 'qwe', '', NULL, 'Not provided', 'not_required', 16, 'qweqweqwqweqwe', NULL, NULL, 13, 'qwe', 14, '.', '2025-05-29 00:58:12'),
+(32, NULL, 'UAR-REQ2025-027', 'approved', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', 12, 'qwe', NULL, 'permanent', NULL, NULL, 'qweqwe', '', NULL, 'Not provided', 'not_required', 16, 'qweqwe', NULL, NULL, 13, 'qwe', 14, 'qwe', '2025-05-29 01:05:29'),
+(33, NULL, 'UAR-REQ2025-028', '', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', NULL, 'Request cancelled by requestor. Reason: acsdasdcas', NULL, 'permanent', NULL, NULL, 'qwe', '', 'AAC052003', '', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-30 04:58:23'),
+(34, NULL, '2025-001', '', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', NULL, 'Request cancelled by requestor. Reason: asdasda', NULL, 'permanent', NULL, NULL, 'qweqwe', '', 'AAC052003', '', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-30 05:03:08'),
+(35, NULL, 'UAR-REQ2025-028', '', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', 'individual', NULL, 'Request cancelled by requestor. Reason: dfsdfs', NULL, 'permanent', NULL, NULL, 'qwe', '', 'AAC052003', '', 'not_required', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2025-05-30 05:10:49');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cancelled_requests`
+--
+
+CREATE TABLE `cancelled_requests` (
+  `id` int(11) NOT NULL,
+  `access_request_number` varchar(20) NOT NULL,
+  `requestor_name` varchar(255) NOT NULL,
+  `business_unit` varchar(50) NOT NULL,
+  `department` varchar(100) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `employee_id` varchar(20) NOT NULL,
+  `access_type` varchar(50) NOT NULL,
+  `system_type` varchar(255) DEFAULT NULL,
+  `other_system_type` varchar(255) DEFAULT NULL,
+  `justification` text NOT NULL,
+  `duration_type` varchar(20) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `cancellation_reason` text NOT NULL,
+  `cancelled_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `cancelled_requests`
+--
+
+INSERT INTO `cancelled_requests` (`id`, `access_request_number`, `requestor_name`, `business_unit`, `department`, `email`, `employee_id`, `access_type`, `system_type`, `other_system_type`, `justification`, `duration_type`, `start_date`, `end_date`, `cancellation_reason`, `cancelled_at`) VALUES
+(1, 'UAR-REQ2025-028', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', 'individual', NULL, NULL, 'qwe', 'permanent', NULL, NULL, 'acsdasdcas', '2025-05-30 04:58:23'),
+(2, '2025-001', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', 'individual', NULL, NULL, 'qweqwe', 'permanent', NULL, NULL, 'asdasda', '2025-05-30 05:03:08'),
+(3, 'UAR-REQ2025-028', 'PALOMARES, CHARLES LEO H.', 'AAC', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', 'individual', NULL, NULL, 'qwe', 'permanent', NULL, NULL, 'dfsdfs', '2025-05-30 05:10:49');
 
 -- --------------------------------------------------------
 
@@ -193,7 +266,8 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`, `employee_email`, `password`, `is_temp_password`, `role`) VALUES
-('123', 'AAC', 'superior', 'INFORMATION TECHNOLOGY', 'charlesondota@gmail.com', '$2y$10$Ao6tJGW4vvECcFrK6IgPlO/Q08jbcMOIxMAFRpwp1.EZ8VRAllGT.', 0, 'superior'),
+('123', 'AAC', 'superior', 'INFORMATION TECHNOLOGY (IT)', 'charlesondota@gmail.com', '$2y$10$zchzv0ODdMOQyAwDB.Gcdu1.45KfxrO/8VsscZEI0HiGwyrQHJAG2', 0, 'superior'),
+('AAC000000', 'AAC', 'TESTING', 'AGRI MGT. INFO. SYSTEM (AMIS)', 'TESTING@GMAIL.COM', NULL, 1, NULL),
 ('AAC000001', 'AAC', 'ALCANTARA, ALEJANDRO I.', 'G & A', '', NULL, 1, 'requestor'),
 ('AAC000003', 'AAC', 'TICAO, REX J.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC000007', 'AAC', 'MINGO, NOEL R.', 'GROW OUT', '', NULL, 1, 'requestor'),
@@ -248,14 +322,14 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC000090', 'AAC', 'BLANCO, RENE I.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC000093', 'AAC', 'GERALDO, HELEN C.', 'HUMAN RESOURCE & ADMIN', '', NULL, 1, 'requestor'),
 ('AAC000094', 'AAC', 'CALIAO JR, DOMINGO P.', 'ENGINEERING', '', NULL, 1, 'requestor'),
-('AAC000095', 'AAC', 'ROMANA, HERMINIGILDA L.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC000095', 'AAC', 'ROMANA, HERMINIGILDA L.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC000097', 'AAC', 'ARISGADO, ELMO V.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC000098', 'AAC', 'PANZA, RANDEL A.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC000099', 'AAC', 'WAHAB, RONIE D.', 'SEACAGE', '', NULL, 1, 'requestor'),
 ('AAC000100', 'AAC', 'FORTALEZA, YOICHIE C.', 'FINANCE', '', NULL, 1, 'requestor'),
 ('AAC000103', 'AAC', 'SACRO, HYRAM A.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC000107', 'AAC', 'ALESNA, ROLANDO V.', 'GROW OUT', '', NULL, 1, 'requestor'),
-('AAC000108', 'AAC', 'AMODIA, REYNALDO P.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC000108', 'AAC', 'AMODIA, REYNALDO P.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC000109', 'AAC', 'SALAAN, ANA SHEILA M.', 'APP', '', NULL, 1, 'requestor'),
 ('AAC000110', 'AAC', 'DE LA CRUZ, FAO G.', 'MATERIALS MANAGEMENT', '', NULL, 1, 'requestor'),
 ('AAC000113', 'AAC', 'AUSTERO, DALEA L.', 'HUMAN RESOURCE & ADMIN', '', NULL, 1, 'requestor'),
@@ -326,15 +400,15 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC000280', 'AAC', 'JORE, MARICYL T.', 'FINANCE', '', NULL, 1, 'requestor'),
 ('AAC000281', 'AAC', 'GONZAGA, JEROME A.', 'FINANCE', '', NULL, 1, 'requestor'),
 ('AAC000286', 'AAC', 'DIZON JR, FEDERICO B.', 'MATERIALS MANAGEMENT', '', NULL, 1, 'requestor'),
-('AAC000291', 'AAC', 'OROÑGAN, ELAINE JANE D.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC000291', 'AAC', 'OROÑGAN, ELAINE JANE D.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC000296', 'AAC', 'POLANCOS JR, ARTURO P.', 'MATERIALS MANAGEMENT', '', NULL, 1, 'requestor'),
 ('AAC000298', 'AAC', 'DAQUIZ, RUEL T.', 'FINANCE', '', NULL, 1, 'requestor'),
 ('AAC000302', 'AAC', 'NIERRE, PAUL D.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC000303', 'AAC', 'MALINAO, CARLOW C.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC000305', 'AAC', 'GARCIANO, JANCRIS E.', 'HUMAN RESOURCE & ADMIN', '', NULL, 1, 'requestor'),
 ('AAC000307', 'AAC', 'DEAROS, RANDY A.', 'GROW OUT', '', NULL, 1, 'requestor'),
-('AAC000310', 'AAC', 'ENRIQUEZ, ALDWIN R.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
-('AAC000316', 'AAC', 'CASINTO, LOIS L.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC000310', 'AAC', 'ENRIQUEZ, ALDWIN R.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
+('AAC000316', 'AAC', 'CASINTO, LOIS L.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC000317', 'AAC', 'CASIDSID, SALVADOR R.', 'ENGINEERING', '', NULL, 1, 'requestor'),
 ('AAC000318', 'AAC', 'HONGOY, ESTELITO B.', 'ENGINEERING', '', NULL, 1, 'requestor'),
 ('AAC000322', 'AAC', 'MANGUILIMUTAN, MARVIN A.', 'FINANCE', '', NULL, 1, 'requestor'),
@@ -386,10 +460,10 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC000478', 'AAC', 'JOPSON, DOMINADOR P.', 'ENGINEERING', '', NULL, 1, 'requestor'),
 ('AAC000479', 'AAC', 'ALMARIO, MARJUN S.', 'OUTSOURCING & GROWERSHIP', '', NULL, 1, 'requestor'),
 ('AAC000483', 'AAC', 'TORREVERDE, CHARLES T.', 'FINANCE', '', NULL, 1, 'requestor'),
-('AAC000485', 'AAC', 'NAVARRO, HARRYBREN K.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC000485', 'AAC', 'NAVARRO, HARRYBREN K.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC000489', 'AAC', 'TIBAY, DONALD PAUL E.', 'ENGINEERING', '', NULL, 1, 'requestor'),
 ('AAC000490', 'AAC', 'ALINSUB, RYAN F.', 'ENGINEERING', '', NULL, 1, 'requestor'),
-('AAC000492', 'AAC', 'VARGAS, FRANCIS JOHN D.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC000492', 'AAC', 'VARGAS, FRANCIS JOHN D.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC000495', 'AAC', 'MANRIQUE, REXAN JAY S.', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('AAC000497', 'AAC', 'GALAN, ASTRID KAYE T.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC000499', 'AAC', 'DALIGDIG, MARGIELYN T.', 'FINANCE', '', NULL, 1, 'requestor'),
@@ -498,7 +572,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC000958', 'AAC', 'AGUDO, SARAH MAE C.', 'QA & C', '', NULL, 1, 'requestor'),
 ('AAC000961', 'AAC', 'ALINSUB, CHARLES JUSTIN A.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC000990', 'AAC', 'ABEQUIBEL, SARAH JANE L.', 'QA & C', '', NULL, 1, 'requestor'),
-('AAC000999', 'AAC', 'Jess Vitualla', 'INFORMATION TECHNOLOGY ', 'jessvitualla@gmail.com', '$2y$10$22B/0RUgtNM7LAT2F43chuFWMwUGD4opTqN9lwqvgttRiIzx0uB0G', 0, 'requestor'),
+('AAC000999', 'AAC', 'Jess Vitualla', 'INFORMATION TECHNOLOGY (IT)', 'jessvitualla@gmail.com', '$2y$10$22B/0RUgtNM7LAT2F43chuFWMwUGD4opTqN9lwqvgttRiIzx0uB0G', 0, 'help_desk'),
 ('AAC001012', 'AAC', 'ALESNA, MARIEL P.', 'QA & C', '', NULL, 1, 'requestor'),
 ('AAC001013', 'AAC', 'ALESNA, JOLINA P.', 'APP', '', NULL, 1, 'requestor'),
 ('AAC001041', 'AAC', 'ANCHETA, ANALIE O.', 'APP', '', NULL, 1, 'requestor'),
@@ -577,7 +651,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC001995', 'AAC', 'VILLARIZA, VERONICKSON S.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC001996', 'AAC', 'MACEREN, GABRIEL R.', 'HUMAN RESOURCE & ADMIN', '', NULL, 1, 'requestor'),
 ('AAC001998', 'AAC', 'ERIBAL, GARRY L.', 'GROW OUT', '', NULL, 1, 'requestor'),
-('AAC001999', 'AAC', 'EJORANGO, ERWIN B.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC001999', 'AAC', 'EJORANGO, ERWIN B.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC002000', 'AAC', 'AGAS, TUESDAY JANE A.', 'SALES & MARKETING', '', NULL, 1, 'requestor'),
 ('AAC002002', 'AAC', 'ARTAJO, DANIEL I.', 'ENGINEERING', '', NULL, 1, 'requestor'),
 ('AAC002003', 'AAC', 'AMLON, JESSALVE REGINA T.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
@@ -689,7 +763,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC002394', 'AAC', 'DELICANO, ARIAN S.', 'HUMAN RESOURCE & ADMIN', '', NULL, 1, 'requestor'),
 ('AAC002395', 'AAC', 'DIAMA, MERILYN M.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC002402', 'AAC', 'VILLANUEVA, JOEL D.', 'ENGINEERING', '', NULL, 1, 'requestor'),
-('AAC002405', 'AAC', 'CABANDA, PAUL DREXLER B.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC002405', 'AAC', 'CABANDA, PAUL DREXLER B.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC002407', 'AAC', 'ALIGATO, LUDGADE D.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC002409', 'AAC', 'OLMEDO, IAN B.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC002410', 'AAC', 'VILLANUEVA, ARA MAE D.', 'RPP', '', NULL, 1, 'requestor'),
@@ -702,7 +776,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC002417', 'AAC', 'DUMAYAO, DANICA .', 'SALES & MARKETING', '', NULL, 1, 'requestor'),
 ('AAC002418', 'AAC', 'ALFAFARA, JHON JHON M.', 'ENGINEERING', '', NULL, 1, 'requestor'),
 ('AAC002424', 'AAC', 'SIOCO, FELVIE A.', 'QA & C', '', NULL, 1, 'requestor'),
-('AAC002425', 'AAC', 'PAGONG, FLORANTE V.', 'INFORMATION TECHNOLOGY ', '', NULL, 1, 'requestor'),
+('AAC002425', 'AAC', 'PAGONG, FLORANTE V.', 'INFORMATION TECHNOLOGY (IT)', '', NULL, 1, 'requestor'),
 ('AAC002426', 'AAC', 'QUIAPO, RANNEL M.', 'MATERIALS MANAGEMENT', '', NULL, 1, 'requestor'),
 ('AAC002428', 'AAC', 'HADJIOMAR, SAMSODEN B.', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('AAC002429', 'AAC', 'MAHILUM, SHINAROSE D.', 'QA & C', '', NULL, 1, 'requestor'),
@@ -776,11 +850,11 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC002631', 'AAC', 'COMALING, MAR JUN P.', 'GROW OUT', '', NULL, 1, 'requestor'),
 ('AAC002635', 'AAC', 'PALER, DAN RUZEL D.', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('AAC002637', 'AAC', 'BALLON, KEINTH JANN C.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
-('AAC052002', 'AAC', 'TAMPUS, ALVIN A. JR.', 'INFORMATION TECHNOLOGY ', 'alvintampus3@gmail.com', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', 0, 'requestor'),
-('AAC052003', 'AAC', 'PALOMARES, CHARLES LEO H.', 'INFORMATION TECHNOLOGY ', 'charlesleohermano@gmail.com', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', 0, 'admin'),
-('ALD000001', 'ALDEV', 'ALIPOON,NEIL QUIRINO', 'BANANA', '', NULL, 1, 'requestor'),
-('ALD000003', 'ALDEV', 'ARONG JR.,DEMETRIO FERRAREN', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor');
+('AAC052002', 'AAC', 'TAMPUS, ALVIN A. JR.', 'INFORMATION TECHNOLOGY (IT)', 'alvintampus3@gmail.com', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', 0, 'superior'),
+('AAC052003', 'AAC', 'PALOMARES, CHARLES LEO H.', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', 0, 'admin'),
+('ALD000001', 'ALDEV', 'ALIPOON,NEIL QUIRINO', 'BANANA', '', NULL, 1, 'requestor');
 INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`, `employee_email`, `password`, `is_temp_password`, `role`) VALUES
+('ALD000003', 'ALDEV', 'ARONG JR.,DEMETRIO FERRAREN', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('ALD000006', 'ALDEV', 'SOMBILON,TRACLIO MEJIAS', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000007', 'ALDEV', 'EDULOG,ELLAINE MAE SEVIOLA', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000008', 'ALDEV', 'ROSARIO,ARNEL CRISTUTA', 'BANANA', '', NULL, 1, 'requestor'),
@@ -974,7 +1048,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('FHI000226', 'FHI', 'GANTALAO, JOHN DAVE TACULOD', 'FHI Production-Packing House (PH)', '', NULL, 1, 'requestor'),
 ('FHI000227', 'FHI', 'DEQUINA, JULIUS CAESAR CAGADAS', 'FHI Production-Packing House (PH)', '', NULL, 1, 'requestor'),
 ('FHI000228', 'FHI', 'VELASCO, RONALD  MIANO', 'FHI Engineering', '', NULL, 1, 'requestor'),
-('process1', 'AAC', 'process owner', 'INFORMATION TECHNOLOGY ', 'clpalomares2003@gmail.com', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', 0, 'process_owner'),
+('process1', 'AAC', 'process owner', 'INFORMATION TECHNOLOGY (IT)', 'clpalomares2003@gmail.com', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', 0, 'process_owner'),
 ('SAC000032', 'SACI', 'FABROA, EDUMAR ECHAVEZ', 'OFFICE OF AVP', '', NULL, 1, 'requestor'),
 ('SAV000002', 'ALDEV', 'DAMOLE,NELDRIN VILLANUEVA', 'BANANA', '', NULL, 1, 'requestor'),
 ('SAV000004', 'SAVI', 'GECOSALA,ENRIQUE CASTILLON', 'BANANA MARIBULAN', '', NULL, 1, 'requestor'),
@@ -1073,7 +1147,7 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('SFC000022', 'SFC', 'BANTACULO, EDEM CADAY', 'PINEAPPLE', '', NULL, 1, 'requestor'),
 ('SFC000023', 'SFC', 'ABAJA, BERNARD OCONG', 'PINEAPPLE', '', NULL, 1, 'requestor'),
 ('SFC000024', 'SFC', 'GESIM, JANICE BORJA', 'PINEAPPLE', '', NULL, 1, 'requestor'),
-('techsupp1', 'AAC', 'technical support', 'INFORMATION TECHNOLOGY ', 'dimokokilalahehe@gmail.com', '$2y$10$ey1NtHsptYY.xhxccySrT.9r4.qRjNjgeaqF79V1KTqQWtDrkxBum', 0, 'technical_support');
+('techsupp1', 'AAC', 'technical support', 'INFORMATION TECHNOLOGY (IT)', 'dimokokilalahehe@gmail.com', '$2y$10$ey1NtHsptYY.xhxccySrT.9r4.qRjNjgeaqF79V1KTqQWtDrkxBum', 0, 'technical_support');
 
 -- --------------------------------------------------------
 
@@ -1098,8 +1172,7 @@ CREATE TABLE `employees_archive` (
 --
 
 INSERT INTO `employees_archive` (`archive_id`, `employee_id`, `company`, `employee_name`, `department`, `employee_email`, `archived_at`, `archived_by`, `archive_reason`) VALUES
-(21, 'TEST123', 'AAC', 'TEST TEST1', 'INFORMATION TECHNOLOGY ', 'test@gmail.com', '2025-05-08 05:44:52', 3, 'qwe'),
-(22, 'AAC000000', 'AAC', 'TESTING', 'AGRI MGT. INFO. SYSTEM (AMIS)', 'TESTING@GMAIL.COM', '2025-05-08 06:32:27', 3, 'QWE');
+(21, 'TEST123', 'AAC', 'TEST TEST1', 'INFORMATION TECHNOLOGY (IT)', 'test@gmail.com', '2025-05-08 05:44:52', 3, 'qwe');
 
 -- --------------------------------------------------------
 
@@ -1114,6 +1187,13 @@ CREATE TABLE `password_resets` (
   `expires_at` datetime NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `password_resets`
+--
+
+INSERT INTO `password_resets` (`id`, `employee_email`, `token`, `expires_at`, `created_at`) VALUES
+(11, 'charlesleohermano@gmail.com', '209cfe373a07d82f42710dd6efee5c21', '2025-05-30 04:33:53', '2025-05-29 02:33:54');
 
 -- --------------------------------------------------------
 
@@ -1176,6 +1256,31 @@ INSERT INTO `users` (`id`, `username`, `password`, `role`, `employee_id`, `full_
 (4, 'superior', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'superior', NULL, 'Superior User', 'superior@example.com', '2025-05-18 04:12:32', '2025-05-18 04:12:32'),
 (5, 'AAC052003', '$2y$10$oMj5zC9F5O/g53YGNLDSyeldKYLwM.uYIY02LxpL.RtecixUr7wn.', 'requestor', 'AAC052003', 'PALOMARES, CHARLES LEO H.', 'charlesleohermano@gmail.com', '2025-05-18 04:13:58', '2025-05-18 04:13:58');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_encryption_codes`
+--
+
+CREATE TABLE `user_encryption_codes` (
+  `id` int(11) NOT NULL,
+  `user_id` varchar(50) NOT NULL,
+  `encryption_code` varchar(6) NOT NULL,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `user_encryption_codes`
+--
+
+INSERT INTO `user_encryption_codes` (`id`, `user_id`, `encryption_code`, `created_at`, `updated_at`) VALUES
+(1, 'AAC052003', '123456', '2025-05-29 09:19:49', '2025-05-29 09:31:54'),
+(2, 'techsupp1', '052003', '2025-05-29 09:20:30', '2025-05-29 09:34:45'),
+(3, 'process1', '096060', '2025-05-29 09:52:01', '2025-05-29 09:52:01'),
+(4, 'AAC000999', '052003', '2025-05-30 16:06:25', '2025-05-30 16:06:25'),
+(5, 'AAC052002', '052003', '2025-05-30 16:09:47', '2025-05-30 16:09:47');
+
 --
 -- Indexes for dumped tables
 --
@@ -1198,12 +1303,25 @@ ALTER TABLE `admin_users`
   ADD UNIQUE KEY `username` (`username`);
 
 --
+-- Indexes for table `admin_verification_codes`
+--
+ALTER TABLE `admin_verification_codes`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `admin_id` (`admin_id`);
+
+--
 -- Indexes for table `approval_history`
 --
 ALTER TABLE `approval_history`
   ADD PRIMARY KEY (`history_id`),
   ADD KEY `admin_id` (`admin_id`),
   ADD KEY `idx_request_id` (`request_id`);
+
+--
+-- Indexes for table `cancelled_requests`
+--
+ALTER TABLE `cancelled_requests`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `employees`
@@ -1251,6 +1369,13 @@ ALTER TABLE `users`
   ADD KEY `employee_id` (`employee_id`);
 
 --
+-- Indexes for table `user_encryption_codes`
+--
+ALTER TABLE `user_encryption_codes`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_id` (`user_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -1258,31 +1383,43 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `access_requests`
 --
 ALTER TABLE `access_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=57;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
 
 --
 -- AUTO_INCREMENT for table `admin_users`
 --
 ALTER TABLE `admin_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+
+--
+-- AUTO_INCREMENT for table `admin_verification_codes`
+--
+ALTER TABLE `admin_verification_codes`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `approval_history`
 --
 ALTER TABLE `approval_history`
-  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
+  MODIFY `history_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+
+--
+-- AUTO_INCREMENT for table `cancelled_requests`
+--
+ALTER TABLE `cancelled_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `employees_archive`
 --
 ALTER TABLE `employees_archive`
-  MODIFY `archive_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `archive_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
 --
 ALTER TABLE `password_resets`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `reports`
@@ -1300,6 +1437,12 @@ ALTER TABLE `requests`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `user_encryption_codes`
+--
+ALTER TABLE `user_encryption_codes`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
