@@ -26,7 +26,7 @@ if (!isset($_GET['id'])) {
 try {
     // Check if we're looking for history or regular request
     $isHistoryRequest = isset($_GET['type']) && $_GET['type'] === 'history';
-    
+
     if ($isHistoryRequest) {
         // Get history details
         $stmt = $pdo->prepare("
@@ -36,10 +36,10 @@ try {
             LEFT JOIN employees e ON a.username = e.employee_id
             WHERE h.history_id = ?
         ");
-        
+
         $stmt->execute([$_GET['id']]);
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if ($request) {
             // Format dates
             if ($request['start_date']) {
@@ -51,7 +51,7 @@ try {
             if ($request['created_at']) {
                 $request['created_at'] = date('Y-m-d H:i:s', strtotime($request['created_at']));
             }
-            
+
             echo json_encode($request);
         } else {
             echo json_encode([
@@ -84,7 +84,7 @@ try {
             FROM access_requests ar
             WHERE ar.id = ?
         ");
-        
+
         $stmt->execute([$_GET['id']]);
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -102,17 +102,18 @@ try {
 
             // Build review history array
             $review_history = [];
-            
+
             // Add Superior review if exists
             if ($request['superior_review_date']) {
                 $review_history[] = [
                     'role' => 'Superior',
+                    'employee_name' => $request['requestor_name'],
                     'action' => $request['status'] === 'rejected' ? 'Declined' : 'Recommended',
                     'note' => $request['superior_review_notes'],
                     'date' => date('Y-m-d H:i:s', strtotime($request['superior_review_date']))
                 ];
             }
-            
+
             // Add Help Desk review if exists
             if ($request['help_desk_review_date']) {
                 $review_history[] = [
@@ -122,7 +123,7 @@ try {
                     'date' => date('Y-m-d H:i:s', strtotime($request['help_desk_review_date']))
                 ];
             }
-            
+
             // Add Technical review if exists
             if ($request['technical_review_date']) {
                 $review_history[] = [
@@ -132,7 +133,7 @@ try {
                     'date' => date('Y-m-d H:i:s', strtotime($request['technical_review_date']))
                 ];
             }
-            
+
             // Add Process Owner review if exists
             if ($request['process_owner_review_date']) {
                 $review_history[] = [
@@ -142,7 +143,7 @@ try {
                     'date' => date('Y-m-d H:i:s', strtotime($request['process_owner_review_date']))
                 ];
             }
-            
+
             // Add Admin review if exists
             if ($request['admin_review_date']) {
                 $review_history[] = [
@@ -172,4 +173,3 @@ try {
         'message' => 'Database error: ' . $e->getMessage()
     ]);
 }
-?>

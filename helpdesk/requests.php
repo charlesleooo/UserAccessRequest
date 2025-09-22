@@ -9,8 +9,10 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'help_desk') {
 }
 
 // Check if the user needs to enter the encryption code
-if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] || 
-    (time() - $_SESSION['requests_verified_time'] > 1800)) { // Expire after 30 minutes
+if (
+    !isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] ||
+    (time() - $_SESSION['requests_verified_time'] > 1800)
+) { // Expire after 30 minutes
     header('Location: requests_auth.php');
     exit();
 }
@@ -33,11 +35,11 @@ try {
             FROM access_requests ar 
             WHERE ar.status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
-            
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Check if any approved requests with successful testing should be removed from access_requests
     foreach ($requests as $index => $request) {
         if ($request['status'] === 'approved' && $request['testing_status'] === 'success') {
@@ -46,11 +48,11 @@ try {
             $checkStmt = $pdo->prepare($checkSql);
             $checkStmt->execute([$request['access_request_number']]);
             $exists = $checkStmt->fetchColumn();
-            
+
             if ($exists > 0) {
                 // Remove from the results array as it's already in approval history
                 unset($requests[$index]);
-                
+
                 // Also remove from access_requests table to ensure consistency
                 $deleteSql = "DELETE FROM access_requests WHERE id = ?";
                 $deleteStmt = $pdo->prepare($deleteSql);
@@ -58,7 +60,7 @@ try {
             }
         }
     }
-    
+
     // Re-index the array after removing elements
     $requests = array_values($requests);
 } catch (PDOException $e) {
@@ -69,6 +71,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -76,7 +79,7 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -102,6 +105,7 @@ try {
         }
     </script>
 </head>
+
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
@@ -117,21 +121,21 @@ try {
                     <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Main Menu
                     </p>
-                    
+
                     <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-dashboard text-xl'></i>
                         </span>
                         <span class="ml-3">Dashboard</span>
                     </a>
-                    
+
                     <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
                         <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
                         <span class="ml-3 font-medium">Help Desk Reviews</span>
                     </a>
-                    
+
                     <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bx-history text-xl'></i>
@@ -145,7 +149,7 @@ try {
                         <span class="ml-3">Settings</span>
                     </a>
                 </nav>
-                
+
                 <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
                     <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
@@ -225,11 +229,11 @@ try {
                                                 <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php 
-                                                    $submission_date = new DateTime($request['submission_date']);
-                                                    $today = new DateTime();
-                                                    $interval = $submission_date->diff($today);
-                                                    echo $interval->days . ' days';
+                                                <?php
+                                                $submission_date = new DateTime($request['submission_date']);
+                                                $today = new DateTime();
+                                                $interval = $submission_date->diff($today);
+                                                echo $interval->days . ' days';
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -295,19 +299,19 @@ try {
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             `;
-            
+
             document.getElementById('detailsModal').classList.remove('hidden');
-            
+
             fetch(`../admin/get_request_details.php?id=${requestId}`)
                 .then(response => response.json())
                 .then(response => {
                     if (!response.success) {
                         throw new Error(response.message || 'Failed to load request details');
                     }
-                    
+
                     const data = response.data;
                     document.getElementById('detail_request_number').textContent = data.access_request_number;
-                    
+
                     // Display superior's comments directly if they exist
                     let superiorComments = '';
                     if (data.superior_review_notes && data.superior_review_notes.trim() !== '') {
@@ -580,24 +584,24 @@ try {
                         Swal.showValidationMessage('Please enter testing instructions');
                         return false;
                     }
-                    
+
                     return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=approve&review_notes=${encodeURIComponent(instructions)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `request_id=${requestId}&action=approve&review_notes=${encodeURIComponent(instructions)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Error processing request');
+                            }
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             }).then((result) => {
@@ -648,34 +652,34 @@ try {
                         const forwardTo = document.getElementById('forward-to').value;
                         const userId = document.getElementById('user-id').value;
                         const notes = document.getElementById('review-notes').value;
-                        
+
                         if (!notes) {
                             Swal.showValidationMessage('Please enter review notes');
                             return false;
                         }
-                        
+
                         if (!userId) {
                             Swal.showValidationMessage('Please select a user');
                             return false;
                         }
-                        
+
                         return fetch('../admin/process_request.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}&forward_to=${forwardTo}&user_id=${userId}`
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (!data.success) {
-                                throw new Error(data.message || 'Error processing request');
-                            }
-                            return data;
-                        })
-                        .catch(error => {
-                            Swal.showValidationMessage(error.message);
-                        });
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}&forward_to=${forwardTo}&user_id=${userId}`
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (!data.success) {
+                                    throw new Error(data.message || 'Error processing request');
+                                }
+                                return data;
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage(error.message);
+                            });
                     },
                     allowOutsideClick: () => !Swal.isLoading()
                 }).then((result) => {
@@ -691,54 +695,54 @@ try {
                 });
             } else {
                 // Handle decline case (existing code)
-            Swal.fire({
+                Swal.fire({
                     title: 'Decline Request?',
-                input: 'textarea',
+                    input: 'textarea',
                     inputLabel: 'Review Notes',
                     inputPlaceholder: 'Enter your review notes...',
-                inputAttributes: {
+                    inputAttributes: {
                         'aria-label': 'Review notes'
-                },
-                showCancelButton: true,
+                    },
+                    showCancelButton: true,
                     confirmButtonText: 'Decline',
                     confirmButtonColor: '#EF4444',
-                showLoaderOnConfirm: true,
-                preConfirm: (notes) => {
-                    if (!notes) {
+                    showLoaderOnConfirm: true,
+                    preConfirm: (notes) => {
+                        if (!notes) {
                             Swal.showValidationMessage('Please enter review notes');
-                        return false;
-                    }
-                    
-                    return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
+                            return false;
                         }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: result.value.message,
-                        icon: 'success'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
+
+                        return fetch('../admin/process_request.php', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                },
+                                body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (!data.success) {
+                                    throw new Error(data.message || 'Error processing request');
+                                }
+                                return data;
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage(error.message);
+                            });
+                    },
+                    allowOutsideClick: () => !Swal.isLoading()
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: result.value.message,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    }
+                });
             }
         }
 
@@ -746,31 +750,31 @@ try {
         function updateUserDropdown() {
             const forwardTo = document.getElementById('forward-to').value;
             const userDropdown = document.getElementById('user-id');
-            
+
             // Set loading state
             userDropdown.innerHTML = '<option value="">Loading users...</option>';
-            
+
             // Determine the role to fetch
             const role = forwardTo === 'technical' ? 'technical_support' : 'process_owner';
-            
+
             console.log('Fetching users with role:', role);
-            
+
             // Fetch users with the selected role
             fetch(`fetch_users_by_role.php?role=${role}`)
                 .then(response => response.json())
                 .then(data => {
                     console.log('API response:', data);
-                    
+
                     if (data.success) {
                         // Clear dropdown
                         userDropdown.innerHTML = '';
-                        
+
                         // Add a default option
                         const defaultOption = document.createElement('option');
                         defaultOption.value = '';
                         defaultOption.textContent = `Select a ${forwardTo === 'technical' ? 'Technical Support' : 'Process Owner'} user...`;
                         userDropdown.appendChild(defaultOption);
-                        
+
                         // Add user options
                         if (data.users && data.users.length > 0) {
                             console.log('Users found:', data.users.length);
@@ -809,8 +813,8 @@ try {
             const title = action === 'approve' ? 'Send for Retest?' : 'Reject Access Request?';
             const buttonText = action === 'approve' ? 'Send for Retest' : 'Reject Access';
             const buttonColor = action === 'approve' ? '#EAB308' : '#EF4444';
-            const placeholder = action === 'approve' ? 
-                'Enter instructions for retesting...' : 
+            const placeholder = action === 'approve' ?
+                'Enter instructions for retesting...' :
                 'Enter reason for rejection...';
 
             Swal.fire({
@@ -832,24 +836,24 @@ try {
                         Swal.showValidationMessage('Please enter review notes');
                         return false;
                     }
-                    
+
                     return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Error processing request');
+                            }
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             }).then((result) => {
@@ -857,9 +861,8 @@ try {
                     Swal.fire({
                         icon: 'success',
                         title: action === 'approve' ? 'Request Sent for Retesting!' : 'Request Rejected',
-                        text: action === 'approve' ? 
-                            'The request has been sent back to the user for retesting.' : 
-                            'The request has been rejected.',
+                        text: action === 'approve' ?
+                            'The request has been sent back to the user for retesting.' : 'The request has been rejected.',
                         confirmButtonColor: '#3085d6',
                         confirmButtonText: 'OK'
                     }).then(() => {
@@ -870,4 +873,5 @@ try {
         }
     </script>
 </body>
+
 </html>
