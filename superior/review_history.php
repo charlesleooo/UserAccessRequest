@@ -8,9 +8,20 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
     exit();
 }
 
-$superior_id = $_SESSION['admin_id'];
+$admin_id = $_SESSION['admin_id'];
+$admin_username = $_SESSION['admin_username'] ?? '';
 
 try {
+    // First, get the admin_users.id from the database
+    // This is needed because the superior_id in approval_history matches admin_users.id, not the session admin_id
+    $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+    $adminQuery->execute([
+        'username' => $admin_username,
+        'employee_id' => $admin_id
+    ]);
+    $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+    $superior_id = $adminRecord ? $adminRecord['id'] : $admin_id; // Fallback to session ID if not found
+
     // Get requests reviewed by this superior
     $stmt = $pdo->prepare("
         SELECT 
@@ -67,7 +78,7 @@ try {
         ORDER BY 
             review_date DESC
     ");
-    
+
     $stmt->execute(['superior_id' => $superior_id]);
     $reviewed_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
@@ -78,6 +89,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -85,7 +97,7 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -111,6 +123,7 @@ try {
         }
     </script>
 </head>
+
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
@@ -126,21 +139,21 @@ try {
                     <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Main Menu
                     </p>
-                    
+
                     <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-dashboard text-xl'></i>
                         </span>
                         <span class="ml-3">Dashboard</span>
                     </a>
-                    
+
                     <a href="requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
                         <span class="ml-3">Requests</span>
                     </a>
-                    
+
                     <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
                         <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg">
                             <i class='bx bx-history text-xl'></i>
@@ -154,7 +167,7 @@ try {
                         <span class="ml-3">Settings</span>
                     </a>
                 </nav>
-                
+
                 <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
                     <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
@@ -166,7 +179,7 @@ try {
                 </div>
 
                 <!-- User Profile -->
-                
+
             </div>
         </div>
 
@@ -245,12 +258,11 @@ try {
                                                 <?php echo htmlspecialchars($request['review_notes']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                                <button 
-                                                    type="button" 
+                                                <button
+                                                    type="button"
                                                     class="view-btn bg-primary-100 text-primary-700 hover:bg-primary-200 px-3 py-1 rounded-md text-sm"
                                                     data-request='<?php echo json_encode($request); ?>'
-                                                    data-index="<?php echo $index; ?>"
-                                                >
+                                                    data-index="<?php echo $index; ?>">
                                                     View Details
                                                 </button>
                                             </td>
@@ -302,15 +314,15 @@ try {
             const viewButtons = document.querySelectorAll('.view-btn');
             const modal = document.getElementById('viewRequestModal');
             const closeModalBtn = document.getElementById('closeModal');
-            
+
             // Add click event to view buttons
             viewButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const requestData = JSON.parse(this.getAttribute('data-request'));
-                    
+
                     // Populate modal header with request number
                     document.getElementById('modal-request-number').textContent = requestData.access_request_number;
-                    
+
                     // Format duration details
                     let durationText = requestData.duration_type || 'N/A';
                     if (requestData.duration_type === 'temporary' && requestData.start_date && requestData.end_date) {
@@ -318,10 +330,10 @@ try {
                     } else if (requestData.duration_type === 'permanent') {
                         durationText = 'Permanent';
                     }
-                    
+
                     // Set appropriate status color
                     const statusColor = requestData.action === 'Rejected' ? 'text-red-600' : 'text-green-600';
-                    
+
                     // Build the modal content with the same grid layout as admin side
                     document.getElementById('modalContent').innerHTML = `
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -441,17 +453,17 @@ try {
                             </div>
                         </div>
                     `;
-                    
+
                     // Show modal
                     modal.classList.remove('hidden');
                 });
             });
-            
+
             // Close modal when clicking the close button
             closeModalBtn.addEventListener('click', function() {
                 modal.classList.add('hidden');
             });
-            
+
             // Close modal when clicking outside the content
             modal.addEventListener('click', function(e) {
                 if (e.target === modal) {
@@ -461,4 +473,5 @@ try {
         });
     </script>
 </body>
+
 </html>
