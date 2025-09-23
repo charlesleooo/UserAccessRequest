@@ -2,6 +2,7 @@
 session_start();
 require_once '../config.php';
 require_once '../vendor/autoload.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
@@ -44,19 +45,19 @@ try {
     ]);
     $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
     $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
-    
+
     if (!$admin_users_id) {
         // Try to find by role as a fallback
         $roleQuery = $pdo->prepare("SELECT id FROM admin_users WHERE role = :role LIMIT 1");
         $roleQuery->execute(['role' => $_SESSION['role']]);
         $roleRecord = $roleQuery->fetch(PDO::FETCH_ASSOC);
         $admin_users_id = $roleRecord ? $roleRecord['id'] : null;
-        
+
         if (!$admin_users_id) {
             throw new Exception('Admin user record not found. Cannot complete approval process.');
         }
     }
-    
+
     $pdo->beginTransaction();
     $transaction_active = true;
 
@@ -65,7 +66,7 @@ try {
     $review_notes = $_POST['review_notes'];
     $admin_id = $_SESSION['admin_id'];
     $role = $_SESSION['role'];
-    
+
     // Get forwarding parameters if they exist
     $forward_to = $_POST['forward_to'] ?? null;
     $forward_user_id = $_POST['user_id'] ?? null;
@@ -74,7 +75,7 @@ try {
     $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE id = ?");
     $stmt->execute([$request_id]);
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$request) {
         throw new Exception('Request not found');
     }
@@ -94,7 +95,7 @@ try {
             $date_field = 'superior_review_date';
             $notes_field = 'superior_notes';
             break;
-            
+
         case 'help_desk':
             $can_handle = ($current_status === 'pending_help_desk');
             // For help desk, determine next status based on forward_to parameter
@@ -115,7 +116,7 @@ try {
             $stmt->execute([$request_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
             $came_from_process_owner = !empty($result['process_owner_id']);
-            
+
             $next_status = ($action === 'approve') ? ($came_from_process_owner ? 'pending_admin' : 'pending_admin') : 'rejected';
             $id_field = 'technical_id';
             $date_field = 'technical_review_date';
@@ -131,14 +132,14 @@ try {
             break;
 
         case 'admin':
-            $can_handle = ($current_status === 'pending_admin' || 
-                         ($current_status === 'pending_testing' && in_array($action, ['finalize_approval', 'reject_after_testing', 'retry_testing'])));
-            
+            $can_handle = ($current_status === 'pending_admin' ||
+                ($current_status === 'pending_testing' && in_array($action, ['finalize_approval', 'reject_after_testing', 'retry_testing'])));
+
             if ($action === 'approve') {
                 // After admin approval, send to technical support for testing setup
                 if ($current_status === 'pending_admin') {
                     $next_status = 'pending_testing_setup';
-                    
+
                     // Update the request to include admin approval and move to technical support
                     $sql = "UPDATE access_requests SET 
                             status = :next_status,
@@ -147,7 +148,7 @@ try {
                             admin_notes = :review_notes,
                             testing_status = 'awaiting_setup'
                             WHERE id = :request_id";
-                            
+
                     $stmt = $pdo->prepare($sql);
                     $result = $stmt->execute([
                         'next_status' => $next_status,
@@ -155,15 +156,15 @@ try {
                         'review_notes' => $review_notes,
                         'request_id' => $request_id
                     ]);
-                    
+
                     if (!$result) {
                         throw new Exception('Failed to update request status');
                     }
-                    
+
                     // Send email notification to technical support team
                     require_once '../vendor/autoload.php';
                     $mail = new PHPMailer(true);
-                    
+
                     try {
                         // Server settings
                         $mail->isSMTP();
@@ -227,11 +228,11 @@ try {
                         error_log("Email sending failed: {$mail->ErrorInfo}");
                         $message = "Request approved and sent to technical support, but email notification failed.";
                     }
-                    
+
                     // Return early since we've handled everything for testing setup phase
                     $pdo->commit();
                     $transaction_active = false;
-                    
+
                     echo json_encode([
                         'success' => true,
                         'message' => $message
@@ -256,22 +257,22 @@ try {
                         testing_status = 'awaiting_setup',
                         testing_notes = CONCAT('Previous testing failed. Retrying testing. ', :review_notes)
                         WHERE id = :request_id";
-                        
+
                 $stmt = $pdo->prepare($sql);
                 $result = $stmt->execute([
                     'next_status' => $next_status,
                     'review_notes' => $review_notes,
                     'request_id' => $request_id
                 ]);
-                
+
                 if (!$result) {
                     throw new Exception('Failed to update request status for testing retry');
                 }
-                
+
                 $message = "Request has been sent back for testing retry.";
                 $pdo->commit();
                 $transaction_active = false;
-                
+
                 echo json_encode([
                     'success' => true,
                     'message' => $message
@@ -280,7 +281,7 @@ try {
             } else {
                 $next_status = 'rejected';
             }
-            
+
             $id_field = 'admin_id';
             $date_field = 'admin_review_date';
             $notes_field = 'admin_notes';
@@ -299,7 +300,7 @@ try {
         if (!$forward_to || !$forward_user_id) {
             throw new Exception('Forward destination and user must be specified');
         }
-        
+
         // Verify the selected user exists and has the correct role
         $expected_role = $forward_to === 'technical' ? 'technical_support' : 'process_owner';
         $userStmt = $pdo->prepare("SELECT id, username FROM admin_users WHERE id = :user_id AND role = :role");
@@ -308,7 +309,7 @@ try {
             'role' => $expected_role
         ]);
         $forwardUser = $userStmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$forwardUser) {
             throw new Exception('Selected user is not valid for forwarding');
         }
@@ -320,13 +321,13 @@ try {
             $id_field = :admin_users_id,
             $date_field = NOW(),
             $notes_field = :review_notes";
-            
+
     // If help desk is forwarding, set the next reviewer's ID
     if ($role === 'help_desk' && $action === 'approve') {
         $next_id_field = $forward_to === 'technical' ? 'technical_id' : 'process_owner_id';
         $sql .= ", $next_id_field = :forward_user_id";
     }
-    
+
     $sql .= " WHERE id = :request_id";
 
     $stmt = $pdo->prepare($sql);
@@ -336,12 +337,12 @@ try {
         'review_notes' => $review_notes,
         'request_id' => $request_id
     ];
-    
+
     // Add forward_user_id to params if forwarding
     if ($role === 'help_desk' && $action === 'approve') {
         $params['forward_user_id'] = $forward_user_id;
     }
-    
+
     $result = $stmt->execute($params);
 
     if (!$result) {
@@ -352,7 +353,7 @@ try {
     if ($next_status === 'pending_testing_setup') {
         // Send email notification for testing phase
         $mail = new PHPMailer(true);
-        
+
         try {
             // Server settings
             $mail->isSMTP();
@@ -424,17 +425,157 @@ try {
 
     // If request is approved by admin or rejected by anyone, move to history
     if ($next_status === 'approved' || $next_status === 'rejected') {
-        // ... rest of the code for moving to history ...
+        // Get the current request data for history
+        $requestDataQuery = $pdo->prepare("
+            SELECT 
+                id, 
+                access_request_number, 
+                requestor_name, 
+                employee_id, 
+                email, 
+                department, 
+                business_unit, 
+                access_type, 
+                system_type, 
+                justification, 
+                duration_type,
+                start_date, 
+                end_date, 
+                superior_id, 
+                superior_notes,
+                help_desk_id,
+                help_desk_notes, 
+                process_owner_id,
+                process_owner_notes, 
+                technical_id,
+                technical_notes, 
+                admin_id
+            FROM 
+                access_requests 
+            WHERE 
+                id = :request_id
+        ");
+
+        $requestDataQuery->execute(['request_id' => $request_id]);
+        $requestData = $requestDataQuery->fetch(PDO::FETCH_ASSOC);
+
+        if ($requestData) {
+            // Insert into approval_history table
+            $historyInsert = $pdo->prepare("
+                INSERT INTO approval_history (
+                    access_request_number,
+                    requestor_name, 
+                    employee_id, 
+                    email, 
+                    department, 
+                    business_unit, 
+                    access_type, 
+                    system_type,
+                    justification, 
+                    duration_type, 
+                    start_date, 
+                    end_date,
+                    superior_id, 
+                    superior_notes,
+                    help_desk_id, 
+                    help_desk_notes,
+                    process_owner_id, 
+                    process_owner_notes,
+                    technical_id, 
+                    technical_notes,
+                    admin_id, 
+                    action, 
+                    comments,
+                    created_at
+                ) VALUES (
+                    :access_request_number,
+                    :requestor_name, 
+                    :employee_id, 
+                    :email, 
+                    :department, 
+                    :business_unit, 
+                    :access_type, 
+                    :system_type,
+                    :justification, 
+                    :duration_type, 
+                    :start_date, 
+                    :end_date,
+                    :superior_id, 
+                    :superior_notes,
+                    :help_desk_id, 
+                    :help_desk_notes,
+                    :process_owner_id, 
+                    :process_owner_notes,
+                    :technical_id, 
+                    :technical_notes,
+                    :admin_id, 
+                    :action, 
+                    :comments,
+                    NOW()
+                )
+            ");
+
+            // Determine who made the final decision and what notes to use
+            $decision_maker_notes = '';
+            if ($role === 'admin') {
+                $decision_maker_notes = $review_notes;
+            } elseif ($role === 'superior') {
+                $decision_maker_notes = $requestData['superior_notes'];
+            } elseif ($role === 'help_desk') {
+                $decision_maker_notes = $requestData['help_desk_notes'];
+            } elseif ($role === 'technical_support') {
+                $decision_maker_notes = $requestData['technical_notes'];
+            } elseif ($role === 'process_owner') {
+                $decision_maker_notes = $requestData['process_owner_notes'];
+            }
+
+            // We need to use the specific ID of the role who is making the action
+            // This ensures that the review shows up in the correct review history
+            $currentRoleId = $_SESSION['admin_id'];
+
+            $historyParams = [
+                'access_request_number' => $requestData['access_request_number'],
+                'requestor_name' => $requestData['requestor_name'],
+                'employee_id' => $requestData['employee_id'],
+                'email' => $requestData['email'],
+                'department' => $requestData['department'],
+                'business_unit' => $requestData['business_unit'],
+                'access_type' => $requestData['access_type'],
+                'system_type' => $requestData['system_type'],
+                'justification' => $requestData['justification'],
+                'duration_type' => $requestData['duration_type'],
+                'start_date' => $requestData['start_date'],
+                'end_date' => $requestData['end_date'],
+                'superior_id' => $role === 'superior' ? $currentRoleId : $requestData['superior_id'],
+                'superior_notes' => $requestData['superior_notes'],
+                'help_desk_id' => $role === 'help_desk' ? $currentRoleId : $requestData['help_desk_id'],
+                'help_desk_notes' => $requestData['help_desk_notes'],
+                'process_owner_id' => $role === 'process_owner' ? $currentRoleId : $requestData['process_owner_id'],
+                'process_owner_notes' => $requestData['process_owner_notes'],
+                'technical_id' => ($role === 'technical' || $role === 'technical_support') ? $currentRoleId : $requestData['technical_id'],
+                'technical_notes' => $requestData['technical_notes'],
+                'admin_id' => $role === 'admin' ? $currentRoleId : $requestData['admin_id'],
+                'action' => $action === 'approve' ? 'approved' : 'rejected',
+                'comments' => $decision_maker_notes
+            ];
+
+            $historyInsert->execute($historyParams);
+
+            // Update message to indicate history was created
+            $message .= " and moved to review history.";
+        } else {
+            // Log an error if we couldn't find the request data
+            error_log("Failed to find request data for history record: Request ID {$request_id}");
+        }
     }
 
     $pdo->commit();
     $transaction_active = false;
-    
+
     echo json_encode([
         'success' => true,
         'message' => $message
     ]);
-
 } catch (Exception $e) {
     if ($transaction_active) {
         $pdo->rollBack();
@@ -444,4 +585,4 @@ try {
         'success' => false,
         'message' => $e->getMessage()
     ]);
-} 
+}

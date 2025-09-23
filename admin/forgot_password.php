@@ -11,49 +11,49 @@ error_reporting(E_ALL);
 // Handle AJAX requests
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
     header('Content-Type: application/json');
-    
+
     $employee_email = $_POST['employee_email'] ?? '';
-    
+
     // Log the password reset attempt
     error_log("Admin password reset attempt for: " . $employee_email);
-    
+
     // Check if email exists with admin privileges
     $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
     $stmt->execute([$employee_email]);
     $user = $stmt->fetch();
-    
+
     if (!$user) {
         echo json_encode(['status' => 'error', 'message' => 'No admin account found with that email address']);
         exit;
     }
-    
+
     // Generate a unique token
     $token = bin2hex(random_bytes(16)); // 32 characters
     $expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
-    
+
     error_log("==== ADMIN PASSWORD RESET REQUESTED ====");
     error_log("Admin Email: " . $employee_email);
     error_log("Generated token: " . $token);
     error_log("Expiration time: " . $expires);
-    
+
     try {
         // Delete any existing tokens for this email
         $stmt = $pdo->prepare("DELETE FROM password_resets WHERE employee_email = ?");
         $stmt->execute([$employee_email]);
-        
+
         // Insert new token
         $stmt = $pdo->prepare("INSERT INTO password_resets (employee_email, token, expires_at) VALUES (?, ?, ?)");
         $stmt->execute([$employee_email, $token, $expires]);
-        
+
         // Create reset URL with proper encoding and path construction
         $encodedToken = urlencode($token);
         $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https://' : 'http://';
         $domain = $_SERVER['HTTP_HOST'];
         $path = dirname(dirname($_SERVER['PHP_SELF']));  // Go up one level from admin directory
         $resetUrl = $protocol . $domain . $path . '/admin/reset_password.php?token=' . $encodedToken;
-        
+
         error_log("Generated reset URL: " . $resetUrl);
-        
+
         // Configure and send email
         $mail = new PHPMailer\PHPMailer\PHPMailer(true);
         try {
@@ -73,7 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             // Content
             $mail->isHTML(true);
             $mail->Subject = 'Admin Portal Password Reset Request';
-            
+
             // Email body with improved styling and clear instructions
             $mail->Body = "
                 <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
@@ -91,7 +91,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                     <p style='color: #6b7280; font-size: 14px; margin-bottom: 0;'>Regards,<br>Alsons Agribusiness</p>
                 </div>
             ";
-            
+
             // Plain text version
             $mail->AltBody = "
                 Admin Password Reset Request
@@ -109,26 +109,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                 Regards,
                 Alsons Agribusiness
             ";
-            
+
             $mail->send();
             error_log("Reset email sent successfully to {$employee_email}");
             echo json_encode(['status' => 'success', 'message' => 'Password reset link has been sent to your email']);
-            
         } catch (Exception $e) {
             error_log("Failed to send reset email: " . $mail->ErrorInfo);
             echo json_encode(['status' => 'error', 'message' => 'Failed to send reset email. Please try again later.']);
         }
-        
     } catch (PDOException $e) {
         error_log("Database error: " . $e->getMessage());
         echo json_encode(['status' => 'error', 'message' => 'A database error occurred. Please try again later.']);
     }
-    
+
     exit;
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -161,6 +160,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         }
     </script>
 </head>
+
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
         <div class="p-8">
@@ -173,11 +173,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                 <div>
                     <label for="employee_email" class="block text-sm font-medium text-gray-700">Email Address</label>
                     <input type="email" id="employee_email" name="employee_email" required
-                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500">
                 </div>
 
                 <button type="submit"
-                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                     Send Reset Link
                 </button>
             </form>
@@ -193,7 +193,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             event.preventDefault();
             const form = event.target;
             const formData = new FormData(form);
-            
+
             // Show loading state
             Swal.fire({
                 title: 'Sending Reset Link',
@@ -203,44 +203,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                     Swal.showLoading();
                 }
             });
-            
+
             // Send AJAX request
             fetch(window.location.href, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: data.message,
-                        confirmButtonColor: '#0ea5e9'
-                    }).then(() => {
-                        window.location.href = 'login.php';
-                    });
-                } else {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: data.message,
+                            confirmButtonColor: '#0ea5e9'
+                        }).then(() => {
+                            window.location.href = 'login.php';
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                            confirmButtonColor: '#0ea5e9'
+                        });
+                    }
+                })
+                .catch(error => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: data.message,
+                        text: 'An unexpected error occurred. Please try again.',
                         confirmButtonColor: '#0ea5e9'
                     });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'An unexpected error occurred. Please try again.',
-                    confirmButtonColor: '#0ea5e9'
                 });
-            });
         }
     </script>
 </body>
+
 </html>
