@@ -3,6 +3,7 @@ session_start();
 require_once '../config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
+
 // Enable error reporting for development
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
@@ -11,14 +12,14 @@ error_reporting(E_ALL);
 // Handle AJAX requests
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
     header('Content-Type: application/json');
-    
+
     if (isset($_POST['send_otp'])) {
         $employee_email = $_POST['employee_email'] ?? '';
         $password = $_POST['password'] ?? '';
-        
+
         // Log the credentials attempt (without the actual password)
         error_log("Login attempt for: " . $employee_email);
-        
+
         // Fetch employee by email
         $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ?");
         $stmt->execute([$employee_email]);
@@ -28,17 +29,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             echo json_encode(['status' => 'error', 'message' => 'Email not found']);
             exit;
         }
-        
+
         // Check if user is archived (inactive)
         $archiveStmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
         $archiveStmt->execute([$user['employee_id']]);
         $archivedUser = $archiveStmt->fetch();
-        
+
         if ($archivedUser) {
             echo json_encode(['status' => 'error', 'message' => 'Your account has been deactivated. Please contact the administrator.']);
             exit;
         }
-        
+
         if (!password_verify($password, $user['password'])) {
             echo json_encode(['status' => 'error', 'message' => 'Invalid password']);
             exit;
@@ -49,7 +50,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         $_SESSION['otp'] = $otp;
         $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
         $_SESSION['temp_user'] = $user;
-        
+
         error_log("OTP generated for " . $employee_email . ": " . $otp);
 
         // Send OTP via PHPMailer
@@ -71,11 +72,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             $mail->Body = "Hello {$user['employee_name']}, your OTP is <b>$otp</b>. It expires in 5 minutes.";
 
             $mail->send();
-            
+
             // Ensure session is written to storage
             session_write_close();
             session_start();
-            
+
             error_log("OTP email sent successfully to " . $user['employee_email']);
             echo json_encode(['status' => 'success', 'message' => 'OTP sent successfully']);
         } catch (Exception $e) {
@@ -84,19 +85,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         }
         exit;
     }
-    
+
     if (isset($_POST['verify_otp'])) {
         $entered_otp = $_POST['otp'] ?? '';
         if (!isset($_SESSION['otp'], $_SESSION['otp_expiry'])) {
             echo json_encode(['status' => 'error', 'message' => 'OTP session expired. Please try again.']);
             exit;
         }
-        
+
         if ($_SESSION['otp_expiry'] < time()) {
             echo json_encode(['status' => 'error', 'message' => 'OTP has expired. Please request a new one.']);
             exit;
         }
-        
+
         if ($entered_otp == $_SESSION['otp'] && time() < $_SESSION['otp_expiry']) {
             if (isset($_SESSION['temp_user'])) {
                 $user = $_SESSION['temp_user'];
@@ -123,7 +124,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
 }
 
 // OTP Generation function
-function generateOTP($length = 6) {
+function generateOTP($length = 6)
+{
     $characters = '0123456789';
     $otp = '';
     for ($i = 0; $i < $length; $i++) {
@@ -134,6 +136,7 @@ function generateOTP($length = 6) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -157,12 +160,22 @@ function generateOTP($length = 6) {
                     },
                     keyframes: {
                         fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' }
+                            '0%': {
+                                opacity: '0'
+                            },
+                            '100%': {
+                                opacity: '1'
+                            }
                         },
                         slideUp: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                            '0%': {
+                                transform: 'translateY(20px)',
+                                opacity: '0'
+                            },
+                            '100%': {
+                                transform: 'translateY(0)',
+                                opacity: '1'
+                            }
                         }
                     }
                 }
@@ -173,10 +186,11 @@ function generateOTP($length = 6) {
         .form-container {
             backdrop-filter: blur(10px);
         }
-        
+
         .bg-pattern {
             background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236366f1' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-        }    </style>
+        }
+    </style>
     <script>
         function handleLogin(event) {
             event.preventDefault();
@@ -227,19 +241,19 @@ function generateOTP($length = 6) {
 
             // Send request with AJAX
             fetch(form.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Show OTP input modal with improved design
-                    Swal.fire({
-                        title: 'Enter OTP',
-                        html: `
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show OTP input modal with improved design
+                        Swal.fire({
+                            title: 'Enter OTP',
+                            html: `
                             <div class="space-y-4">
                                 <div class="flex justify-center">
                                     <div class="rounded-full bg-green-100 p-3">
@@ -261,144 +275,145 @@ function generateOTP($length = 6) {
                                 <input type="hidden" id="complete-otp">
                             </div>
                         `,
-                        showCancelButton: true,
-                        confirmButtonText: 'Verify',
-                        cancelButtonText: 'Cancel',
-                        showLoaderOnConfirm: true,
-                        allowOutsideClick: false,
-                        customClass,
-                        buttonsStyling: false,
-                        didOpen: () => {
-                            const otpInputs = document.querySelectorAll('#otp-container input');
-                            const completeOtp = document.getElementById('complete-otp');
-                            
-                            // Focus first input on open
-                            otpInputs[0].focus();
-                            
-                            // Handle input for each box
-                            otpInputs.forEach((input, index) => {
-                                // Auto focus next input
-                                input.addEventListener('input', function() {
-                                    if (this.value.length === 1) {
-                                        if (index < otpInputs.length - 1) {
-                                            otpInputs[index + 1].focus();
-                                        }
-                                    }
-                                    
-                                    // Update complete OTP value
-                                    let otp = '';
-                                    otpInputs.forEach(input => otp += input.value);
-                                    completeOtp.value = otp;
-                                });
-                                
-                                // Handle backspace
-                                input.addEventListener('keydown', function(e) {
-                                    if (e.key === 'Backspace' && !this.value) {
-                                        if (index > 0) {
-                                            otpInputs[index - 1].focus();
-                                        }
-                                    }
-                                });
-                                
-                                // Handle paste
-                                input.addEventListener('paste', function(e) {
-                                    e.preventDefault();
-                                    const paste = (e.clipboardData || window.clipboardData).getData('text');
-                                    if (!isNaN(paste) && paste.length <= otpInputs.length) {
-                                        for (let i = 0; i < paste.length; i++) {
-                                            if (index + i < otpInputs.length) {
-                                                otpInputs[index + i].value = paste[i];
+                            showCancelButton: true,
+                            confirmButtonText: 'Verify',
+                            cancelButtonText: 'Cancel',
+                            showLoaderOnConfirm: true,
+                            allowOutsideClick: false,
+                            customClass,
+                            buttonsStyling: false,
+                            didOpen: () => {
+                                const otpInputs = document.querySelectorAll('#otp-container input');
+                                const completeOtp = document.getElementById('complete-otp');
+
+                                // Focus first input on open
+                                otpInputs[0].focus();
+
+                                // Handle input for each box
+                                otpInputs.forEach((input, index) => {
+                                    // Auto focus next input
+                                    input.addEventListener('input', function() {
+                                        if (this.value.length === 1) {
+                                            if (index < otpInputs.length - 1) {
+                                                otpInputs[index + 1].focus();
                                             }
                                         }
-                                        
-                                        // Focus appropriate input after paste
-                                        const focusIndex = Math.min(index + paste.length, otpInputs.length - 1);
-                                        otpInputs[focusIndex].focus();
-                                        
-                                        // Update complete OTP
+
+                                        // Update complete OTP value
                                         let otp = '';
                                         otpInputs.forEach(input => otp += input.value);
                                         completeOtp.value = otp;
-                                    }
+                                    });
+
+                                    // Handle backspace
+                                    input.addEventListener('keydown', function(e) {
+                                        if (e.key === 'Backspace' && !this.value) {
+                                            if (index > 0) {
+                                                otpInputs[index - 1].focus();
+                                            }
+                                        }
+                                    });
+
+                                    // Handle paste
+                                    input.addEventListener('paste', function(e) {
+                                        e.preventDefault();
+                                        const paste = (e.clipboardData || window.clipboardData).getData('text');
+                                        if (!isNaN(paste) && paste.length <= otpInputs.length) {
+                                            for (let i = 0; i < paste.length; i++) {
+                                                if (index + i < otpInputs.length) {
+                                                    otpInputs[index + i].value = paste[i];
+                                                }
+                                            }
+
+                                            // Focus appropriate input after paste
+                                            const focusIndex = Math.min(index + paste.length, otpInputs.length - 1);
+                                            otpInputs[focusIndex].focus();
+
+                                            // Update complete OTP
+                                            let otp = '';
+                                            otpInputs.forEach(input => otp += input.value);
+                                            completeOtp.value = otp;
+                                        }
+                                    });
                                 });
-                            });
-                        },
-                        preConfirm: () => {
-                            const completeOtp = document.getElementById('complete-otp').value;
-                            if (!completeOtp || completeOtp.length !== 6) {
-                                Swal.showValidationMessage('Please enter the complete 6-digit OTP code');
-                                return false;
+                            },
+                            preConfirm: () => {
+                                const completeOtp = document.getElementById('complete-otp').value;
+                                if (!completeOtp || completeOtp.length !== 6) {
+                                    Swal.showValidationMessage('Please enter the complete 6-digit OTP code');
+                                    return false;
+                                }
+
+                                return fetch(form.action, {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/x-www-form-urlencoded',
+                                            'X-Requested-With': 'XMLHttpRequest'
+                                        },
+                                        body: new URLSearchParams({
+                                            verify_otp: '1',
+                                            otp: completeOtp
+                                        }).toString()
+                                    })
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error('Network response was not ok');
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(data => {
+                                        if (data.status === 'error') {
+                                            throw new Error(data.message);
+                                        }
+                                        return data;
+                                    })
+                                    .catch(error => {
+                                        Swal.showValidationMessage(error.message || 'An error occurred');
+                                        return false;
+                                    });
                             }
-                            
-                            return fetch(form.action, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/x-www-form-urlencoded',
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                body: new URLSearchParams({
-                                    verify_otp: '1',
-                                    otp: completeOtp
-                                }).toString()
-                            })
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('Network response was not ok');
-                                }
-                                return response.json();
-                            })
-                            .then(data => {
-                                if (data.status === 'error') {
-                                    throw new Error(data.message);
-                                }
-                                return data;
-                            })
-                            .catch(error => {
-                                Swal.showValidationMessage(error.message || 'An error occurred');
-                                return false;
-                            });
-                        }
-                    }).then((result) => {
-                        if (result.isConfirmed && result.value.status === 'success') {
-                            window.location.href = result.value.redirect;
-                        }
-                    }).catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
-                } else {
+                        }).then((result) => {
+                            if (result.isConfirmed && result.value.status === 'success') {
+                                window.location.href = result.value.redirect;
+                            }
+                        }).catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message,
+                            customClass: {
+                                ...customClass,
+                                icon: 'text-red-500 border-red-200'
+                            },
+                            buttonsStyling: false
+                        });
+                    }
+                })
+                .catch(error => {
                     Swal.fire({
                         icon: 'error',
                         title: 'Error',
-                        text: data.message,
-                        customClass: {
-                            ...customClass,
-                            icon: 'text-red-500 border-red-200'
-                        },
-                        buttonsStyling: false
+                        text: 'An unexpected error occurred. Please try again.',
+                        confirmButtonColor: '#0084FF'
                     });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'An unexpected error occurred. Please try again.',
-                    confirmButtonColor: '#0084FF'
                 });
-            });
         }
     </script>
 </head>
+
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div x-data="{ loading: false, passwordVisible: false }" 
-         class="form-container animate-fade-in bg-white p-0 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
-        
+    <div x-data="{ loading: false, passwordVisible: false }"
+        class="form-container animate-fade-in bg-white p-0 rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden">
+
         <div class="p-12 text-center relative bg-white">
-            <div class="absolute inset-x-0 top-1/2 transform -translate-y-1/4 h-full" 
-                 style="background-image: url('../logo.png'); background-repeat: no-repeat; background-size: contain; background-position: center;">
+            <div class="absolute inset-x-0 top-1/2 transform -translate-y-1/4 h-full"
+                style="background-image: url('../logo.png'); background-repeat: no-repeat; background-size: contain; background-position: center;">
             </div>
         </div>
-        
+
         <div class="p-8 bg-white">
             <div class="text-center mb-6">
                 <h1 class="text-3xl font-bold text-gray-800 mb-2">User Access Request (UAR)</h1>
@@ -416,7 +431,7 @@ function generateOTP($length = 6) {
                                 <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
                             </svg>
                         </div>
-                        <input type="email" id="employee_email" name="employee_email" required 
+                        <input type="email" id="employee_email" name="employee_email" required
                             class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Enter your email">
                     </div>
@@ -430,7 +445,7 @@ function generateOTP($length = 6) {
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
                             </svg>
-                        </div>                        <input :type="passwordVisible ? 'text' : 'password'" id="password" name="password" required
+                        </div> <input :type="passwordVisible ? 'text' : 'password'" id="password" name="password" required
                             class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                             placeholder="Enter your password">
                         <button type="button" @click="passwordVisible = !passwordVisible" class="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -448,23 +463,23 @@ function generateOTP($length = 6) {
 
                 <!-- Remember Me and Forgot Password -->
                 <div class="flex items-center justify-between">
-                    <div class="flex items-center">                        
+                    <div class="flex items-center">
                         <input type="checkbox" id="remember-me" name="remember-me"
                             class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
                         <label for="remember-me" class="ml-2 text-sm text-gray-700">Remember me</label>
-                    </div>                    <a href="forgot_password.php" class="text-sm text-primary hover:text-secondary">
+                    </div> <a href="forgot_password.php" class="text-sm text-primary hover:text-secondary">
                         Forgot your password?
                     </a>
                 </div>
 
-                <!-- Sign In Button -->                
-                 <button type="submit" name="send_otp" value="1"
-                        class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
+                <!-- Sign In Button -->
+                <button type="submit" name="send_otp" value="1"
+                    class="w-full bg-primary text-white py-2 px-4 rounded-md hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2">
                     Sign In
                 </button>
 
-                <!-- Sign Up     Button -->                
-                 <div class="mt-4 text-center">
+                <!-- Sign Up     Button -->
+                <div class="mt-4 text-center">
                     <span class="text-gray-600">Don't have an account?</span>
                     <a href="signup.php" class="ml-1 text-primary hover:text-secondary font-medium">
                         Sign up
@@ -473,19 +488,20 @@ function generateOTP($length = 6) {
             </form>
 
             <!-- Back to Home Page -->
-            <div class="mt-6 text-center">                
+            <div class="mt-6 text-center">
                 <a href="../index.php" class="inline-flex items-center text-sm text-gray-600 hover:text-primary">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
                     Back to Home Page
                 </a>
             </div>
         </div>
-        
+
         <div class="px-8 py-4 bg-gray-50 text-center text-sm text-gray-600">
             &copy; <?php echo date('Y'); ?> Alsons Agribusiness Unit. All rights reserved.
         </div>
     </div>
 </body>
+
 </html>

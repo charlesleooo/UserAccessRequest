@@ -1,0 +1,23 @@
+{
+  "name": "useraccessrequest",
+  "version": "1.0.0",
+  "description": "A comprehensive PHP-based system for managing and automating user access requests within an organization. This system streamlines the process of requesting, reviewing, and approving access to various systems and applications.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/charlesleooo/UserAccessRequest.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/charlesleooo/UserAccessRequest/issues"
+  },
+  "homepage": "https://github.com/charlesleooo/UserAccessRequest#readme",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.13",
+    "tailwindcss": "^4.1.13"
+  }
+}

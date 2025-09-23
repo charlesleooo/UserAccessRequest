@@ -1143,7 +1143,7 @@ try {
                             end_date: endDate,
                             date_needed: dateNeeded,
                             justification: justification,
-                            user_names: [username]
+                            user_names: ['username']
                         });
                     } else {
                         isValid = false;
@@ -1183,7 +1183,7 @@ try {
                                 end_date: endDate,
                                 date_needed: dateNeeded,
                                 justification: justification,
-                                user_names: [username]
+                                user_names: ['username']
                             });
                         }
                     } else {
