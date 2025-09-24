@@ -138,10 +138,10 @@ try {
         <!-- Sidebar -->
         <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300">
             <div class="flex flex-col h-full">
-                <!-- Logo -->
-                <div class="text-center">
-                    <img src="../logo.png" alt="Alsons Agribusiness Logo" class="mt-1 w-60 h-auto mx-auto">
-                </div><br>
+                <!-- Logo-->
+                <div class="flex items-center justify-center py-6 border-b border-gray-100">
+                    <img src="../logo.png" alt="Alsons Agribusiness Logo" class="w-48 h-auto">
+                </div>
 
                 <!-- Navigation Menu -->
                 <nav class="flex-1 pt-6 pb-4 px-4 space-y-1 overflow-y-auto">

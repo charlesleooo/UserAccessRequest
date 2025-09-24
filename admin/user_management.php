@@ -459,10 +459,10 @@ $existing_usernames = array_column($admin_users, 'username');
         <!-- Sidebar -->
         <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300">
             <div class="flex flex-col h-full">
-                <!-- Logo -->
-                <div class="text-center">
-                    <img src="../logo.png" alt="Alsons Agribusiness Logo" class="mt-1 w-60 h-auto mx-auto">
-                </div><br>
+                <!-- Logo-->
+                <div class="flex items-center justify-center py-6 border-b border-gray-100">
+                    <img src="../logo.png" alt="Alsons Agribusiness Logo" class="w-48 h-auto">
+                </div>
 
                 <!-- Navigation Menu -->
                 <nav class="flex-1 pt-6 pb-4 px-4 space-y-1 overflow-y-auto">
@@ -505,10 +505,10 @@ $existing_usernames = array_column($admin_users, 'username');
                         Account
                     </p>
                     
-                    <a href="#" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition-all hover:bg-indigo-100 group">
+                    <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-200">
                             <i class='bx bx-user text-xl'></i>
-                        </span>
+                        </span>     
                         <span class="ml-3 font-medium">User Management</span>
                     </a>
                     
