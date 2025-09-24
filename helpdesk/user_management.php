@@ -490,6 +490,13 @@ $existing_usernames = array_column($admin_users, 'username');
                         </span>
                         <span class="ml-3">Review History</span>
                     </a>
+
+                    <a href="analytics.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
+                            <i class='bx bx-line-chart text-xl'></i>
+                        </span>
+                        <span class="ml-3">Analytics</span>
+                    </a>
                     
                     <a href="#" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition-all hover:bg-indigo-100 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-200">
@@ -497,6 +504,7 @@ $existing_usernames = array_column($admin_users, 'username');
                         </span>
                         <span class="ml-3 font-medium">User Management</span>
                     </a>
+
                     
                     <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-gray-200">
