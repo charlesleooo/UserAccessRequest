@@ -133,15 +133,15 @@ try {
     </script>
 </head>
 
-<body class="bg-gray-50">
+<body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300">
+        <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg">
             <div class="flex flex-col h-full">
                 <!-- Logo -->
                 <div class="text-center">
-                    <img src="../logo.png" alt="Logo" class="mt-1 w-60 h-auto mx-auto">
-                </div><br>
+                    <img src="../logo.png" alt="Company Logo" class="mt-1 w-60 h-auto mx-auto">
+                </div>
 
                 <!-- Navigation Menu -->
                 <nav class="flex-1 pt-6 pb-4 px-4 space-y-1 overflow-y-auto">
@@ -149,44 +149,44 @@ try {
                         Main Menu
                     </p>
                     
-                    <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
+                    <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-dashboard text-xl'></i>
                         </span>
                         <span class="ml-3">Dashboard</span>
                     </a>
                     
-                    <a href="requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
+                    <a href="requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
-                        <span class="ml-3">Requests</span>
+                        <span class="ml-3">Help Desk Reviews</span>
                     </a>
-
+                    
                     <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bx-history text-xl'></i>
                         </span>
                         <span class="ml-3">Review History</span>
                     </a>
-                    
-                    <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl transition-all hover:bg-primary-100 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg group-hover:bg-primary-200">
+                            
+                    <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
+                        <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg">
                             <i class='bx bx-cog text-xl'></i>
                         </span>
-                        <span class="ml-3 font-medium">Settings</span>
+                        <span class="ml-3">Settings</span>
                     </a>
                 </nav>
                 
                 <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
-                    <a href="../logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl transition-all hover:bg-red-100 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg group-hover:bg-red-200">
-                            <i class='bx bx-log-out text-xl group-hover:rotate-90 transition-transform duration-300'></i>
+                    <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
+                        <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
+                            <i class='bx bx-log-out text-xl'></i>
                         </span>
                         <span class="ml-3 font-medium">Logout</span>
                     </a>
-                </div>
+                </div>  
 
                 <!-- User Profile -->
                 <div class="px-4 py-4 border-t border-gray-100">
