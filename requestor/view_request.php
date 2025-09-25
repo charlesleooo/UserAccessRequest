@@ -20,18 +20,49 @@ $requestId = intval($_GET['id']);
 
 // Fetch the request details
 try {
-    $query = "SELECT ar.*, e.employee_name as requestor_name 
-              FROM access_requests ar
-              LEFT JOIN employees e ON ar.employee_id = e.employee_id
-              WHERE ar.id = :request_id AND ar.employee_id = :employee_id";
+    // First check if it's an individual or group request
+    $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
+                    SELECT access_request_number FROM access_requests WHERE id = :request_id
+                  )";
+    $stmt = $pdo->prepare($checkQuery);
+    $stmt->execute([':request_id' => $requestId]);
+    $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
     
-    $stmt = $pdo->prepare($query);
+    $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+    
+    // First get the main request details
+    $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
+                 FROM access_requests ar
+                 LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                 WHERE ar.id = :request_id AND ar.employee_id = :employee_id";
+    
+    $stmt = $pdo->prepare($mainQuery);
     $stmt->execute([
         ':request_id' => $requestId,
         ':employee_id' => $requestorId
     ]);
     
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$request) {
+        header("Location: my_requests.php");
+        exit();
+    }
+    
+    // Then get all the individual entries for this request
+    $detailsQuery = "SELECT r.username, r.application_system, r.access_type as role_access_type,
+                            r.access_duration as duration_type, r.start_date, r.end_date,
+                            r.date_needed, r.justification
+                     FROM {$requestTable} r
+                     WHERE r.access_request_number = :access_request_number
+                     ORDER BY r.username";
+    
+    $stmt = $pdo->prepare($detailsQuery);
+    $stmt->execute([
+        ':access_request_number' => $request['access_request_number']
+    ]);
+    
+    $requestDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
     if (!$request) {
         // Request not found or doesn't belong to the user
@@ -140,96 +171,103 @@ try {
                 Access Details
             </h3>
             <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h4 class="text-sm font-medium text-gray-600 mb-2">Basic Information</h4>
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">User Name:</span>
-                                <span class="font-medium text-gray-900">
-                                    <?php 
-                                    $user_names = [];
-                                    if (!empty($request['user_names'])) {
-                                        $decoded = json_decode($request['user_names'], true);
-                                        if (is_array($decoded)) {
-                                            $user_names = $decoded;
-                                        } else {
-                                            $user_names = [$request['user_names']];
-                                        }
-                                    }
-                                    echo !empty($user_names) ? htmlspecialchars(implode(', ', $user_names)) : 'N/A';
-                                    ?>
-                                </span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Access Type:</span>
-                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">System Type:</span>
-                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['system_type'] ?? 'N/A'); ?></span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Role Access Type:</span>
-                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['role_access_type'] ?? 'N/A'); ?></span>
+                <?php foreach ($requestDetails as $index => $detail): ?>
+                <div class="bg-white p-4 rounded-lg mb-4 shadow-sm">
+                    <h4 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+                        User Details #<?php echo $index + 1; ?>
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-medium text-gray-600 mb-2">Basic Information</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">User Name:</span>
+                                    <span class="font-medium text-gray-900">
+                                        <?php echo htmlspecialchars($detail['username'] ?? 'N/A'); ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Access Type:</span>
+                                    <span class="font-medium text-gray-900"><?php echo htmlspecialchars($detail['role_access_type'] ?? 'N/A'); ?></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">System Type:</span>
+                                    <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['system_type'] ?? 'N/A'); ?></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Application System:</span>
+                                    <span class="font-medium text-gray-900"><?php echo htmlspecialchars($detail['application_system'] ?? 'N/A'); ?></span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="bg-gray-50 p-4 rounded-lg">
-                        <h4 class="text-sm font-medium text-gray-600 mb-2">Access Duration</h4>
-                        <div class="space-y-3">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Duration Type:</span>
-                                <span class="font-medium text-gray-900">
-                                    <?php 
-                                    if ($request['duration_type'] === 'permanent') {
-                                        echo 'Permanent';
-                                    } else {
-                                        echo 'Temporary';
-                                    }
-                                    ?>
-                                </span>
-                            </div>
-                            <?php if ($request['duration_type'] !== 'permanent'): ?>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Start Date:</span>
-                                <span class="font-medium text-gray-900">
-                                    <?php 
-                                    $startDate = new DateTime($request['start_date']);
-                                    echo $startDate->format('M d, Y');
-                                    ?>
-                                </span>
-                            </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">End Date:</span>
-                                <span class="font-medium text-gray-900">
-                                    <?php 
-                                    $endDate = new DateTime($request['end_date']);
-                                    echo $endDate->format('M d, Y');
-                                    ?>
-                                </span>
-                            </div>
-                            <?php endif; ?>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">Date Needed:</span>
-                                <span class="font-medium text-gray-900">
-                                    <?php 
-                                    $dateNeeded = new DateTime($request['date_needed']);
-                                    echo $dateNeeded->format('M d, Y');
-                                    ?>
-                                </span>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-medium text-gray-600 mb-2">Access Duration</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Duration Type:</span>
+                                    <span class="font-medium text-gray-900">
+                                        <?php 
+                                        if (isset($detail['duration_type'])) {
+                                            echo $detail['duration_type'] === 'permanent' ? 'Permanent' : 'Temporary';
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                                <?php if (isset($detail['duration_type']) && $detail['duration_type'] !== 'permanent'): ?>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Start Date:</span>
+                                    <span class="font-medium text-gray-900">
+                                        <?php 
+                                        if (!empty($detail['start_date'])) {
+                                            $startDate = new DateTime($detail['start_date']);
+                                            echo $startDate->format('M d, Y');
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">End Date:</span>
+                                    <span class="font-medium text-gray-900">
+                                        <?php 
+                                        if (!empty($detail['end_date'])) {
+                                            $endDate = new DateTime($detail['end_date']);
+                                            echo $endDate->format('M d, Y');
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                                <?php endif; ?>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Date Needed:</span>
+                                    <span class="font-medium text-gray-900">
+                                        <?php 
+                                        if (!empty($detail['date_needed'])) {
+                                            $dateNeeded = new DateTime($detail['date_needed']);
+                                            echo $dateNeeded->format('M d, Y');
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                </div>
-                <div class="bg-gray-50 p-4 rounded-lg mt-4">
-                    <h4 class="text-sm font-medium text-gray-600 mb-2">Justification</h4>
-                    <div class="text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['justification'] ?? 'No justification provided.')); ?>
+                    <div class="bg-gray-50 p-4 rounded-lg mt-4">
+                        <h4 class="text-sm font-medium text-gray-600 mb-2">Justification</h4>
+                        <div class="text-gray-700">
+                            <?php echo nl2br(htmlspecialchars($detail['justification'] ?? 'No justification provided.')); ?>
+                        </div>
                     </div>
                 </div>
+                <?php endforeach; ?>
             </div>
         </div>
         

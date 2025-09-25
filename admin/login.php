@@ -54,6 +54,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             exit;
         }
 
+        // Generate and store OTP (only used for development mode)
+        $otp = generateOTP();
+        $_SESSION['otp'] = $otp;
+        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
+        $_SESSION['temp_admin'] = $user;
+
+        // === DEVELOPMENT MODE ===
+        // Instead of sending email, just log the OTP to error log
+        error_log("DEV OTP for {$user['employee_email']}: " . $otp);
+
+        // Respond with success
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'OTP generated (DEV MODE). Check server logs for OTP.'
+        ]);
+        exit;
+
+
+        /*
+
         // Generate and store OTP
         $otp = generateOTP();
         $_SESSION['otp'] = $otp;
@@ -93,7 +113,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP: ' . $mail->ErrorInfo]);
         }
         exit;
+        */
     }
+    
     
     if (isset($_POST['verify_otp'])) {
         $entered_otp = $_POST['otp'] ?? '';

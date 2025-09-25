@@ -433,7 +433,7 @@ try {
                                     </td>
                                     <td class="border border-gray-200 p-2">
                                         <div class="flex items-center gap-2">
-                                            <input type="text" placeholder="User Name" name="grp_username[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                        <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
                                             <button type="button" class="bg-primary hover:bg-primary-dark text-white p-2 rounded transition flex-shrink-0" onclick="addUserRow(this)" title="Add User">
                                                 <i class="fa fa-user-plus"></i>
                                             </button>
@@ -837,7 +837,7 @@ try {
 
                 // Check if the last row is complete
                 const application = lastRow.querySelector('select[name="grp_application[]"]').value;
-                const username = lastRow.querySelector('input[name="grp_username[]"]').value;
+                    const username = lastRow.querySelector('input[name="grp_user_names[]"]').value;
                 const accessType = lastRow.querySelector('select[name="grp_access_type[]"]').value;
                 const durationType = lastRow.querySelector('select[name="grp_duration_type[]"]').value;
                 const dateNeeded = lastRow.querySelector('input[name="grp_date_needed[]"]').value;
@@ -933,7 +933,7 @@ try {
             const durationType = appRow.querySelector('select[name="grp_duration_type[]"]').value;
             const dateNeeded = appRow.querySelector('input[name="grp_date_needed[]"]').value;
             const justification = appRow.querySelector('input[name="grp_justification[]"]').value;
-            const username = appRow.querySelector('input[name="grp_username[]"]').value;
+            const username = appRow.querySelector('input[name="grp_user_names[]"]').value;
 
             // Validate all required fields
             const missingFields = [];
@@ -1118,10 +1118,9 @@ try {
 
             if (accessType === 'individual') {
                 // Process individual access requests
-                const username = $('input[name="ind_user_names"]').val();
-
                 // Get all rows from individual table
                 $('#individualTable tbody tr').each(function(index) {
+                    const username = index === 0 ? $('input[name="ind_user_names"]').val() : $(this).find('input[name="ind_username_copy[]"]').val();
                     const app = $(this).find('select[name="ind_application[]"]').val();
                     const accessType = $(this).find('select[name="ind_access_type[]"]').val();
                     const durationType = $(this).find('select[name="ind_duration_type[]"]').val();
@@ -1143,7 +1142,7 @@ try {
                             end_date: endDate,
                             date_needed: dateNeeded,
                             justification: justification,
-                            user_names: ['username']
+                            user_names: [username]
                         });
                     } else {
                         isValid = false;
@@ -1155,7 +1154,7 @@ try {
                     const app = $(this).find('select[name="grp_application[]"]').val() ||
                         $(this).find('input[name="grp_application[]"]').val();
 
-                    const username = $(this).find('input[name="grp_username[]"]').val();
+                    const username = $(this).find('input[name="grp_user_names[]"]').val();
                     const accessType = $(this).find('select[name="grp_access_type[]"]').val();
                     const durationType = $(this).find('select[name="grp_duration_type[]"]').val();
                     const startDate = $(this).find('input[name="grp_start_date[]"]').val();
@@ -1183,7 +1182,7 @@ try {
                                 end_date: endDate,
                                 date_needed: dateNeeded,
                                 justification: justification,
-                                user_names: ['username']
+                                    user_names: [username]
                             });
                         }
                     } else {
@@ -1233,6 +1232,10 @@ try {
             for (let pair of formData.entries()) {
                 console.log(pair[0] + ': ' + pair[1]);
             }
+            
+            // Debug userForms specifically
+            console.log('User forms data:');
+            console.log(JSON.stringify(userForms, null, 2));
 
             // Show loading indicator
             const submitBtn = $(this).find('button[type="submit"]');
