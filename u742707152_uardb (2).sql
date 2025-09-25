@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 19, 2025 at 10:46 AM
+-- Generation Time: Sep 25, 2025 at 05:43 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -36,17 +36,9 @@ CREATE TABLE `access_requests` (
   `email` varchar(255) NOT NULL,
   `employee_id` varchar(20) NOT NULL,
   `request_date` date NOT NULL,
-  `access_type` varchar(50) NOT NULL,
-  `justification` text NOT NULL,
   `system_type` varchar(255) DEFAULT NULL,
   `other_system_type` varchar(255) DEFAULT NULL,
-  `role_access_type` varchar(50) DEFAULT NULL,
-  `duration_type` varchar(20) DEFAULT NULL,
-  `start_date` date DEFAULT NULL,
-  `end_date` date DEFAULT NULL,
-  `date_needed` date DEFAULT NULL COMMENT 'Date when access is needed',
   `access_level` varchar(20) DEFAULT NULL,
-  `usernames` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`usernames`)),
   `status` enum('pending_superior','pending_help_desk','pending_technical','pending_process_owner','pending_admin','approved','rejected','pending_testing','pending_testing_setup','pending_testing_review') NOT NULL DEFAULT 'pending_superior',
   `testing_status` enum('not_required','pending','success','failed') DEFAULT 'not_required',
   `testing_notes` text DEFAULT NULL,
@@ -69,30 +61,48 @@ CREATE TABLE `access_requests` (
   `admin_notes` text DEFAULT NULL,
   `reviewed_by` int(11) DEFAULT NULL,
   `review_date` datetime DEFAULT NULL,
-  `review_notes` text DEFAULT NULL,
-  `application_system` varchar(255) DEFAULT NULL COMMENT 'Stores application system information'
+  `review_notes` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `access_type`, `justification`, `system_type`, `other_system_type`, `role_access_type`, `duration_type`, `start_date`, `end_date`, `date_needed`, `access_level`, `usernames`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`, `application_system`) VALUES
-(55, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-022', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-27', 'individual', 'qweqwe', NULL, NULL, 'full', 'permanent', NULL, NULL, '2025-05-27', NULL, '[\"qweqweqwe\"]', 'pending_admin', 'not_required', NULL, NULL, '2025-05-27 08:25:10', 6, '2025-05-27 08:25:21', 'qweqwe', 15, '2025-05-27 08:25:37', 'qweqwewqe', 13, '2025-05-29 07:49:14', 'qweqwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network'),
-(61, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-001', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', NULL, NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qwe\"]', '', 'not_required', NULL, NULL, '2025-05-30 09:03:23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP'),
-(62, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-002', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qeqwe', NULL, NULL, 'read', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qweqwewe\"]', 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:05:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Offsite Storage Facility Access'),
-(63, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-028', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', NULL, NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qwe\"]', '', 'not_required', NULL, NULL, '2025-05-30 09:06:02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Legacy Vouchering'),
-(64, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-003', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', 'ERP/NAV/SAP', NULL, 'read', 'permanent', NULL, NULL, '2025-05-30', NULL, '[\"qweqwe\"]', 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:09:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP'),
-(65, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-004', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', 'Memorandum Receipt', NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:12:59', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Memorandum Receipt'),
-(66, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-005', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', 'Legacy Vouchering', NULL, 'admin', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:13:24', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Legacy Vouchering'),
-(67, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-006', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qwe', 'PC Access - Local', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:37:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Local'),
-(68, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-007', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', 'PC Access - Local', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:39:35', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Local'),
-(69, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-008', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqeqwe', 'PC Access - Network', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:40:06', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network'),
-(70, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-009', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwewqe', 'ERP/NAV/SAP', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:40:46', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP'),
-(71, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-010', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'qweqwe', 'PC Access - Network', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:41:31', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'PC Access - Network'),
-(72, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-011', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', '515', 'VPN Access', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 13:13:22', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'VPN Access'),
-(73, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-012', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'test 1', 'Piece Rate Payroll System', NULL, 'read', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 15:01:08', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'Piece Rate Payroll System'),
-(74, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-013', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'individual', 'i want access', 'ERP/NAV/SAP', NULL, 'full', 'permanent', NULL, NULL, '2025-05-30', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 16:07:10', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 'ERP/NAV/SAP');
+INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `system_type`, `other_system_type`, `access_level`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
+(55, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-022', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-27', NULL, NULL, NULL, 'pending_admin', 'not_required', NULL, NULL, '2025-05-27 08:25:10', 6, '2025-05-27 08:25:21', 'qweqwe', 15, '2025-05-27 08:25:37', 'qweqwewqe', 13, '2025-05-29 07:49:14', 'qweqwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(61, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-001', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', NULL, NULL, NULL, '', 'not_required', NULL, NULL, '2025-05-30 09:03:23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(62, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-002', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', NULL, NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:05:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(63, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-028', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', NULL, NULL, NULL, '', 'not_required', NULL, NULL, '2025-05-30 09:06:02', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(64, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-003', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'ERP/NAV/SAP', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:09:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(65, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-004', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'Memorandum Receipt', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:12:59', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(66, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-005', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'Legacy Vouchering', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:13:24', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(67, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-006', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'PC Access - Local', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:37:21', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(68, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-007', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'PC Access - Local', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:39:35', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(69, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-008', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'PC Access - Network', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:40:06', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(70, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-009', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'ERP/NAV/SAP', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:40:46', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(71, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-010', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'PC Access - Network', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:41:31', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(72, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-011', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'VPN Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 13:13:22', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(73, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-012', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'Piece Rate Payroll System', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 15:01:08', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(74, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-013', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', 'ERP/NAV/SAP', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 16:07:10', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(75, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-014', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'Email Access', NULL, NULL, 'pending_help_desk', 'not_required', NULL, NULL, '2025-09-22 08:55:43', 16, '2025-09-22 08:59:50', 'recommended!', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(76, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-015', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 09:30:54', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(77, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-016', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'PC Access - Local', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 09:34:55', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(78, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-017', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'PC Access - Network', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 09:35:38', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(79, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-018', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'ERP/NAV/SAP', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 13:28:14', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(80, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-019', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'Internet Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 13:30:17', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(81, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-020', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'CCTV Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 13:34:49', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(82, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-021', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'Legacy Vouchering', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 13:46:15', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(83, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-022', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'PC Access - Local', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 13:57:15', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(84, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-023', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'Internet Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 14:12:57', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(85, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-024', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'PC Access - Local', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 14:14:04', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(86, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-025', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'Internet Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 14:14:55', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(87, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-026', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'ERP/NAV/SAP', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 14:20:41', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(88, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-027', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-22', 'HRIS', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-22 14:31:30', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(89, 'ANDALLO, ZEARWIN B.', 'AAC', '2025-028', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC123456', '2025-09-22', 'Fresh Chilled Receiving System', NULL, NULL, 'pending_technical', 'not_required', NULL, NULL, '2025-09-22 14:39:08', 16, '2025-09-22 14:41:07', 'hahah noob', 16, '2025-09-24 07:54:16', 'qwe', 9, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(90, 'superior', 'AAC', '2025-029', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 08:43:19', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(91, 'superior', 'AAC', '2025-030', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 08:58:29', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(93, 'superior', 'AAC', '2025-031', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 11:39:20', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(94, 'superior', 'AAC', '2025-032', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 11:40:48', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -124,7 +134,8 @@ INSERT INTO `admin_users` (`id`, `role`, `username`, `password`, `created_at`, `
 (14, 'process_owner', 'process1', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', '2025-05-20 05:20:15', NULL),
 (15, 'help_desk', 'helpdesk1', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-05-21 01:00:00', NULL),
 (16, 'superior', '123', '$2y$10$Ao6tJGW4vvECcFrK6IgPlO/Q08jbcMOIxMAFRpwp1.EZ8VRAllGT.', '2025-05-28 00:22:06', NULL),
-(17, 'help_desk', 'AAC000999', '$2y$10$22B/0RUgtNM7LAT2F43chuFWMwUGD4opTqN9lwqvgttRiIzx0uB0G', '2025-05-28 23:47:38', NULL);
+(17, 'help_desk', 'AAC000999', '$2y$10$22B/0RUgtNM7LAT2F43chuFWMwUGD4opTqN9lwqvgttRiIzx0uB0G', '2025-05-28 23:47:38', NULL),
+(18, 'requestor', 'AAC123456', '$2y$10$Lk1a8iGdhZK5gfW.1yNWZ.OPNNp3mGbSNfJ330yhEjoadlc9s7CEq', '2025-09-22 06:36:53', NULL);
 
 -- --------------------------------------------------------
 
@@ -266,7 +277,7 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`, `employee_email`, `password`, `is_temp_password`, `role`) VALUES
-('123', 'AAC', 'superior', 'INFORMATION TECHNOLOGY (IT)', 'charlesondota@gmail.com', '$2y$10$zchzv0ODdMOQyAwDB.Gcdu1.45KfxrO/8VsscZEI0HiGwyrQHJAG2', 0, 'superior'),
+('123', 'AAC', 'superior', 'INFORMATION TECHNOLOGY (IT)', 'charlesondota@gmail.com', '$2y$10$zchzv0ODdMOQyAwDB.Gcdu1.45KfxrO/8VsscZEI0HiGwyrQHJAG2', 0, 'help_desk'),
 ('AAC000000', 'AAC', 'TESTING', 'AGRI MGT. INFO. SYSTEM (AMIS)', 'TESTING@GMAIL.COM', NULL, 1, NULL),
 ('AAC000001', 'AAC', 'ALCANTARA, ALEJANDRO I.', 'G & A', '', NULL, 1, 'requestor'),
 ('AAC000003', 'AAC', 'TICAO, REX J.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
@@ -851,9 +862,10 @@ INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`
 ('AAC002635', 'AAC', 'PALER, DAN RUZEL D.', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('AAC002637', 'AAC', 'BALLON, KEINTH JANN C.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
 ('AAC052002', 'AAC', 'TAMPUS, ALVIN A. JR.', 'INFORMATION TECHNOLOGY (IT)', 'alvintampus3@gmail.com', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', 0, 'superior'),
-('AAC052003', 'AAC', 'PALOMARES, CHARLES LEO H.', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', 0, 'admin'),
-('ALD000001', 'ALDEV', 'ALIPOON,NEIL QUIRINO', 'BANANA', '', NULL, 1, 'requestor');
+('AAC052003', 'AAC', 'PALOMARES, CHARLES LEO', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', 0, 'admin');
 INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`, `employee_email`, `password`, `is_temp_password`, `role`) VALUES
+('AAC123456', 'AAC', 'ANDALLO, ZEARWIN B.', 'INFORMATION TECHNOLOGY (IT)', 'zearwin.andallo@gmail.com', '$2y$10$fuxlVRPmO3orbLdr0ufVOOmH.3FkQ0a3muqXIu8DTumJD1w/IWAQO', 0, 'requestor'),
+('ALD000001', 'ALDEV', 'ALIPOON,NEIL QUIRINO', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000003', 'ALDEV', 'ARONG JR.,DEMETRIO FERRAREN', 'TECHNICAL SERVICES', '', NULL, 1, 'requestor'),
 ('ALD000006', 'ALDEV', 'SOMBILON,TRACLIO MEJIAS', 'BANANA', '', NULL, 1, 'requestor'),
 ('ALD000007', 'ALDEV', 'EDULOG,ELLAINE MAE SEVIOLA', 'BANANA', '', NULL, 1, 'requestor'),
@@ -1177,6 +1189,91 @@ INSERT INTO `employees_archive` (`archive_id`, `employee_id`, `company`, `employ
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `group_requests`
+--
+
+CREATE TABLE `group_requests` (
+  `id` int(11) NOT NULL,
+  `access_request_number` varchar(20) NOT NULL,
+  `username` varchar(255) DEFAULT NULL,
+  `application_system` varchar(255) DEFAULT NULL,
+  `access_type` varchar(50) DEFAULT NULL,
+  `access_duration` varchar(20) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `date_needed` date DEFAULT NULL,
+  `justification` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `group_requests`
+--
+
+INSERT INTO `group_requests` (`id`, `access_request_number`, `username`, `application_system`, `access_type`, `access_duration`, `start_date`, `end_date`, `date_needed`, `justification`) VALUES
+(1, '2025-029', 'test1', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'test'),
+(2, '2025-030', 'john doe ', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'test'),
+(4, '2025-032', 'charles', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'qweqwe'),
+(5, '2025-032', 'test user', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'qweqwe');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `individual_requests`
+--
+
+CREATE TABLE `individual_requests` (
+  `id` int(11) NOT NULL,
+  `access_request_number` varchar(20) NOT NULL,
+  `username` varchar(255) DEFAULT NULL,
+  `application_system` varchar(255) DEFAULT NULL,
+  `access_type` varchar(50) DEFAULT NULL,
+  `access_duration` varchar(20) DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
+  `end_date` date DEFAULT NULL,
+  `date_needed` date DEFAULT NULL,
+  `justification` text DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `individual_requests`
+--
+
+INSERT INTO `individual_requests` (`id`, `access_request_number`, `username`, `application_system`, `access_type`, `access_duration`, `start_date`, `end_date`, `date_needed`, `justification`) VALUES
+(1, 'UAR-REQ2025-022', 'qweqweqwe', 'PC Access - Network', 'full', 'permanent', NULL, NULL, '2025-05-27', 'qweqwe'),
+(2, '2025-001', 'qwe', 'ERP/NAV/SAP', 'admin', 'permanent', NULL, NULL, '2025-05-30', 'qweqwe'),
+(3, '2025-002', 'qweqwewe', 'Offsite Storage Facility Access', 'read', 'permanent', NULL, NULL, '2025-05-30', 'qeqwe'),
+(4, 'UAR-REQ2025-028', 'qwe', 'Legacy Vouchering', 'admin', 'permanent', NULL, NULL, '2025-05-30', 'qwe'),
+(5, '2025-003', 'qweqwe', 'ERP/NAV/SAP', 'read', 'permanent', NULL, NULL, '2025-05-30', 'qwe'),
+(6, '2025-004', NULL, 'Memorandum Receipt', 'admin', 'permanent', NULL, NULL, '2025-05-30', 'qwe'),
+(7, '2025-005', NULL, 'Legacy Vouchering', 'admin', 'permanent', NULL, NULL, '2025-05-30', 'qweqwe'),
+(8, '2025-006', NULL, 'PC Access - Local', 'full', 'permanent', NULL, NULL, '2025-05-30', 'qwe'),
+(9, '2025-007', NULL, 'PC Access - Local', 'full', 'permanent', NULL, NULL, '2025-05-30', 'qweqwe'),
+(10, '2025-008', NULL, 'PC Access - Network', 'full', 'permanent', NULL, NULL, '2025-05-30', 'qweqeqwe'),
+(11, '2025-009', NULL, 'ERP/NAV/SAP', 'full', 'permanent', NULL, NULL, '2025-05-30', 'qweqwewqe'),
+(12, '2025-010', NULL, 'PC Access - Network', 'full', 'permanent', NULL, NULL, '2025-05-30', 'qweqwe'),
+(13, '2025-011', NULL, 'VPN Access', 'full', 'permanent', NULL, NULL, '2025-05-30', '515'),
+(14, '2025-012', NULL, 'Piece Rate Payroll System', 'read', 'permanent', NULL, NULL, '2025-05-30', 'test 1'),
+(15, '2025-013', NULL, 'ERP/NAV/SAP', 'full', 'permanent', NULL, NULL, '2025-05-30', 'i want access'),
+(16, '2025-014', NULL, 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-22', 'im newly hired and i need access to my company email ASAP'),
+(17, '2025-015', NULL, 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qwe'),
+(18, '2025-016', NULL, 'PC Access - Local', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qwe'),
+(19, '2025-017', NULL, 'PC Access - Network', 'read', 'permanent', NULL, NULL, '2025-09-22', 'qwe'),
+(20, '2025-018', NULL, 'ERP/NAV/SAP', 'full', 'permanent', NULL, NULL, '2025-09-22', 'kjjk'),
+(21, '2025-019', NULL, 'Internet Access', 'full', 'permanent', NULL, NULL, '2025-09-30', 'testeng'),
+(22, '2025-020', NULL, 'CCTV Access', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qwe'),
+(23, '2025-021', NULL, 'Legacy Vouchering', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qweqwe'),
+(24, '2025-022', 'JOHN DOEEE', 'PC Access - Local', 'admin', 'permanent', NULL, NULL, '2025-09-22', 'HELLO'),
+(25, '2025-023', NULL, 'Internet Access', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qwqeqq'),
+(26, '2025-024', 'tester', 'PC Access - Local', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qwe'),
+(27, '2025-025', 'charlesondota', 'Internet Access', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qqweqwe'),
+(28, '2025-026', 'John Doe', 'ERP/NAV/SAP', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qweqwe'),
+(29, '2025-027', 'judas', 'HRIS', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qwe'),
+(30, '2025-028', 'jess vitualla', 'Fresh Chilled Receiving System', 'full', 'permanent', NULL, NULL, '2025-09-22', 'newly hired ang alipin ko'),
+(32, '2025-031', 'John Doe', 'Email Access', 'admin', 'permanent', NULL, NULL, '2025-09-25', 'qwe');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `password_resets`
 --
 
@@ -1337,6 +1434,20 @@ ALTER TABLE `employees_archive`
   ADD KEY `archived_by` (`archived_by`);
 
 --
+-- Indexes for table `group_requests`
+--
+ALTER TABLE `group_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_access_request_number` (`access_request_number`);
+
+--
+-- Indexes for table `individual_requests`
+--
+ALTER TABLE `individual_requests`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_access_request_number` (`access_request_number`);
+
+--
 -- Indexes for table `password_resets`
 --
 ALTER TABLE `password_resets`
@@ -1383,13 +1494,13 @@ ALTER TABLE `user_encryption_codes`
 -- AUTO_INCREMENT for table `access_requests`
 --
 ALTER TABLE `access_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
 
 --
 -- AUTO_INCREMENT for table `admin_users`
 --
 ALTER TABLE `admin_users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- AUTO_INCREMENT for table `admin_verification_codes`
@@ -1414,6 +1525,18 @@ ALTER TABLE `cancelled_requests`
 --
 ALTER TABLE `employees_archive`
   MODIFY `archive_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+
+--
+-- AUTO_INCREMENT for table `group_requests`
+--
+ALTER TABLE `group_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `individual_requests`
+--
+ALTER TABLE `individual_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
