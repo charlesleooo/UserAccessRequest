@@ -2,8 +2,8 @@
 session_start();
 require_once '../config.php';
 
-// Check if superior is logged in
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
+// Check if help desk is logged in
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'help_desk') {
     header('Location: ../admin/login.php');
     exit();
 }
@@ -70,11 +70,17 @@ try {
 
     $requestDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    if (!$request) {
-        // Request not found
-        header("Location: requests.php");
-        exit();
-    }
+    // Get technical users
+    $techQuery = "SELECT id, username FROM admin_users WHERE role = 'technical_support' ORDER BY username";
+    $techStmt = $pdo->prepare($techQuery);
+    $techStmt->execute();
+    $techUsers = $techStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Get process owner users
+    $poQuery = "SELECT id, username FROM admin_users WHERE role = 'process_owner' ORDER BY username";
+    $poStmt = $pdo->prepare($poQuery);
+    $poStmt->execute();
+    $processOwnerUsers = $poStmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Error fetching request details: " . $e->getMessage());
     header("Location: requests.php?error=db");
@@ -190,6 +196,14 @@ try {
                     </span>
                     <span class="ml-3">Review History</span>
                 </a>
+
+                <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                        <i class='bx bx-user text-xl'></i>
+                    </span>
+                    <span class="ml-3">User Management</span>
+                </a>
+
                 <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                     <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                         <i class='bx bx-cog text-xl'></i>
@@ -223,7 +237,7 @@ try {
                     <a href="requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                         <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                     </a>
-                    <?php if ($request['status'] === 'pending_superior'): ?>
+                    <?php if ($request['status'] === 'pending_help_desk'): ?>
                         <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
                             <i class='bx bx-edit mr-2'></i> Add Comments
                         </button>
@@ -231,7 +245,7 @@ try {
                             <i class='bx bx-x-circle mr-2'></i> Decline
                         </button>
                         <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                            <i class='bx bx-check-circle mr-2'></i> Recommend
+                            <i class='bx bx-check-circle mr-2'></i> Forward
                         </button>
                     <?php endif; ?>
                 </div>
@@ -289,11 +303,9 @@ try {
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="p-6">
             <!-- Access Details -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                     <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
                     Access Details
@@ -399,38 +411,56 @@ try {
                 </div>
             </div>
 
-            <?php if (!empty($request['review_notes'])): ?>
+            <!-- Superior's Comments -->
+            <?php if (!empty($request['superior_notes'])): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                        Administrator Feedback
+                        Superior's Comments
                     </h3>
                     <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
+                        <?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?>
                     </div>
                 </div>
             <?php endif; ?>
 
             <!-- Actions -->
-            <?php if ($request['status'] === 'pending_superior'): ?>
+            <?php if ($request['status'] === 'pending_help_desk'): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
-                        Superior Review
+                        Help Desk Review
                     </h3>
                     <div class="p-4">
                         <form id="reviewForm">
                             <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
+
+                            <div class="mb-4">
+                                <label for="forward_to" class="block text-sm font-medium text-gray-700 mb-2">Forward To:</label>
+                                <select id="forward_to" name="forward_to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" onchange="updateUserOptions()">
+                                    <option value="technical">Technical Support</option>
+                                    <option value="process_owner">Process Owner</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="user_id" class="block text-sm font-medium text-gray-700 mb-2">Select User:</label>
+                                <select id="user_id" name="user_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+                                    <!-- Options will be populated dynamically -->
+                                </select>
+                            </div>
+
                             <div class="mb-4">
                                 <label for="review_notes" class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
                                 <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
                             </div>
+
                             <div class="flex justify-end space-x-4">
                                 <button type="button" onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
                                     <i class='bx bx-x-circle mr-2'></i> Decline
                                 </button>
                                 <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Recommend
+                                    <i class='bx bx-check-circle mr-2'></i> Forward
                                 </button>
                             </div>
                         </form>
@@ -445,9 +475,18 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // Technical Support Users
+        const technicalUsers = <?php echo json_encode($techUsers); ?>;
+
+        // Process Owner Users
+        const processOwnerUsers = <?php echo json_encode($processOwnerUsers); ?>;
+
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize AOS animation library
             AOS.init();
+
+            // Initialize user dropdown
+            updateUserOptions();
         });
 
         function scrollToReviewSection() {
@@ -460,6 +499,25 @@ try {
                 // Focus on the textarea
                 document.getElementById('review_notes').focus();
             }
+        }
+
+        function updateUserOptions() {
+            const forwardTo = document.getElementById('forward_to').value;
+            const userSelect = document.getElementById('user_id');
+
+            // Clear existing options
+            userSelect.innerHTML = '';
+
+            // Get the appropriate user list based on selection
+            const users = forwardTo === 'technical' ? technicalUsers : processOwnerUsers;
+
+            // Add options to the select
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = user.username;
+                userSelect.appendChild(option);
+            });
         }
 
         function handleRequest(action) {
@@ -477,14 +535,38 @@ try {
                 return;
             }
 
+            let formData = new FormData();
+            formData.append('request_id', requestId);
+            formData.append('action', action);
+            formData.append('review_notes', notes);
+
+            if (action === 'approve') {
+                const forwardTo = document.getElementById('forward_to').value;
+                const userId = document.getElementById('user_id').value;
+
+                if (!userId) {
+                    Swal.fire({
+                        title: 'User Selection Required',
+                        text: 'Please select a user to forward the request to.',
+                        icon: 'warning',
+                        confirmButtonColor: '#0ea5e9'
+                    });
+                    scrollToReviewSection();
+                    return;
+                }
+
+                formData.append('forward_to', forwardTo);
+                formData.append('user_id', userId);
+            }
+
             Swal.fire({
-                title: action === 'approve' ? 'Recommend Request?' : 'Decline Request?',
-                text: action === 'approve' ? 'This will forward the request to the next approval stage.' : 'This will decline the request and notify the requestor.',
+                title: action === 'approve' ? 'Forward Request?' : 'Decline Request?',
+                text: action === 'approve' ? 'This will forward the request to the selected user.' : 'This will decline the request and notify the requestor.',
                 icon: action === 'approve' ? 'question' : 'warning',
                 showCancelButton: true,
                 confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
                 cancelButtonColor: '#6B7280',
-                confirmButtonText: action === 'approve' ? 'Yes, Recommend' : 'Yes, Decline',
+                confirmButtonText: action === 'approve' ? 'Yes, Forward' : 'Yes, Decline',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -501,10 +583,7 @@ try {
                     // Submit the form via AJAX
                     fetch('../admin/process_request.php', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                            body: new URLSearchParams(formData)
                         })
                         .then(response => response.json())
                         .then(data => {

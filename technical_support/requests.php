@@ -9,8 +9,10 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') 
 }
 
 // Check if the user needs to enter the encryption code
-if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] || 
-    (time() - $_SESSION['requests_verified_time'] > 1800)) { // Expire after 30 minutes
+if (
+    !isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] ||
+    (time() - $_SESSION['requests_verified_time'] > 1800)
+) { // Expire after 30 minutes
     header('Location: requests_auth.php');
     exit();
 }
@@ -32,11 +34,11 @@ try {
             FROM access_requests ar 
             WHERE ar.status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
-            
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Check if any approved requests with successful testing should be removed from access_requests
     foreach ($requests as $index => $request) {
         if ($request['status'] === 'approved' && $request['testing_status'] === 'success') {
@@ -45,11 +47,11 @@ try {
             $checkStmt = $pdo->prepare($checkSql);
             $checkStmt->execute([$request['access_request_number']]);
             $exists = $checkStmt->fetchColumn();
-            
+
             if ($exists > 0) {
                 // Remove from the results array as it's already in approval history
                 unset($requests[$index]);
-                
+
                 // Also remove from access_requests table to ensure consistency
                 $deleteSql = "DELETE FROM access_requests WHERE id = ?";
                 $deleteStmt = $pdo->prepare($deleteSql);
@@ -57,7 +59,7 @@ try {
             }
         }
     }
-    
+
     // Re-index the array after removing elements
     $requests = array_values($requests);
 } catch (PDOException $e) {
@@ -68,6 +70,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -75,7 +78,7 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -101,6 +104,7 @@ try {
         }
     </script>
 </head>
+
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
@@ -116,21 +120,21 @@ try {
                     <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Main Menu
                     </p>
-                    
+
                     <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bxs-dashboard text-xl'></i>
                         </span>
                         <span class="ml-3">Dashboard</span>
                     </a>
-                    
+
                     <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
                         <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
                         <span class="ml-3 font-medium">Technical Reviews</span>
                     </a>
-                    
+
                     <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                             <i class='bx bx-history text-xl'></i>
@@ -144,7 +148,7 @@ try {
                         <span class="ml-3">Settings</span>
                     </a>
                 </nav>
-                
+
                 <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
                     <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
@@ -206,7 +210,7 @@ try {
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($requests)): ?>
                                     <?php foreach ($requests as $request): ?>
-                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='view_request.php?id=<?php echo $request['id']; ?>'">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -223,11 +227,11 @@ try {
                                                 <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php 
-                                                    $submission_date = new DateTime($request['submission_date']);
-                                                    $today = new DateTime();
-                                                    $interval = $submission_date->diff($today);
-                                                    echo $interval->days . ' day/s';
+                                                <?php
+                                                $submission_date = new DateTime($request['submission_date']);
+                                                $today = new DateTime();
+                                                $interval = $submission_date->diff($today);
+                                                echo $interval->days . ' day/s';
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
@@ -279,12 +283,12 @@ try {
                     </div>
                     <div id="modalActions" class="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-4">
                         <button onclick="handleRequest(currentRequestId, 'approve')"
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
                             <i class='bx bx-check align-middle'></i>
                             <span class="ml-1.5">Approve</span>
                         </button>
                         <button onclick="handleRequest(currentRequestId, 'decline')"
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
                             <i class='bx bx-x align-middle'></i>
                             <span class="ml-1.5">Decline</span>
                         </button>
@@ -309,7 +313,7 @@ try {
         window.addEventListener('DOMContentLoaded', function() {
             const requestId = getUrlParameter('id');
             const showModal = getUrlParameter('show_modal');
-            
+
             if (requestId && showModal === 'true') {
                 showRequestDetails(requestId);
                 // Remove the parameters from URL without refreshing the page
@@ -325,16 +329,16 @@ try {
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             `;
-            
+
             document.getElementById('detailsModal').classList.remove('hidden');
-            
+
             fetch(`../admin/get_request_details.php?id=${requestId}`)
                 .then(response => response.json())
                 .then(response => {
                     if (!response.success) {
                         throw new Error(response.message || 'Failed to load request details');
                     }
-                    
+
                     const data = response.data;
                     document.getElementById('detail_request_number').textContent = data.access_request_number;
                     modalContainer.innerHTML = `
@@ -529,24 +533,24 @@ try {
                         Swal.showValidationMessage('Please enter review notes');
                         return false;
                     }
-                    
+
                     return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (!data.success) {
+                                throw new Error(data.message || 'Error processing request');
+                            }
+                            return data;
+                        })
+                        .catch(error => {
+                            Swal.showValidationMessage(error.message);
+                        });
                 },
                 allowOutsideClick: () => !Swal.isLoading()
             }).then((result) => {
@@ -565,37 +569,37 @@ try {
         // Add new function for handling test review
         function handleTestReview(requestId, action, notes) {
             return fetch('../api/handle_test_review.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    request_id: requestId,
-                    action: action,
-                    notes: notes
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        request_id: requestId,
+                        action: action,
+                        notes: notes
+                    })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: data.message,
+                            icon: 'success'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        throw new Error(data.message);
+                    }
+                })
+                .catch(error => {
                     Swal.fire({
-                        title: 'Success!',
-                        text: data.message,
-                        icon: 'success'
-                    }).then(() => {
-                        window.location.reload();
+                        title: 'Error!',
+                        text: error.message,
+                        icon: 'error'
                     });
-                } else {
-                    throw new Error(data.message);
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    title: 'Error!',
-                    text: error.message,
-                    icon: 'error'
                 });
-            });
         }
 
         // Update the showActionModal function to handle test reviews
@@ -604,7 +608,7 @@ try {
             if (!request) return;
 
             let title, buttonText, buttonColor, placeholder;
-            
+
             if (request.status === 'pending_testing_review') {
                 if (action === 'approve') {
                     title = 'Approve Test Results?';
@@ -643,4 +647,5 @@ try {
         }
     </script>
 </body>
+
 </html>

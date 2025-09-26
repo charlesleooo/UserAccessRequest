@@ -2,9 +2,9 @@
 session_start();
 require_once '../config.php';
 
-// Check if superior is logged in
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
-    header('Location: ../admin/login.php');
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'admin') {
+    header('Location: login.php');
     exit();
 }
 
@@ -75,6 +75,21 @@ try {
         header("Location: requests.php");
         exit();
     }
+
+    // Get review history
+    $historyQuery = "SELECT ah.*, au.role, e.employee_name
+                    FROM approval_history ah
+                    LEFT JOIN admin_users au ON ah.admin_id = au.id
+                    LEFT JOIN employees e ON au.username = e.employee_id
+                    WHERE ah.request_id = :request_id
+                    ORDER BY ah.created_at ASC";
+
+    $stmt = $pdo->prepare($historyQuery);
+    $stmt->execute([
+        ':request_id' => $requestId
+    ]);
+
+    $reviewHistory = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Error fetching request details: " . $e->getMessage());
     header("Location: requests.php?error=db");
@@ -128,7 +143,6 @@ try {
     </script>
     <style>
         body {
-            background-image: url('../requestor/bg2.jpg');
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
@@ -184,12 +198,27 @@ try {
                     <span class="ml-3 font-medium">Requests</span>
                 </a>
 
-                <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                <a href="approval_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                     <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                         <i class='bx bx-history text-xl'></i>
                     </span>
-                    <span class="ml-3">Review History</span>
+                    <span class="ml-3">Approval History</span>
                 </a>
+
+                <a href="analytics.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                        <i class='bx bx-bar-chart text-xl'></i>
+                    </span>
+                    <span class="ml-3">Analytics</span>
+                </a>
+
+                <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                        <i class='bx bx-user text-xl'></i>
+                    </span>
+                    <span class="ml-3">User Management</span>
+                </a>
+
                 <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                     <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                         <i class='bx bx-cog text-xl'></i>
@@ -200,7 +229,7 @@ try {
 
             <!-- Logout Button -->
             <div class="p-4 border-t border-gray-100">
-                <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
+                <a href="logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
                     <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
                         <i class='bx bx-log-out text-xl'></i>
                     </span>
@@ -223,15 +252,15 @@ try {
                     <a href="requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                         <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                     </a>
-                    <?php if ($request['status'] === 'pending_superior'): ?>
+                    <?php if ($request['status'] === 'pending_admin'): ?>
                         <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
                             <i class='bx bx-edit mr-2'></i> Add Comments
                         </button>
-                        <button onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                            <i class='bx bx-x-circle mr-2'></i> Decline
+                        <button onclick="handleRequest('reject')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                            <i class='bx bx-x-circle mr-2'></i> Reject
                         </button>
                         <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                            <i class='bx bx-check-circle mr-2'></i> Recommend
+                            <i class='bx bx-check-circle mr-2'></i> Final Approval
                         </button>
                     <?php endif; ?>
                 </div>
@@ -291,7 +320,7 @@ try {
             </div>
         </div>
 
-        <div class="p-6">
+        <div class="p-6 pt-0">
             <!-- Access Details -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
@@ -399,24 +428,102 @@ try {
                 </div>
             </div>
 
-            <?php if (!empty($request['review_notes'])): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                        Administrator Feedback
-                    </h3>
-                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
-                    </div>
+            <!-- Review History Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                    <i class='bx bx-history text-primary-500 text-xl mr-2'></i>
+                    Review History
+                </h3>
+
+                <div class="space-y-4">
+                    <?php if (empty($reviewHistory)): ?>
+                        <p class="text-gray-500 italic">No review history available for this request.</p>
+                    <?php else: ?>
+                        <div class="relative">
+                            <!-- Timeline Line -->
+                            <div class="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+                            <!-- Timeline Items -->
+                            <div class="space-y-6">
+                                <?php foreach ($reviewHistory as $history): ?>
+                                    <div class="relative pl-10">
+                                        <!-- Timeline Dot -->
+                                        <?php if ($history['action'] === 'approved'): ?>
+                                            <div class="absolute left-0 mt-1.5 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                                                <i class='bx bx-check text-green-500 text-2xl'></i>
+                                            </div>
+                                        <?php elseif ($history['action'] === 'rejected'): ?>
+                                            <div class="absolute left-0 mt-1.5 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                                <i class='bx bx-x text-red-500 text-2xl'></i>
+                                            </div>
+                                        <?php else: ?>
+                                            <div class="absolute left-0 mt-1.5 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                <i class='bx bx-right-arrow-alt text-blue-500 text-2xl'></i>
+                                            </div>
+                                        <?php endif; ?>
+
+                                        <!-- Content -->
+                                        <div class="bg-gray-50 rounded-lg p-4">
+                                            <div class="flex flex-wrap justify-between mb-2">
+                                                <h4 class="text-gray-800 font-medium">
+                                                    <?php echo htmlspecialchars($history['employee_name'] ?? 'Unknown'); ?>
+                                                    <span class="text-gray-500 font-normal">
+                                                        (<?php echo htmlspecialchars(ucfirst($history['role'] ?? 'Unknown')); ?>)
+                                                    </span>
+                                                </h4>
+                                                <span class="text-gray-500 text-sm">
+                                                    <?php
+                                                    if (!empty($history['created_at'])) {
+                                                        $historyDate = new DateTime($history['created_at']);
+                                                        echo $historyDate->format('M d, Y - h:i A');
+                                                    }
+                                                    ?>
+                                                </span>
+                                            </div>
+
+                                            <div class="mb-2">
+                                                <?php if ($history['action'] === 'approved'): ?>
+                                                    <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                                        Approved
+                                                    </span>
+                                                <?php elseif ($history['action'] === 'rejected'): ?>
+                                                    <span class="px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                                                        Rejected
+                                                    </span>
+                                                <?php elseif ($history['action'] === 'forwarded'): ?>
+                                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                                        Forwarded
+                                                    </span>
+                                                <?php else: ?>
+                                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
+                                                        <?php echo htmlspecialchars(ucfirst($history['action'] ?? 'Action')); ?>
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+
+                                            <?php if (!empty($history['notes'])): ?>
+                                                <div class="mt-2">
+                                                    <h5 class="text-sm text-gray-600 mb-1">Notes:</h5>
+                                                    <p class="text-gray-700 text-sm">
+                                                        <?php echo nl2br(htmlspecialchars($history['notes'])); ?>
+                                                    </p>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php endif; ?>
+            </div>
 
             <!-- Actions -->
-            <?php if ($request['status'] === 'pending_superior'): ?>
+            <?php if ($request['status'] === 'pending_admin'): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
-                        Superior Review
+                        Final Review
                     </h3>
                     <div class="p-4">
                         <form id="reviewForm">
@@ -426,11 +533,11 @@ try {
                                 <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
                             </div>
                             <div class="flex justify-end space-x-4">
-                                <button type="button" onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                    <i class='bx bx-x-circle mr-2'></i> Decline
+                                <button type="button" onclick="handleRequest('reject')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                                    <i class='bx bx-x-circle mr-2'></i> Reject
                                 </button>
                                 <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Recommend
+                                    <i class='bx bx-check-circle mr-2'></i> Final Approval
                                 </button>
                             </div>
                         </form>
@@ -478,13 +585,13 @@ try {
             }
 
             Swal.fire({
-                title: action === 'approve' ? 'Recommend Request?' : 'Decline Request?',
-                text: action === 'approve' ? 'This will forward the request to the next approval stage.' : 'This will decline the request and notify the requestor.',
+                title: action === 'approve' ? 'Approve Request?' : 'Reject Request?',
+                text: action === 'approve' ? 'This will give final approval to the request.' : 'This will reject the request and notify the requestor.',
                 icon: action === 'approve' ? 'question' : 'warning',
                 showCancelButton: true,
                 confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
                 cancelButtonColor: '#6B7280',
-                confirmButtonText: action === 'approve' ? 'Yes, Recommend' : 'Yes, Decline',
+                confirmButtonText: action === 'approve' ? 'Yes, Approve' : 'Yes, Reject',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -499,7 +606,7 @@ try {
                     });
 
                     // Submit the form via AJAX
-                    fetch('../admin/process_request.php', {
+                    fetch('process_request.php', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/x-www-form-urlencoded',

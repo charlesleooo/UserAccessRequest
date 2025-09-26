@@ -67,11 +67,22 @@ try {
             ]);
         }
     } else {
-        // Get regular request details
+        // First check if it's an individual or group request
+        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
+                        SELECT access_request_number FROM access_requests WHERE id = ?
+                      )";
+        $checkStmt = $pdo->prepare($checkQuery);
+        $checkStmt->execute([$_GET['id']]);
+        $isIndividual = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
+
+        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+
+        // Get regular request details with details from individual/group requests tables
         $stmt = $pdo->prepare("
             SELECT ar.*,
                    CASE 
                        WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
+                       WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'
                        WHEN ar.status = 'pending_technical' THEN 'Pending Technical Review'
                        WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
                        WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'
@@ -87,9 +98,15 @@ try {
                    COALESCE(ar.superior_review_date, '') as superior_review_date,
                    COALESCE(ar.technical_review_date, '') as technical_review_date,
                    COALESCE(ar.process_owner_review_date, '') as process_owner_review_date,
-                   COALESCE(ar.admin_review_date, '') as admin_review_date
+                   COALESCE(ar.admin_review_date, '') as admin_review_date,
+                   r.access_type,
+                   r.access_duration as duration_type,
+                   r.date_needed,
+                   r.justification
             FROM access_requests ar
+            LEFT JOIN {$requestTable} r ON ar.access_request_number = r.access_request_number
             WHERE ar.id = ?
+            LIMIT 1
         ");
 
         $stmt->execute([$_GET['id']]);

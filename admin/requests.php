@@ -14,8 +14,10 @@ if (!isset($_SESSION['admin_id'])) {
 }
 
 // Check if the user needs to enter the encryption code
-if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] || 
-    (time() - $_SESSION['requests_verified_time'] > 1800)) { // Expire after 30 minutes
+if (
+    !isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] ||
+    (time() - $_SESSION['requests_verified_time'] > 1800)
+) { // Expire after 30 minutes
     header('Location: requests_auth.php');
     exit();
 }
@@ -24,12 +26,13 @@ if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] ||
 $transaction_active = false;
 
 // Add the generateRequestNumber function at the top
-function generateRequestNumber($pdo) {
+function generateRequestNumber($pdo)
+{
     global $transaction_active;
     try {
         $pdo->beginTransaction();
         $transaction_active = true;
-        
+
         // Get the highest request number from both tables
         $sql = "SELECT MAX(CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED)) as max_num 
                FROM (
@@ -37,22 +40,21 @@ function generateRequestNumber($pdo) {
                    UNION ALL
                    SELECT access_request_number FROM approval_history
                ) combined";
-        
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        
+
         // Get the next number (current max + 1)
         $nextNumber = ($result['max_num'] ?? 0) + 1;
-        
+
         // Format the request number (REQ2025-003 format)
         $year = date('Y');
         $requestNumber = sprintf("REQ%d-%03d", $year, $nextNumber);
-        
+
         $pdo->commit();
         $transaction_active = false;
         return $requestNumber;
-        
     } catch (Exception $e) {
         if ($transaction_active) {
             $pdo->rollBack();
@@ -69,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
     $admin_id = $_SESSION['admin_id'];
     $review_notes = $_POST['review_notes'] ?? '';
     $admin_role = $_SESSION['role'] ?? 'admin'; // Get the admin's role
-    
+
     try {
         // Get the admin_users.id that matches the employee's employee_id or username
         $adminStmt = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
@@ -78,13 +80,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             'employee_id' => $_SESSION['admin_id'] ?? ''
         ]);
         $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
-        
+
         if (!$adminUser) {
             throw new Exception('Admin user record not found. Please contact system administrator.');
         }
-        
+
         $admin_users_id = $adminUser['id']; // This is the correct admin_id to use with approval_history
-        
+
         // Start transaction
         $pdo->beginTransaction();
         $transaction_active = true;
@@ -103,7 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $current_status = $request['status'];
         $can_handle = false;
         $next_status = '';
-        
+
         switch ($admin_role) {
             case 'superior':
                 $can_handle = ($current_status === 'pending_superior');
@@ -155,21 +157,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 $date_field = NOW(), 
                 $notes_field = :review_notes 
                 WHERE id = :request_id";
-                
+
             $stmt = $pdo->prepare($sql);
             $result = $stmt->execute([
                 'admin_id' => $admin_users_id,
                 'review_notes' => $review_notes,
                 'request_id' => $request_id
             ]);
-            
+
             if (!$result) {
                 throw new Exception('Failed to update request status');
             }
-            
+
             // Send email notification for testing phase
             $mail = new PHPMailer(true);
-            
+
             try {
                 // Server settings
                 $mail->isSMTP();
@@ -192,8 +194,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 $system_types_display = $request['system_type'] ?? 'N/A';
 
                 // Format duration details
-                $duration_details = $request['duration_type'] === 'permanent' ? 
-                    'Permanent' : 
+                $duration_details = $request['duration_type'] === 'permanent' ?
+                    'Permanent' :
                     "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
 
                 $mail->Body = "
@@ -255,12 +257,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 
                 $mail->AltBody = strip_tags($mail->Body);
                 $mail->send();
-
             } catch (PHPMailerException $e) {
                 // Log email error but don't prevent successful update
                 error_log("Email sending failed: {$mail->ErrorInfo}");
             }
-            
+
             $pdo->commit();
             $transaction_active = false;
             $_SESSION['success_message'] = "Request has been provisionally approved. The user will test the application and confirm the result.";
@@ -319,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                     :process_owner_id,
                     :process_owner_notes
                 )";
-                    
+
                 $stmt = $pdo->prepare($sql);
                 $result = $stmt->execute([
                     'access_request_number' => $request['access_request_number'],
@@ -344,11 +345,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                     'process_owner_id' => $request['process_owner_id'],
                     'process_owner_notes' => $request['process_owner_notes']
                 ]);
-                
+
                 if (!$result) {
                     throw new Exception('Failed to insert into approval history');
                 }
-                
+
                 // Delete from access_requests table
                 $sql = "DELETE FROM access_requests WHERE id = :request_id";
                 $stmt = $pdo->prepare($sql);
@@ -361,23 +362,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                     $date_field = NOW(),
                     $notes_field = :review_notes
                     WHERE id = :request_id";
-                    
-            $stmt = $pdo->prepare($sql);
-            $result = $stmt->execute([
+
+                $stmt = $pdo->prepare($sql);
+                $result = $stmt->execute([
                     'next_status' => $next_status,
                     'admin_id' => $admin_users_id,
-                'review_notes' => $review_notes,
-                'request_id' => $request_id
-            ]);
-            
-            if (!$result) {
+                    'review_notes' => $review_notes,
+                    'request_id' => $request_id
+                ]);
+
+                if (!$result) {
                     throw new Exception('Failed to update request status');
                 }
             }
-            
+
             // Send email notification
             $mail = new PHPMailer(true);
-            
+
             try {
                 // Server settings
                 $mail->isSMTP();
@@ -394,7 +395,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 
                 // Content
                 $mail->isHTML(true);
-                
+
                 if ($next_status === 'approved' || $next_status === 'rejected') {
                     $mail->Subject = "Access Request " . ($next_status === 'approved' ? 'Approved' : 'Rejected') . " - " . $request['access_request_number'];
                     $status_color = $next_status === 'approved' ? '#059669' : '#DC2626';
@@ -410,8 +411,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 $contact_number = isset($request['contact_number']) ? $request['contact_number'] : 'Not provided';
 
                 // Format duration details
-                $duration_details = $request['duration_type'] === 'permanent' ? 
-                    'Permanent' : 
+                $duration_details = $request['duration_type'] === 'permanent' ?
+                    'Permanent' :
                     "Temporary (From: {$request['start_date']} To: {$request['end_date']})";
 
                 $mail->Body = "
@@ -474,9 +475,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             } catch (PHPMailerException $e) {
                 // Log email error but don't prevent successful update
                 error_log("Email sending failed: {$mail->ErrorInfo}");
-        }
+            }
 
-        $pdo->commit();
+            $pdo->commit();
             $transaction_active = false;
             $_SESSION['success_message'] = "Request has been " . ($action === 'approve' ? 'approved' : 'declined') . " successfully.";
             header('Location: requests.php');
@@ -488,8 +489,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
             $transaction_active = false;
         }
         $_SESSION['error_message'] = $e->getMessage();
-    header('Location: requests.php');
-    exit();
+        header('Location: requests.php');
+        exit();
     }
 }
 
@@ -503,7 +504,7 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Also check for any approved requests with testing_status 'success' that should be in approval_history
     $checkSql = "SELECT r.*, a.username as reviewed_by_name 
                 FROM access_requests r 
@@ -512,7 +513,7 @@ try {
     $checkStmt = $pdo->prepare($checkSql);
     $checkStmt->execute();
     $approvedRequests = $checkStmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Process any found requests to ensure they are moved to approval_history
     foreach ($approvedRequests as $request) {
         // Check if this request already exists in approval_history
@@ -521,7 +522,7 @@ try {
         $historyStmt = $pdo->prepare($historySql);
         $historyStmt->execute(['access_request_number' => $request['access_request_number']]);
         $exists = $historyStmt->fetchColumn();
-        
+
         if ($exists > 0) {
             // This request is already in approval_history, remove it from access_requests
             $deleteSql = "DELETE FROM access_requests WHERE id = :request_id";
@@ -532,7 +533,7 @@ try {
             try {
                 $pdo->beginTransaction();
                 $transaction_active = true;
-                
+
                 // Insert into approval history
                 $sql = "INSERT INTO approval_history (
                         access_request_number, action, requestor_name, business_unit, department,
@@ -545,7 +546,7 @@ try {
                         :start_date, :end_date, :justification, :email, :contact_number,
                         'success', :employee_id
                     )";
-                
+
                 // Get the admin_users id for the current admin
                 $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
                 $adminQuery->execute([
@@ -554,11 +555,11 @@ try {
                 ]);
                 $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
                 $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
-                
+
                 if (!$admin_users_id) {
                     throw new Exception('Admin user record not found. Cannot complete approval.');
                 }
-                
+
                 $stmt = $pdo->prepare($sql);
                 $result = $stmt->execute([
                     'access_request_number' => $request['access_request_number'],
@@ -577,13 +578,13 @@ try {
                     'contact_number' => $request['contact_number'] ?? 'Not provided',
                     'employee_id' => $request['employee_id']
                 ]);
-                
+
                 if ($result) {
                     // Delete from access_requests
                     $deleteSql = "DELETE FROM access_requests WHERE id = :request_id";
                     $deleteStmt = $pdo->prepare($deleteSql);
                     $deleteStmt->execute(['request_id' => $request['id']]);
-                    
+
                     $pdo->commit();
                     $transaction_active = false;
                 } else {
@@ -609,6 +610,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -619,7 +621,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Custom Styles -->
     <style>
         /* SweetAlert2 Customizations */
@@ -628,29 +630,29 @@ try {
             font-weight: 600 !important;
             color: #1F2937 !important;
         }
-        
+
         .swal2-html-container {
             font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
-        
+
         .swal2-popup {
             border-radius: 0.75rem !important;
             padding: 1.5rem !important;
         }
-        
+
         .swal2-styled.swal2-confirm {
             border-radius: 0.5rem !important;
             font-weight: 500 !important;
             padding: 0.5rem 1.25rem !important;
         }
-        
+
         .swal2-styled.swal2-cancel {
             border-radius: 0.5rem !important;
             font-weight: 500 !important;
             padding: 0.5rem 1.25rem !important;
         }
     </style>
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -699,28 +701,28 @@ try {
                     <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Main Menu
                     </p>
-                    
+
                     <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bxs-dashboard text-xl'></i>
                         </span>
                         <span class="ml-3">Dashboard</span>
                     </a>
-                    
+
                     <a href="analytics.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-line-chart text-xl'></i>
                         </span>
                         <span class="ml-3">Analytics</span>
                     </a>
-                    
+
                     <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl transition-all hover:bg-primary-100 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg group-hover:bg-primary-200">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
                         <span class="ml-3 font-medium">Requests</span>
                     </a>
-                    
+
                     <a href="approval_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-history text-xl'></i>
@@ -730,18 +732,18 @@ try {
 
                     <!-- Add a divider -->
                     <div class="my-4 border-t border-gray-100"></div>
-                    
+
                     <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Account
                     </p>
-                    
+
                     <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-user text-xl'></i>
                         </span>
                         <span class="ml-3">User Management</span>
                     </a>
-                    
+
                     <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-cog text-xl'></i>
@@ -749,7 +751,7 @@ try {
                         <span class="ml-3">Settings</span>
                     </a>
                 </nav>
-                
+
                 <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
                     <a href="logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl transition-all hover:bg-red-100 group">
@@ -801,10 +803,10 @@ try {
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="relative">
-                            <input type="text" 
-                                   id="searchInput"
-                                   placeholder="Search requests..." 
-                                   class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
+                            <input type="text"
+                                id="searchInput"
+                                placeholder="Search requests..."
+                                class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
                             <i class='bx bx-search absolute left-3 top-2.5 text-gray-400'></i>
                         </div>
                         <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -832,120 +834,120 @@ try {
                         <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
                             <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
                                 <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        UAR REF NO.
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Requestor
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Business Unit
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Department
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date Requested
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Days Pending
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Date Needed
-                                    </th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php foreach ($requests as $request): ?>
-                                <tr class="cursor-pointer hover:bg-gray-50" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        <?php echo htmlspecialchars($request['access_request_number']); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php echo htmlspecialchars($request['requestor_name']); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php echo htmlspecialchars($request['business_unit']); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php echo htmlspecialchars($request['department']); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php 
-                                            $submission_date = new DateTime($request['submission_date']);
-                                            $today = new DateTime();
-                                            $interval = $submission_date->diff($today);
-                                            echo $interval->days . ' day/s';
-                                        ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        <?php echo date('M d, Y', strtotime($request['date_needed'] ?? $request['submission_date'])); ?>
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <?php 
-                                        $statusClass = '';
-                                        $status = strtolower($request['status']);
-                                        
-                                        switch ($status) {
-                                            case 'pending_superior':
-                                                $statusClass = 'bg-yellow-100 text-yellow-800';
-                                                $displayStatus = 'Pending Superior Review';
-                                                break;
-                                            case 'pending_technical':
-                                                $statusClass = 'bg-blue-100 text-blue-800';
-                                                $displayStatus = 'Pending Technical Review';
-                                                break;
-                                            case 'pending_process_owner':
-                                                $statusClass = 'bg-indigo-100 text-indigo-800';
-                                                $displayStatus = 'Pending Process Owner Review';
-                                                break;
-                                            case 'pending_admin':
-                                                $statusClass = 'bg-purple-100 text-purple-800';
-                                                $displayStatus = 'Pending Admin Review';
-                                                break;
-                                            case 'pending_testing_setup':
-                                                $statusClass = 'bg-amber-100 text-amber-800';
-                                                $displayStatus = 'Pending Test Setup';
-                                                break;
-                                            case 'pending_testing':
-                                                $statusClass = 'bg-cyan-100 text-cyan-800';
-                                                $displayStatus = 'Pending Testing';
-                                                break;
-                                            case 'approved':
-                                                $statusClass = 'bg-green-100 text-green-800';
-                                                $displayStatus = 'Approved';
-                                                break;
-                                            case 'rejected':
-                                                $statusClass = 'bg-red-100 text-red-800';
-                                                $displayStatus = 'Rejected';
-                                                break;
-                                            default:
-                                                $statusClass = 'bg-gray-100 text-gray-800';
-                                                $displayStatus = ucfirst($status);
-                                        }
-                                        ?>
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
-                                            <?php echo $displayStatus; ?>
-                                        </span>
-                                        <?php if ($status === 'pending_testing'): ?>
-                                        <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $request['testing_status'] === 'success' ? 'bg-green-100 text-green-800' : ($request['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
-                                            <?php echo ucfirst($request['testing_status']); ?>
-                                        </span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    UAR REF NO.
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Requestor
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Business Unit
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Department
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Date Requested
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Days Pending
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Date Needed
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <?php foreach ($requests as $request): ?>
+                                                <tr class="cursor-pointer hover:bg-gray-50" onclick="window.location.href='view_request.php?id=<?php echo $request['id']; ?>'">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                        <?php echo htmlspecialchars($request['access_request_number']); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php echo htmlspecialchars($request['requestor_name']); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php echo htmlspecialchars($request['business_unit']); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php echo htmlspecialchars($request['department']); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php
+                                                        $submission_date = new DateTime($request['submission_date']);
+                                                        $today = new DateTime();
+                                                        $interval = $submission_date->diff($today);
+                                                        echo $interval->days . ' day/s';
+                                                        ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php echo date('M d, Y', strtotime($request['date_needed'] ?? $request['submission_date'])); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <?php
+                                                        $statusClass = '';
+                                                        $status = strtolower($request['status']);
+
+                                                        switch ($status) {
+                                                            case 'pending_superior':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending Superior Review';
+                                                                break;
+                                                            case 'pending_technical':
+                                                                $statusClass = 'bg-blue-100 text-blue-800';
+                                                                $displayStatus = 'Pending Technical Review';
+                                                                break;
+                                                            case 'pending_process_owner':
+                                                                $statusClass = 'bg-indigo-100 text-indigo-800';
+                                                                $displayStatus = 'Pending Process Owner Review';
+                                                                break;
+                                                            case 'pending_admin':
+                                                                $statusClass = 'bg-purple-100 text-purple-800';
+                                                                $displayStatus = 'Pending Admin Review';
+                                                                break;
+                                                            case 'pending_testing_setup':
+                                                                $statusClass = 'bg-amber-100 text-amber-800';
+                                                                $displayStatus = 'Pending Test Setup';
+                                                                break;
+                                                            case 'pending_testing':
+                                                                $statusClass = 'bg-cyan-100 text-cyan-800';
+                                                                $displayStatus = 'Pending Testing';
+                                                                break;
+                                                            case 'approved':
+                                                                $statusClass = 'bg-green-100 text-green-800';
+                                                                $displayStatus = 'Approved';
+                                                                break;
+                                                            case 'rejected':
+                                                                $statusClass = 'bg-red-100 text-red-800';
+                                                                $displayStatus = 'Rejected';
+                                                                break;
+                                                            default:
+                                                                $statusClass = 'bg-gray-100 text-gray-800';
+                                                                $displayStatus = ucfirst($status);
+                                                        }
+                                                        ?>
+                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
+                                                            <?php echo $displayStatus; ?>
+                                                        </span>
+                                                        <?php if ($status === 'pending_testing'): ?>
+                                                            <span class="ml-2 px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $request['testing_status'] === 'success' ? 'bg-green-100 text-green-800' : ($request['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
+                                                                <?php echo ucfirst($request['testing_status']); ?>
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -986,8 +988,8 @@ try {
         // Modified functions for SweetAlert2
         function showActionModal(requestId, action) {
             let title, confirmButtonText, confirmButtonColor, icon;
-            
-            switch(action) {
+
+            switch (action) {
                 case 'approve':
                     title = 'Approve Access Request';
                     confirmButtonText = 'Approve';
@@ -1024,7 +1026,7 @@ try {
                     confirmButtonColor = '#0ea5e9';
                     icon = 'question';
             }
-            
+
             Swal.fire({
                 title: title,
                 icon: icon,
@@ -1055,14 +1057,16 @@ try {
                 },
                 preConfirm: () => {
                     const reviewNotes = document.getElementById('swal-review-notes').value;
-                    
+
                     // Simple validation for decline reason
                     if ((action === 'decline' || action === 'reject_after_testing') && !reviewNotes.trim()) {
                         Swal.showValidationMessage('Please provide a reason for declining');
                         return false;
                     }
-                    
-                    return { reviewNotes: reviewNotes };
+
+                    return {
+                        reviewNotes: reviewNotes
+                    };
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1070,14 +1074,14 @@ try {
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.style.display = 'none';
-                    
+
                     // Add the necessary fields
                     const fields = {
                         'request_id': requestId,
                         'action': action,
                         'review_notes': result.value.reviewNotes
                     };
-                    
+
                     for (const [key, value] of Object.entries(fields)) {
                         const input = document.createElement('input');
                         input.type = 'hidden';
@@ -1085,10 +1089,10 @@ try {
                         input.value = value;
                         form.appendChild(input);
                     }
-                    
+
                     // Add to body, submit, then remove
                     document.body.appendChild(form);
-                    
+
                     // Show loading state
                     Swal.fire({
                         title: 'Processing...',
@@ -1098,7 +1102,7 @@ try {
                             Swal.showLoading();
                         }
                     });
-                    
+
                     form.submit();
                 }
             });
@@ -1115,22 +1119,22 @@ try {
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
                 </div>
             `;
-            
+
             document.getElementById('detailsModal').classList.remove('hidden');
-            
+
             fetch(`get_request_details.php?id=${requestId}`)
                 .then(response => response.json())
                 .then(response => {
                     if (!response.success) {
                         throw new Error(response.message || 'Failed to load request details');
                     }
-                    
+
                     const data = response.data;
                     document.getElementById('detail_request_number').textContent = data.access_request_number;
-                    
+
                     // Get the admin role from PHP session
                     const adminRole = '<?php echo $_SESSION['role'] ?? 'admin'; ?>';
-                    
+
                     // Determine if user can handle this request
                     let canHandle = false;
                     switch (adminRole) {
@@ -1147,10 +1151,10 @@ try {
                             canHandle = (data.status === 'pending_admin');
                             break;
                     }
-                    
+
                     // Previous review comments
                     let reviewComments = '';
-                    
+
                     if (data.superior_review_notes && data.superior_review_notes.trim() !== '') {
                         reviewComments += `
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1164,7 +1168,7 @@ try {
                         </div>
                         `;
                     }
-                    
+
                     if (data.technical_review_notes && data.technical_review_notes.trim() !== '') {
                         reviewComments += `
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1178,7 +1182,7 @@ try {
                         </div>
                         `;
                     }
-                    
+
                     if (data.process_owner_review_notes && data.process_owner_review_notes.trim() !== '') {
                         reviewComments += `
                         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1192,7 +1196,7 @@ try {
                         </div>
                         `;
                     }
-                    
+
                     modalContainer.innerHTML = `
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             <!-- Request Overview -->
@@ -1412,10 +1416,10 @@ try {
                         </div>
                         ` : ''}
                     `;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            modalContainer.innerHTML = `
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    modalContainer.innerHTML = `
                 <div class="text-center py-8">
                     <div class="text-red-600 mb-2">
                         <i class='bx bx-error-circle text-3xl'></i>
@@ -1428,8 +1432,8 @@ try {
                     </button>
                 </div>
             `;
-        });
-}
+                });
+        }
 
         function hideDetailsModal() {
             document.getElementById('detailsModal').classList.add('hidden');
@@ -1464,7 +1468,7 @@ try {
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const searchText = e.target.value.toLowerCase();
             const rows = document.querySelectorAll('tbody tr');
-            
+
             rows.forEach(row => {
                 const text = row.textContent.toLowerCase();
                 row.style.display = text.includes(searchText) ? '' : 'none';
@@ -1480,22 +1484,25 @@ try {
 
         // Show success/error message with SweetAlert2 if set in session
         <?php if (isset($_SESSION['success_message'])): ?>
-        Swal.fire({
-            title: 'Success!',
-            text: '<?php echo addslashes($_SESSION['success_message']); ?>',
-            icon: 'success',
-            confirmButtonColor: '#0284c7'
-        });
-        <?php unset($_SESSION['success_message']); endif; ?>
+            Swal.fire({
+                title: 'Success!',
+                text: '<?php echo addslashes($_SESSION['success_message']); ?>',
+                icon: 'success',
+                confirmButtonColor: '#0284c7'
+            });
+        <?php unset($_SESSION['success_message']);
+        endif; ?>
 
         <?php if (isset($_SESSION['error_message'])): ?>
-        Swal.fire({
-            title: 'Error!',
-            text: '<?php echo addslashes($_SESSION['error_message']); ?>',
-            icon: 'error',
-            confirmButtonColor: '#0284c7'
-        });
-        <?php unset($_SESSION['error_message']); endif; ?>
+            Swal.fire({
+                title: 'Error!',
+                text: '<?php echo addslashes($_SESSION['error_message']); ?>',
+                icon: 'error',
+                confirmButtonColor: '#0284c7'
+            });
+        <?php unset($_SESSION['error_message']);
+        endif; ?>
     </script>
 </body>
+
 </html>

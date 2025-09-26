@@ -2,8 +2,8 @@
 session_start();
 require_once '../config.php';
 
-// Check if superior is logged in
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
+// Check if process owner is logged in
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'process_owner') {
     header('Location: ../admin/login.php');
     exit();
 }
@@ -69,12 +69,6 @@ try {
     ]);
 
     $requestDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    if (!$request) {
-        // Request not found
-        header("Location: requests.php");
-        exit();
-    }
 } catch (PDOException $e) {
     error_log("Error fetching request details: " . $e->getMessage());
     header("Location: requests.php?error=db");
@@ -223,7 +217,7 @@ try {
                     <a href="requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                         <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                     </a>
-                    <?php if ($request['status'] === 'pending_superior'): ?>
+                    <?php if ($request['status'] === 'pending_process_owner'): ?>
                         <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
                             <i class='bx bx-edit mr-2'></i> Add Comments
                         </button>
@@ -231,7 +225,7 @@ try {
                             <i class='bx bx-x-circle mr-2'></i> Decline
                         </button>
                         <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                            <i class='bx bx-check-circle mr-2'></i> Recommend
+                            <i class='bx bx-check-circle mr-2'></i> Approve
                         </button>
                     <?php endif; ?>
                 </div>
@@ -289,11 +283,9 @@ try {
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="p-6">
             <!-- Access Details -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                     <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
                     Access Details
@@ -399,24 +391,51 @@ try {
                 </div>
             </div>
 
-            <?php if (!empty($request['review_notes'])): ?>
+            <!-- Superior's Comments -->
+            <?php if (!empty($request['superior_notes'])): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                        Administrator Feedback
+                        Superior's Comments
                     </h3>
                     <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
+                        <?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Help Desk Comments -->
+            <?php if (!empty($request['help_desk_notes'])): ?>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                        Help Desk Comments
+                    </h3>
+                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                        <?php echo nl2br(htmlspecialchars($request['help_desk_notes'])); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Technical Comments -->
+            <?php if (!empty($request['technical_notes'])): ?>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                        Technical Support Comments
+                    </h3>
+                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                        <?php echo nl2br(htmlspecialchars($request['technical_notes'])); ?>
                     </div>
                 </div>
             <?php endif; ?>
 
             <!-- Actions -->
-            <?php if ($request['status'] === 'pending_superior'): ?>
+            <?php if ($request['status'] === 'pending_process_owner'): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
-                        Superior Review
+                        Process Owner Review
                     </h3>
                     <div class="p-4">
                         <form id="reviewForm">
@@ -430,7 +449,7 @@ try {
                                     <i class='bx bx-x-circle mr-2'></i> Decline
                                 </button>
                                 <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Recommend
+                                    <i class='bx bx-check-circle mr-2'></i> Approve
                                 </button>
                             </div>
                         </form>
@@ -478,13 +497,13 @@ try {
             }
 
             Swal.fire({
-                title: action === 'approve' ? 'Recommend Request?' : 'Decline Request?',
-                text: action === 'approve' ? 'This will forward the request to the next approval stage.' : 'This will decline the request and notify the requestor.',
+                title: action === 'approve' ? 'Approve Request?' : 'Decline Request?',
+                text: action === 'approve' ? 'This will approve the request from a business process perspective.' : 'This will decline the request and notify the requestor.',
                 icon: action === 'approve' ? 'question' : 'warning',
                 showCancelButton: true,
                 confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
                 cancelButtonColor: '#6B7280',
-                confirmButtonText: action === 'approve' ? 'Yes, Recommend' : 'Yes, Decline',
+                confirmButtonText: action === 'approve' ? 'Yes, Approve' : 'Yes, Decline',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {

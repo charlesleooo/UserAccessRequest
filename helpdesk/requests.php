@@ -165,7 +165,7 @@ try {
                     </a>
                 </nav>
 
-                <!-- Logout Button -->      
+                <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
                     <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
                         <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
@@ -227,7 +227,7 @@ try {
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($requests)): ?>
                                     <?php foreach ($requests as $request): ?>
-                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='view_request.php?id=<?php echo $request['id']; ?>'">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>

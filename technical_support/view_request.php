@@ -2,8 +2,8 @@
 session_start();
 require_once '../config.php';
 
-// Check if superior is logged in
-if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
+// Check if technical support is logged in
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') {
     header('Location: ../admin/login.php');
     exit();
 }
@@ -69,12 +69,6 @@ try {
     ]);
 
     $requestDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    if (!$request) {
-        // Request not found
-        header("Location: requests.php");
-        exit();
-    }
 } catch (PDOException $e) {
     error_log("Error fetching request details: " . $e->getMessage());
     header("Location: requests.php?error=db");
@@ -190,6 +184,14 @@ try {
                     </span>
                     <span class="ml-3">Review History</span>
                 </a>
+
+                <a href="testing_setup.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
+                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
+                        <i class='bx bx-test-tube text-xl'></i>
+                    </span>
+                    <span class="ml-3">Testing Setup</span>
+                </a>
+
                 <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
                     <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                         <i class='bx bx-cog text-xl'></i>
@@ -223,15 +225,23 @@ try {
                     <a href="requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                         <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                     </a>
-                    <?php if ($request['status'] === 'pending_superior'): ?>
-                        <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                    <?php if ($request['status'] === 'pending_technical'): ?>
+                        <button onclick="scrollToReviewSection('reviewForm')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
                             <i class='bx bx-edit mr-2'></i> Add Comments
                         </button>
                         <button onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                            <i class='bx bx-x-circle mr-2'></i> Decline
+                            <i class='bx bx-x-circle mr-2'></i> Not Feasible
                         </button>
                         <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                            <i class='bx bx-check-circle mr-2'></i> Recommend
+                            <i class='bx bx-check-circle mr-2'></i> Approve
+                        </button>
+                    <?php endif; ?>
+                    <?php if ($request['status'] === 'pending_testing_setup'): ?>
+                        <button onclick="scrollToReviewSection('testingForm')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                            <i class='bx bx-edit mr-2'></i> Add Instructions
+                        </button>
+                        <button onclick="handleTesting()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                            <i class='bx bx-send mr-2'></i> Send to Requestor
                         </button>
                     <?php endif; ?>
                 </div>
@@ -289,11 +299,9 @@ try {
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="p-6">
             <!-- Access Details -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                     <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
                     Access Details
@@ -399,38 +407,89 @@ try {
                 </div>
             </div>
 
-            <?php if (!empty($request['review_notes'])): ?>
+            <!-- Superior's Comments -->
+            <?php if (!empty($request['superior_notes'])): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                        Administrator Feedback
+                        Superior's Comments
                     </h3>
                     <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
+                        <?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Help Desk Comments -->
+            <?php if (!empty($request['help_desk_notes'])): ?>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                        Help Desk Comments
+                    </h3>
+                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                        <?php echo nl2br(htmlspecialchars($request['help_desk_notes'])); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Process Owner Comments -->
+            <?php if (!empty($request['process_owner_notes'])): ?>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                        Process Owner Comments
+                    </h3>
+                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                        <?php echo nl2br(htmlspecialchars($request['process_owner_notes'])); ?>
                     </div>
                 </div>
             <?php endif; ?>
 
             <!-- Actions -->
-            <?php if ($request['status'] === 'pending_superior'): ?>
+            <?php if ($request['status'] === 'pending_technical'): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
-                        Superior Review
+                        Technical Review
                     </h3>
                     <div class="p-4">
                         <form id="reviewForm">
                             <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
                             <div class="mb-4">
-                                <label for="review_notes" class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
-                                <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
+                                <label for="review_notes" class="block text-sm font-medium text-gray-700 mb-2">Technical Review Notes</label>
+                                <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your technical review notes..."></textarea>
                             </div>
                             <div class="flex justify-end space-x-4">
                                 <button type="button" onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                    <i class='bx bx-x-circle mr-2'></i> Decline
+                                    <i class='bx bx-x-circle mr-2'></i> Not Feasible
                                 </button>
                                 <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Recommend
+                                    <i class='bx bx-check-circle mr-2'></i> Approve
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
+
+            <!-- Testing Setup -->
+            <?php if ($request['status'] === 'pending_testing_setup'): ?>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-test-tube text-primary-500 text-xl mr-2'></i>
+                        Testing Setup
+                    </h3>
+                    <div class="p-4">
+                        <form id="testingForm">
+                            <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
+                            <div class="mb-4">
+                                <label for="testing_instructions" class="block text-sm font-medium text-gray-700 mb-2">Testing Instructions</label>
+                                <textarea id="testing_instructions" name="testing_instructions" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter detailed instructions for the requestor to test the access..."></textarea>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="button" onclick="handleTesting()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                                    <i class='bx bx-send mr-2'></i> Send to Requestor
                                 </button>
                             </div>
                         </form>
@@ -450,15 +509,16 @@ try {
             AOS.init();
         });
 
-        function scrollToReviewSection() {
+        function scrollToReviewSection(formId) {
             // Find the review section and scroll to it
-            const reviewSection = document.getElementById('reviewForm');
+            const reviewSection = document.getElementById(formId);
             if (reviewSection) {
                 reviewSection.scrollIntoView({
                     behavior: 'smooth'
                 });
                 // Focus on the textarea
-                document.getElementById('review_notes').focus();
+                const textareaId = formId === 'testingForm' ? 'testing_instructions' : 'review_notes';
+                document.getElementById(textareaId).focus();
             }
         }
 
@@ -469,22 +529,22 @@ try {
             if (!notes) {
                 Swal.fire({
                     title: 'Review Notes Required',
-                    text: 'Please provide review notes before submitting your decision.',
+                    text: 'Please provide technical review notes before submitting your decision.',
                     icon: 'warning',
                     confirmButtonColor: '#0ea5e9'
                 });
-                scrollToReviewSection();
+                scrollToReviewSection('reviewForm');
                 return;
             }
 
             Swal.fire({
-                title: action === 'approve' ? 'Recommend Request?' : 'Decline Request?',
-                text: action === 'approve' ? 'This will forward the request to the next approval stage.' : 'This will decline the request and notify the requestor.',
+                title: action === 'approve' ? 'Approve Request?' : 'Mark as Not Feasible?',
+                text: action === 'approve' ? 'This will indicate that the request is technically feasible.' : 'This will mark the request as technically not feasible and notify the requestor.',
                 icon: action === 'approve' ? 'question' : 'warning',
                 showCancelButton: true,
                 confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
                 cancelButtonColor: '#6B7280',
-                confirmButtonText: action === 'approve' ? 'Yes, Recommend' : 'Yes, Decline',
+                confirmButtonText: action === 'approve' ? 'Yes, Approve' : 'Yes, Not Feasible',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -512,6 +572,83 @@ try {
                                 Swal.fire({
                                     title: 'Success!',
                                     text: data.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#0ea5e9'
+                                }).then(() => {
+                                    window.location.href = 'requests.php';
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: data.message || 'An error occurred while processing your request.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#0ea5e9'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'An error occurred while processing your request.',
+                                icon: 'error',
+                                confirmButtonColor: '#0ea5e9'
+                            });
+                        });
+                }
+            });
+        }
+
+        function handleTesting() {
+            const instructions = document.getElementById('testing_instructions').value;
+            const requestId = <?php echo $requestId; ?>;
+
+            if (!instructions) {
+                Swal.fire({
+                    title: 'Testing Instructions Required',
+                    text: 'Please provide testing instructions before submitting.',
+                    icon: 'warning',
+                    confirmButtonColor: '#0ea5e9'
+                });
+                scrollToReviewSection('testingForm');
+                return;
+            }
+
+            Swal.fire({
+                title: 'Send Testing Instructions?',
+                text: 'This will send the testing instructions to the requestor.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Yes, Send',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Processing...',
+                        html: 'Please wait while we process your request.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Submit the form via AJAX
+                    fetch('../admin/process_request.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `request_id=${requestId}&action=approve&review_notes=${encodeURIComponent(instructions)}`
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: data.message || 'Testing instructions have been sent to the requestor.',
                                     icon: 'success',
                                     confirmButtonColor: '#0ea5e9'
                                 }).then(() => {
