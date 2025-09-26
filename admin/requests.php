@@ -912,7 +912,7 @@ try {
                                                                 break;
                                                             case 'pending_admin':
                                                                 $statusClass = 'bg-purple-100 text-purple-800';
-                                                                $displayStatus = 'Pending Admin Review';
+                                                                $displayStatus = 'Pending Your Review';
                                                                 break;
                                                             case 'pending_testing_setup':
                                                                 $statusClass = 'bg-amber-100 text-amber-800';
