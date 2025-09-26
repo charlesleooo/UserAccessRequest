@@ -88,18 +88,42 @@ try {
     )";
     
     $historyStmt = $pdo->prepare($historySql);
+    // access_requests doesn't store access_type/justification; resolve from child tables
+    $childJust = '';
+    $childAccessType = '';
+    try {
+        $cj1 = $pdo->prepare("SELECT justification, access_type FROM individual_requests WHERE access_request_number = :arn LIMIT 1");
+        $cj1->execute(['arn' => $request['access_request_number']]);
+        $cjr = $cj1->fetch(PDO::FETCH_ASSOC);
+        if ($cjr) {
+            $childJust = $cjr['justification'] ?? '';
+            $childAccessType = $cjr['access_type'] ?? '';
+        } else {
+            $cj2 = $pdo->prepare("SELECT justification, access_type FROM group_requests WHERE access_request_number = :arn LIMIT 1");
+            $cj2->execute(['arn' => $request['access_request_number']]);
+            $cjr = $cj2->fetch(PDO::FETCH_ASSOC);
+            if ($cjr) {
+                $childJust = $cjr['justification'] ?? '';
+                $childAccessType = $cjr['access_type'] ?? '';
+            }
+        }
+    } catch (Exception $e) {
+        $childJust = '';
+        $childAccessType = '';
+    }
+
     $historyResult = $historyStmt->execute([
         ':access_request_number' => $request['access_request_number'],
         ':requestor_name' => $request['requestor_name'],
         ':business_unit' => $request['business_unit'],
         ':department' => $request['department'],
-        ':access_type' => $request['access_type'],
+        ':access_type' => ($childAccessType !== '' ? $childAccessType : ($request['system_type'] ?? 'individual')),
         ':comments' => "Request cancelled by requestor. Reason: " . $cancellationReason,
         ':system_type' => $request['system_type'],
         ':duration_type' => $request['duration_type'],
         ':start_date' => $request['start_date'],
         ':end_date' => $request['end_date'],
-        ':justification' => $request['justification'],
+        ':justification' => ($childJust !== '' ? $childJust : ''),
         ':email' => $request['email'],
         ':employee_id' => $request['employee_id']
     ]);
@@ -127,10 +151,10 @@ try {
         ':department' => $request['department'],
         ':email' => $request['email'],
         ':employee_id' => $request['employee_id'],
-        ':access_type' => $request['access_type'],
+        ':access_type' => ($childAccessType !== '' ? $childAccessType : ($request['system_type'] ?? 'individual')),
         ':system_type' => $request['system_type'],
         ':other_system_type' => $request['other_system_type'],
-        ':justification' => $request['justification'],
+        ':justification' => ($childJust !== '' ? $childJust : ''),
         ':duration_type' => $request['duration_type'],
         ':start_date' => $request['start_date'],
         ':end_date' => $request['end_date'],

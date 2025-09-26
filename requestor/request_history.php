@@ -31,27 +31,28 @@ $query = "SELECT
             email,
             employee_id
           FROM access_requests 
-          WHERE requestor_name = :requestor_name
+          WHERE employee_id = :employee_id
           UNION ALL
           SELECT 
             'history' as source,
-            history_id as request_id,
-            access_request_number,
-            action as status,
-            created_at,
-            (SELECT username FROM admin_users WHERE id = admin_id) as admin_username,
-            business_unit,
-            department,
-            access_type,
-            system_type,
-            justification,
-            email,
-            employee_id
-          FROM approval_history 
-          WHERE requestor_name = :requestor_name";
+            ah.history_id as request_id,
+            ah.access_request_number,
+            ah.action as status,
+            ah.created_at,
+            (SELECT username FROM admin_users WHERE id = ah.admin_id) as admin_username,
+            ah.business_unit,
+            ah.department,
+            ah.access_type,
+            ah.system_type,
+            ah.justification,
+            ah.email,
+            ar2.employee_id as employee_id
+          FROM approval_history ah
+          INNER JOIN access_requests ar2 ON ar2.access_request_number = ah.access_request_number
+          WHERE ar2.employee_id = :employee_id";
 
 // Add filters
-$params = [':requestor_name' => $username];
+$params = [':employee_id' => $requestorId];
 
 if ($statusFilter !== 'all') {
     if ($statusFilter === 'history') {
@@ -99,13 +100,13 @@ try {
     // Get counts for the dashboard
     $countStmt = $pdo->prepare("
         SELECT
-            (SELECT COUNT(*) FROM access_requests WHERE requestor_name = ? AND status LIKE 'pending%') as pending,
-            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'approved') as approved,
-            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'rejected') as rejected,
-            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'cancelled') as cancelled
+            (SELECT COUNT(*) FROM access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
+            (SELECT COUNT(*) FROM approval_history ah INNER JOIN access_requests ar ON ar.access_request_number = ah.access_request_number WHERE ar.employee_id = ? AND ah.action = 'approved') as approved,
+            (SELECT COUNT(*) FROM approval_history ah INNER JOIN access_requests ar ON ar.access_request_number = ah.access_request_number WHERE ar.employee_id = ? AND ah.action = 'rejected') as rejected,
+            (SELECT COUNT(*) FROM approval_history ah INNER JOIN access_requests ar ON ar.access_request_number = ah.access_request_number WHERE ar.employee_id = ? AND ah.action = 'cancelled') as cancelled
     ");
 
-    $countStmt->execute([$username, $username, $username, $username]);
+    $countStmt->execute([$requestorId, $requestorId, $requestorId, $requestorId]);
     $counts = $countStmt->fetch(PDO::FETCH_ASSOC);
 
     $pending = $counts['pending'] ?? 0;
@@ -138,11 +139,13 @@ try {
     <!-- Animate on Scroll -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <!-- DataTables -->
-    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.tailwindcss.min.css" rel="stylesheet">
+    <!-- Bootstrap 5 + DataTables (match admin table styling) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.tailwindcss.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -557,27 +560,30 @@ try {
             </div>
 
             <!-- Request History Table -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
-                <div class="overflow-hidden">
-                    <table id="requests-table" class="min-w-full divide-y divide-gray-200 responsive-table">
+            <div class="bg-white rounded-xl shadow-sm">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-800">Request History</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="requests-table" class="table table-striped table-hover align-middle">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed Date</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Since</th>
+                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Request No.</th>
+                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Processed Date</th>
+                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Days Since</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             <?php if (count($requests) > 0): ?>
                                 <?php foreach ($requests as $request): ?>
                                     <tr class="hover:bg-gray-50" data-request-id="<?php echo $request['request_id']; ?>">
-                                        <td class="px-6 py-4 whitespace-nowrap" data-label="Request No.">
+                                        <td class="whitespace-nowrap" data-label="Request No.">
                                             <div class="text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center" data-label="Status">
+                                        <td class="whitespace-nowrap text-center" data-label="Status">
                                             <?php
                                             $statusClass = '';
                                             $status = $request['source'] === 'pending' ? 'Pending' : ucfirst(strtolower($request['status']));
@@ -601,13 +607,13 @@ try {
                                                 <?php echo $status; ?>
                                             </span>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700" data-label="Processed Date">
+                                        <td class="whitespace-nowrap text-gray-700" data-label="Processed Date">
                                             <?php
                                             $date = new DateTime($request['created_at'] ?? 'now');
                                             echo $date->format('M d, Y');
                                             ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-700" data-label="Days Since">
+                                        <td class="whitespace-nowrap text-gray-700" data-label="Days Since">
                                             <?php
                                             $today = new DateTime('now');
                                             $date = new DateTime($request['created_at'] ?? 'now');
@@ -619,16 +625,6 @@ try {
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
-                            <?php else: ?>
-                                <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center">
-                                        <div class="flex flex-col items-center justify-center py-6">
-                                            <i class='bx bx-folder-open text-5xl text-gray-300 mb-2'></i>
-                                            <p>No request history found</p>
-                                            <p class="text-sm mt-1">Try adjusting your filters or create new access requests</p>
-                                        </div>
-                                    </td>
-                                </tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -661,7 +657,7 @@ try {
             };
         });
 
-        // Initialize DataTables with custom styling
+        // Initialize DataTables with Bootstrap 5 styling (to match admin)
         $(document).ready(function() {
             // Initialize Alpine store for sidebar state if Alpine.js is loaded
             if (typeof Alpine !== 'undefined') {
@@ -681,22 +677,17 @@ try {
             }
 
             $('#requests-table').DataTable({
-                responsive: true,
-                lengthMenu: [15, 25, 50, 100],
-                pageLength: 15,
-                dom: 'Bfrtip',
-                buttons: ['copy', 'csv', 'excel', 'pdf', 'print'],
+                pageLength: 10,
+                searching: true,
+                order: [],
                 language: {
-                    search: "_INPUT_",
-                    searchPlaceholder: "Search...",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    paginate: { first: "First", last: "Last", next: "Next", previous: "Previous" },
+                    search: "Search in table:",
                     emptyTable: '<div class="flex flex-col items-center justify-center py-6"><i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i><p>No request history found</p><p class="text-sm mt-1">Try adjusting your filters or create new access requests</p></div>'
                 },
-                order: [], // Disable initial client-side sorting
-                ordering: false, // Disable column sorting
-                searching: true, // Keep search functionality
-                paging: true, // Keep pagination
-                info: true, // Keep table information
-                "drawCallback": function() {
+                drawCallback: function() {
                     // Make rows clickable after table is drawn
                     $('#requests-table tbody tr').css('cursor', 'pointer');
 
@@ -710,10 +701,12 @@ try {
             // Initialize AOS
             AOS.init();
 
-            // Display current time
+            // Display current time (guard if element is missing)
             function updateTime() {
+                const target = document.getElementById('current_time');
+                if (!target) return;
                 const now = new Date();
-                document.getElementById('current_time').textContent = now.toLocaleTimeString([], {
+                target.textContent = now.toLocaleTimeString([], {
                     hour: '2-digit',
                     minute: '2-digit',
                     second: '2-digit'

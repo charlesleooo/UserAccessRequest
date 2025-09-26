@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 25, 2025 at 05:43 AM
+-- Generation Time: Sep 26, 2025 at 02:39 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -33,7 +33,7 @@ CREATE TABLE `access_requests` (
   `business_unit` varchar(50) NOT NULL,
   `access_request_number` varchar(20) NOT NULL,
   `department` varchar(100) NOT NULL,
-  `email` varchar(255) NOT NULL,
+  `employee_email` varchar(255) NOT NULL,
   `employee_id` varchar(20) NOT NULL,
   `request_date` date NOT NULL,
   `system_type` varchar(255) DEFAULT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE `access_requests` (
 -- Dumping data for table `access_requests`
 --
 
-INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `email`, `employee_id`, `request_date`, `system_type`, `other_system_type`, `access_level`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
+INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `employee_email`, `employee_id`, `request_date`, `system_type`, `other_system_type`, `access_level`, `status`, `testing_status`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
 (55, 'PALOMARES, CHARLES LEO H.', 'AAC', 'UAR-REQ2025-022', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-27', NULL, NULL, NULL, 'pending_admin', 'not_required', NULL, NULL, '2025-05-27 08:25:10', 6, '2025-05-27 08:25:21', 'qweqwe', 15, '2025-05-27 08:25:37', 'qweqwewqe', 13, '2025-05-29 07:49:14', 'qweqwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (61, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-001', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', NULL, NULL, NULL, '', 'not_required', NULL, NULL, '2025-05-30 09:03:23', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (62, 'PALOMARES, CHARLES LEO H.', 'AAC', '2025-002', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-05-30', NULL, NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-05-30 09:05:41', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
@@ -102,7 +102,12 @@ INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_
 (90, 'superior', 'AAC', '2025-029', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 08:43:19', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (91, 'superior', 'AAC', '2025-030', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 08:58:29', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
 (93, 'superior', 'AAC', '2025-031', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 11:39:20', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(94, 'superior', 'AAC', '2025-032', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_superior', 'not_required', NULL, NULL, '2025-09-25 11:40:48', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+(94, 'superior', 'AAC', '2025-032', 'INFORMATION TECHNOLOGY (IT)', '', '123', '2025-09-25', 'Email Access', NULL, NULL, 'pending_help_desk', 'not_required', NULL, NULL, '2025-09-25 11:40:48', 16, '2025-09-26 20:02:17', 'qwewqeqwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(95, 'PALOMARES, CHARLES LEO', 'AAC', '2025-033', 'INFORMATION TECHNOLOGY (IT)', '', 'AAC052003', '2025-09-26', 'Email Access, ERP/NAV/SAP', NULL, NULL, 'pending_help_desk', 'not_required', NULL, NULL, '2025-09-26 16:23:12', 16, '2025-09-26 19:40:34', 'qweqwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(96, 'PALOMARES, CHARLES LEO', 'AAC', '2025-034', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '2025-09-26', 'HRIS', NULL, NULL, 'pending_admin', 'not_required', NULL, NULL, '2025-09-26 16:45:40', 16, '2025-09-26 19:41:07', 'qweqwe', 16, '2025-09-26 19:44:16', 'qwe', 13, '2025-09-26 19:44:52', 'qwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(97, 'PALOMARES, CHARLES LEO', 'AAC', '2025-035', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '2025-09-26', 'Legacy Purchasing', NULL, NULL, 'pending_help_desk', 'not_required', NULL, NULL, '2025-09-26 19:53:39', 16, '2025-09-26 20:02:04', 'qwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(98, 'PALOMARES, CHARLES LEO', 'AAC', '2025-036', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '2025-09-26', 'Legacy Payroll', NULL, NULL, 'pending_help_desk', 'not_required', NULL, NULL, '2025-09-26 19:56:45', 16, '2025-09-26 19:57:20', 'ok', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+(99, 'PALOMARES, CHARLES LEO', 'AAC', '2025-037', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '2025-09-26', 'Memorandum Receipt', NULL, NULL, 'pending_help_desk', 'not_required', NULL, NULL, '2025-09-26 20:12:46', 16, '2025-09-26 20:13:30', 'qweqweqwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -1213,7 +1218,9 @@ INSERT INTO `group_requests` (`id`, `access_request_number`, `username`, `applic
 (1, '2025-029', 'test1', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'test'),
 (2, '2025-030', 'john doe ', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'test'),
 (4, '2025-032', 'charles', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'qweqwe'),
-(5, '2025-032', 'test user', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'qweqwe');
+(5, '2025-032', 'test user', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-25', 'qweqwe'),
+(6, '2025-033', 'charleson123', 'Email Access', 'full', 'permanent', NULL, NULL, '2025-09-26', 'testing numer 1'),
+(7, '2025-033', 'leon123', 'ERP/NAV/SAP', 'full', 'permanent', NULL, NULL, '2025-09-26', 'testing123');
 
 -- --------------------------------------------------------
 
@@ -1269,7 +1276,11 @@ INSERT INTO `individual_requests` (`id`, `access_request_number`, `username`, `a
 (28, '2025-026', 'John Doe', 'ERP/NAV/SAP', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qweqwe'),
 (29, '2025-027', 'judas', 'HRIS', 'full', 'permanent', NULL, NULL, '2025-09-22', 'qwe'),
 (30, '2025-028', 'jess vitualla', 'Fresh Chilled Receiving System', 'full', 'permanent', NULL, NULL, '2025-09-22', 'newly hired ang alipin ko'),
-(32, '2025-031', 'John Doe', 'Email Access', 'admin', 'permanent', NULL, NULL, '2025-09-25', 'qwe');
+(32, '2025-031', 'John Doe', 'Email Access', 'admin', 'permanent', NULL, NULL, '2025-09-25', 'qwe'),
+(33, '2025-034', '3234', 'HRIS', 'full', 'permanent', NULL, NULL, '2025-09-26', '234'),
+(34, '2025-035', 'charlzone', 'Legacy Purchasing', 'full', 'permanent', NULL, NULL, '2025-09-26', 'im charles'),
+(35, '2025-036', 'hahahahaha', 'Legacy Payroll', 'full', 'permanent', NULL, NULL, '2025-09-26', 'qwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewqqwqwewq'),
+(36, '2025-037', 'qwe', 'Memorandum Receipt', 'read', 'permanent', NULL, NULL, '2025-09-26', 'qwe');
 
 -- --------------------------------------------------------
 
@@ -1494,7 +1505,7 @@ ALTER TABLE `user_encryption_codes`
 -- AUTO_INCREMENT for table `access_requests`
 --
 ALTER TABLE `access_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
 
 --
 -- AUTO_INCREMENT for table `admin_users`
@@ -1530,13 +1541,13 @@ ALTER TABLE `employees_archive`
 -- AUTO_INCREMENT for table `group_requests`
 --
 ALTER TABLE `group_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `individual_requests`
 --
 ALTER TABLE `individual_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=37;
 
 --
 -- AUTO_INCREMENT for table `password_resets`
