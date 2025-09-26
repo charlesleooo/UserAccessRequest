@@ -1111,7 +1111,7 @@ try {
             formData.append('department', department);
             formData.append('request_date', date);
             formData.append('employee_id', <?php echo json_encode($requestorId); ?>);
-            formData.append('email', <?php echo isset($_SESSION['email']) ? json_encode($_SESSION['email']) : '""'; ?>);
+            formData.append('employee_email', <?php echo json_encode($_SESSION['employee_email'] ?? ($requestorInfo['employee_email'] ?? '')); ?>);
 
             // Prepare array to hold all access requests
             const userForms = [];

@@ -112,11 +112,11 @@
             // Insert only one record into access_requests table
             $sql = "INSERT INTO access_requests (
                 requestor_name, business_unit, access_request_number, department, 
-                email, employee_id, request_date, system_type, other_system_type,
+                employee_email, employee_id, request_date, system_type, other_system_type,
                 submission_date, status
             ) VALUES (
                 :requestor_name, :business_unit, :access_request_number, :department,
-                :email, :employee_id, :request_date, :system_type, :other_system_type,
+                :employee_email, :employee_id, :request_date, :system_type, :other_system_type,
                 NOW(), 'pending_superior'
             )";
 
@@ -140,7 +140,7 @@
                 'business_unit' => $_POST['business_unit'],
                 'access_request_number' => $access_request_number,
                 'department' => $_POST['department'],
-                'email' => $_POST['email'],
+                'employee_email' => ($_POST['employee_email'] ?? ($_POST['email'] ?? null)),
                 'employee_id' => $_POST['employee_id'],
                 'request_date' => $_POST['request_date'],
                 'system_type' => $combinedSystemType,
@@ -358,11 +358,11 @@
             // Insert into access_requests table first (parent record)
             $sql = "INSERT INTO access_requests (
                 requestor_name, business_unit, access_request_number, department, 
-                email, employee_id, request_date, system_type, other_system_type,
+                employee_email, employee_id, request_date, system_type, other_system_type,
                 submission_date, status
             ) VALUES (
                 :requestor_name, :business_unit, :access_request_number, :department,
-                :email, :employee_id, :request_date, :system_type, :other_system_type,
+                :employee_email, :employee_id, :request_date, :system_type, :other_system_type,
                 NOW(), 'pending_superior'
             )";
 
@@ -374,7 +374,7 @@
                 'business_unit' => $_POST['business_unit'],
                 'access_request_number' => $access_request_number,
                 'department' => $_POST['department'],
-                'email' => $_POST['email'],
+                'employee_email' => ($_POST['employee_email'] ?? ($_POST['email'] ?? null)),
                 'employee_id' => $_POST['employee_id'],
                 'request_date' => $_POST['request_date'],
                 'system_type' => $system_type,

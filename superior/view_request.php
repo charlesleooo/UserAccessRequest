@@ -221,6 +221,59 @@ try {
         </div>
     </div>
 
+    <!-- Requestor Information -->
+    <div class="p-6">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-1 border-b border-gray-100 flex items-center">
+                <i class='bx bx-user text-primary-500 text-xl mr-2'></i>
+                Requestor Information
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Name:</span>
+                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['requestor_name'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Employee ID:</span>
+                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['employee_id'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Email:</span>
+                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['employee_email'] ?? 'N/A'); ?></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <div class="space-y-3">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Business Unit:</span>
+                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Department:</span>
+                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['department'] ?? 'N/A'); ?></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Request Date:</span>
+                            <span class="font-medium text-gray-900">
+                                <?php 
+                                if (!empty($request['request_date'])) {
+                                    $requestDate = new DateTime($request['request_date']);
+                                    echo $requestDate->format('M d, Y');
+                                } else {
+                                    echo 'N/A';
+                                }
+                                ?>
+                            </span>
+                        </div>
+                    </div>
+            </div>
+        </div>
+        </div>
+        </div>
+
     <div class="p-6">
         <!-- Access Details -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
@@ -326,57 +379,6 @@ try {
                     </div>
                 </div>
                 <?php endforeach; ?>
-            </div>
-        </div>
-        
-        <!-- Requestor Information -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                <i class='bx bx-user text-primary-500 text-xl mr-2'></i>
-                Requestor Information
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <div class="space-y-3">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Name:</span>
-                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['requestor_name'] ?? 'N/A'); ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Employee ID:</span>
-                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['employee_id'] ?? 'N/A'); ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Email:</span>
-                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['email'] ?? 'N/A'); ?></span>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <div class="space-y-3">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Business Unit:</span>
-                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Department:</span>
-                            <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['department'] ?? 'N/A'); ?></span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Request Date:</span>
-                            <span class="font-medium text-gray-900">
-                                <?php 
-                                if (!empty($request['request_date'])) {
-                                    $requestDate = new DateTime($request['request_date']);
-                                    echo $requestDate->format('M d, Y');
-                                } else {
-                                    echo 'N/A';
-                                }
-                                ?>
-                            </span>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
         
