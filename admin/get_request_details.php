@@ -23,6 +23,10 @@ if (!isset($_GET['id'])) {
     exit();
 }
 
+// Disable error display but log errors
+error_reporting(E_ALL);
+ini_set('display_errors', 0);
+
 try {
     // Check if we're looking for history or regular request
     $isHistoryRequest = isset($_GET['type']) && $_GET['type'] === 'history';
@@ -52,7 +56,10 @@ try {
                 $request['created_at'] = date('Y-m-d H:i:s', strtotime($request['created_at']));
             }
 
-            echo json_encode($request);
+            echo json_encode([
+                'success' => true,
+                'data' => $request
+            ]);
         } else {
             echo json_encode([
                 'success' => false,
@@ -168,8 +175,15 @@ try {
         }
     }
 } catch (PDOException $e) {
+    error_log("Database error in get_request_details.php: " . $e->getMessage());
     echo json_encode([
         'success' => false,
-        'message' => 'Database error: ' . $e->getMessage()
+        'message' => 'A database error occurred. Please try again.'
+    ]);
+} catch (Exception $e) {
+    error_log("Error in get_request_details.php: " . $e->getMessage());
+    echo json_encode([
+        'success' => false,
+        'message' => 'An error occurred while processing your request.'
     ]);
 }

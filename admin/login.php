@@ -60,6 +60,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
         $_SESSION['temp_admin'] = $user;
 
+
+    
         // === DEVELOPMENT MODE ===
         // Instead of sending email, just log the OTP to error log
         error_log("DEV OTP for {$user['employee_email']}: " . $otp);
@@ -71,9 +73,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         ]);
         exit;
 
-
         /*
-
         // Generate and store OTP
         $otp = generateOTP();
         $_SESSION['otp'] = $otp;
@@ -113,8 +113,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP: ' . $mail->ErrorInfo]);
         }
         exit;
-        */
+        */ 
+        
     }
+        
     
     
     if (isset($_POST['verify_otp'])) {
@@ -618,7 +620,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                         customClass: {
                             ...customClass,
                             icon: 'text-red-500 border-red-200'
-                        },
+                        },  
                         buttonsStyling: false
                     });
                 }

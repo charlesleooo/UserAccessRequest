@@ -15,7 +15,7 @@ if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] ||
     exit();
 }
 
-// Get all requests pending superior review
+// Get all requests pending superior review - grouped by access_request_number
 try {
     $sql = "SELECT ar.*, 
             CASE 
@@ -30,6 +30,7 @@ try {
             END as status_display
             FROM access_requests ar 
             WHERE ar.status = 'pending_superior'
+            GROUP BY ar.access_request_number
             ORDER BY ar.submission_date DESC";
             
     $stmt = $pdo->prepare($sql);
@@ -129,9 +130,6 @@ try {
                         <span class="ml-3 font-medium">Logout</span>
                     </a>
                 </div>
-
-                <!-- User Profile -->
-                
             </div>
         </div>
 
@@ -164,7 +162,7 @@ try {
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($requests)): ?>
                                     <?php foreach ($requests as $request): ?>
-                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location.href='view_request.php?id=<?php echo $request['id']; ?>'">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -172,18 +170,38 @@ try {
                                                 <?php echo htmlspecialchars($request['requestor_name']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
+                                                <?php 
+                                                    try {
+                                                        echo !empty($request['submission_date']) ? date('M d, Y', strtotime($request['submission_date'])) : 'N/A';
+                                                    } catch (Exception $e) {
+                                                        echo 'N/A';
+                                                    }
+                                                ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php 
-                                                    $submission_date = new DateTime($request['submission_date']);
-                                                    $today = new DateTime();
-                                                    $interval = $submission_date->diff($today);
-                                                    echo $interval->days . ' day/s';
+                                                    try {
+                                                        if (!empty($request['submission_date'])) {
+                                                            $submission_date = new DateTime($request['submission_date']);
+                                                            $today = new DateTime();
+                                                            $interval = $submission_date->diff($today);
+                                                            echo $interval->days . ' day/s';
+                                                        } else {
+                                                            echo 'N/A';
+                                                        }
+                                                    } catch (Exception $e) {
+                                                        echo 'N/A';
+                                                    }
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
+                                                <?php 
+                                                    try {
+                                                        echo !empty($request['request_date']) ? date('M d, Y', strtotime($request['request_date'])) : 'N/A';
+                                                    } catch (Exception $e) {
+                                                        echo 'N/A';
+                                                    }
+                                                ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
@@ -207,341 +225,5 @@ try {
             </div>
         </div>
     </div>
-
-    <!-- Details Modal -->
-    <div id="detailsModal" class="absolute top-0 left-0 w-full bg-gray-500 bg-opacity-75 hidden z-50">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-xl w-[90%] max-w-7xl mx-auto shadow-xl">
-                <div class="flex items-center px-6 py-4 border-b border-gray-200">
-                    <div class="w-1/4">
-                        <p class="text-sm font-medium text-gray-500">Request Number</p>
-                        <p id="detail_request_number" class="text-lg font-semibold text-gray-900"></p>
-                    </div>
-                    <div class="flex-1 text-center">
-                        <h3 class="text-xl font-semibold text-gray-800">Access Request Details</h3>
-                    </div>
-                    <div class="w-1/4 flex justify-end">
-                        <button onclick="hideDetailsModal()" class="text-gray-500 hover:text-gray-700">
-                            <i class='bx bx-x text-2xl'></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="p-6">
-                    <div id="detailsModalContent">
-                        <!-- Modal content will be populated by JavaScript -->
-                    </div>
-                    <div id="modalActions" class="mt-6 flex justify-end space-x-3 border-t border-gray-200 pt-4">
-                        <button onclick="handleRequest(currentRequestId, 'approve')"
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-green-600 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                            <i class='bx bx-check align-middle'></i>
-                            <span class="ml-1.5">Recommend</span>
-                        </button>
-                        <button onclick="handleRequest(currentRequestId, 'decline')"
-                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                            <i class='bx bx-x align-middle'></i>
-                            <span class="ml-1.5">Decline</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let currentRequestId = null;
-
-        // Function to check URL parameters
-        function getUrlParameter(name) {
-            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
-            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
-            var results = regex.exec(location.search);
-            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
-        }
-
-        // Check if we should show the modal on page load
-        window.addEventListener('DOMContentLoaded', function() {
-            const requestId = getUrlParameter('id');
-            const showModal = getUrlParameter('show_modal');
-            
-            if (requestId && showModal === 'true') {
-                showRequestDetails(requestId);
-                // Remove the parameters from URL without refreshing the page
-                window.history.replaceState({}, document.title, window.location.pathname);
-            }
-        });
-
-        function showRequestDetails(requestId) {
-            currentRequestId = requestId;
-            const modalContainer = document.getElementById('detailsModalContent');
-            modalContainer.innerHTML = `
-                <div class="flex justify-center items-center p-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                </div>
-            `;
-            
-            document.getElementById('detailsModal').classList.remove('hidden');
-            
-            fetch(`../admin/get_request_details.php?id=${requestId}`)
-                .then(response => response.json())
-                .then(response => {
-                    if (!response.success) {
-                        throw new Error(response.message || 'Failed to load request details');
-                    }
-                    
-                    const data = response.data;
-                    document.getElementById('detail_request_number').textContent = data.access_request_number;
-                    modalContainer.innerHTML = `
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <!-- Request Overview -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-info-circle text-primary-600 text-xl mr-2'></i>
-                                    Request Overview
-                                </h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Request Number:</span>
-                                        <span class="font-medium text-gray-900">${data.access_request_number}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-gray-600">Status:</span>
-                                        <div class="flex items-center ${
-                                            data.status.includes('pending') ? 'bg-yellow-50' : 
-                                            (data.status === 'approved' ? 'bg-green-50' : 'bg-red-50')
-                                        } rounded-lg px-2 py-1">
-                                            <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                                data.status.includes('pending') ? 'bg-yellow-100 text-yellow-700' : 
-                                                (data.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')
-                                            }">
-                                                ${data.status_display}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Submitted:</span>
-                                        <span class="font-medium text-gray-900">
-                                            ${new Date(data.submission_date).toLocaleString()}
-                                        </span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Duration:</span>
-                                        <span class="font-medium text-gray-900">
-                                            ${data.duration_type === 'permanent' ? 'Permanent' : 
-                                            `${new Date(data.start_date).toLocaleDateString()} - ${new Date(data.end_date).toLocaleDateString()}`}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Requestor Info -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-user text-primary-600 text-xl mr-2'></i>
-                                    Requestor Information
-                                </h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Name:</span>
-                                        <span class="font-medium text-gray-900">${data.requestor_name}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Business Unit:</span>
-                                        <span class="font-medium text-gray-900">${data.business_unit}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Department:</span>
-                                        <span class="font-medium text-gray-900">${data.department}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Email:</span>
-                                        <span class="font-medium text-gray-900">${data.email}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Employee ID:</span>
-                                        <span class="font-medium text-gray-900">${data.employee_id}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Access Details -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-lock-open text-primary-600 text-xl mr-2'></i>
-                                    Access Details
-                                </h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Access Type:</span>
-                                        <span class="font-medium text-gray-900">${data.access_type}</span>
-                                    </div>
-                                    ${data.system_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">System Type:</span>
-                                        <span class="font-medium text-gray-900">${data.system_type}</span>
-                                    </div>
-                                    ` : ''}
-                                    ${data.other_system_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Other System:</span>
-                                        <span class="font-medium text-gray-900">${data.other_system_type}</span>
-                                    </div>
-                                    ` : ''}
-                                    ${data.role_access_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Role Access Type:</span>
-                                        <span class="font-medium text-gray-900">${data.role_access_type}</span>
-                                    </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Justification -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
-                                Justification
-                            </h3>
-                            <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                ${data.justification || 'No justification provided.'}
-                            </div>
-                        </div>
-                        
-                        ${data.review_history && data.review_history.length > 0 ? `
-                        <!-- Review History -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                <i class='bx bx-history text-primary-600 text-xl mr-2'></i>
-                                Review History
-                            </h3>
-                            <div class="space-y-4">
-                                ${data.review_history.map(review => `
-                                    <div class="bg-gray-50 p-4 rounded-lg">
-                                        <div class="flex justify-between items-center mb-2">
-                                            <span class="font-medium text-gray-900">${review.role}</span>
-                                            <span class="text-sm text-gray-500">${new Date(review.date).toLocaleString()}</span>
-                                        </div>
-                                        <div class="flex items-center mb-2">
-                                            <span class="text-sm font-medium ${
-                                                review.action === 'Declined' ? 'text-red-600' : 
-                                                (review.action === 'Approved' ? 'text-green-600' : 'text-primary-600')
-                                            }">${review.action}</span>
-                                        </div>
-                                        <p class="text-gray-700 text-sm">${review.note}</p>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        ` : ''}
-                        
-                        ${data.testing_status ? `
-                        <!-- Testing Status -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-                            <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                <i class='bx bx-test-tube text-primary-600 text-xl mr-2'></i>
-                                Testing Status
-                            </h3>
-                            <div class="flex items-center justify-between">
-                                <span class="text-gray-600">Status:</span>
-                                <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                    data.testing_status === 'success' ? 'bg-green-100 text-green-700' :
-                                    data.testing_status === 'failed' ? 'bg-red-100 text-red-700' :
-                                    'bg-yellow-100 text-yellow-700'
-                                }">
-                                    ${data.testing_status.charAt(0).toUpperCase() + data.testing_status.slice(1)}
-                                </span>
-                            </div>
-                            ${data.testing_notes ? `
-                            <div class="mt-4">
-                                <span class="text-gray-600">Testing Notes:</span>
-                                <div class="mt-2 bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${data.testing_notes}
-                                </div>
-                            </div>
-                            ` : ''}
-                        </div>
-                        ` : ''}
-                    `;
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    modalContainer.innerHTML = `
-                        <div class="text-center py-8">
-                            <div class="text-red-600 mb-2">
-                                <i class='bx bx-error-circle text-3xl'></i>
-                            </div>
-                            <p class="text-red-600 font-medium">Error loading request details</p>
-                            <p class="text-gray-500 text-sm mt-1">${error.message}</p>
-                            <button onclick="hideDetailsModal()" 
-                                    class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-                                Close
-                            </button>
-                        </div>
-                    `;
-                });
-        }
-
-        function hideDetailsModal() {
-            document.getElementById('detailsModal').classList.add('hidden');
-        }
-
-        // Close modal when clicking outside
-        document.getElementById('detailsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                hideDetailsModal();
-            }
-        });
-
-        function handleRequest(requestId, action) {
-            Swal.fire({
-                title: action === 'approve' ? 'Recommend Request?' : 'Decline Request?',
-                input: 'textarea',
-                inputLabel: 'Review Notes',
-                inputPlaceholder: 'Enter your review notes...',
-                inputAttributes: {
-                    'aria-label': 'Review notes'
-                },
-                showCancelButton: true,
-                confirmButtonText: action === 'approve' ? 'Recommend' : 'Decline',
-                confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
-                showLoaderOnConfirm: true,
-                preConfirm: (notes) => {
-                    if (!notes) {
-                        Swal.showValidationMessage('Please enter review notes');
-                        return false;
-                    }
-                    
-                    return fetch('../admin/process_request.php', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                        },
-                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (!data.success) {
-                            throw new Error(data.message || 'Error processing request');
-                        }
-                        return data;
-                    })
-                    .catch(error => {
-                        Swal.showValidationMessage(error.message);
-                    });
-                },
-                allowOutsideClick: () => !Swal.isLoading()
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Success!',
-                        text: result.value.message,
-                        icon: 'success'
-                    }).then(() => {
-                        window.location.reload();
-                    });
-                }
-            });
-        }
-    </script>
 </body>
 </html>

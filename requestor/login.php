@@ -19,6 +19,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
 
         // Log the credentials attempt (without the actual password)
         error_log("Login attempt for: " . $employee_email);
+        error_log("Session ID: " . session_id());
 
         // Fetch employee by email
         $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ?");
@@ -45,6 +46,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             exit;
         }
 
+        /*
         // Generate and store OTP (only used for development mode)
         $otp = generateOTP();
         $_SESSION['otp'] = $otp;
@@ -62,14 +64,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         ]);
         exit;
 
-        /*
         // Generate and store OTP
         $otp = generateOTP();
         $_SESSION['otp'] = $otp;
-        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
+        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes    
         $_SESSION['temp_user'] = $user;
 
         error_log("OTP generated for " . $employee_email . ": " . $otp);
+        */
+
+        // Generate and store OTP
+        $otp = generateOTP();
+        $_SESSION['otp'] = $otp;
+        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes    
+        $_SESSION['temp_user'] = $user;
 
         // Send OTP via PHPMailer
         $mail = new PHPMailer\PHPMailer\PHPMailer(true); // Enable exceptions
@@ -91,9 +99,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
 
             $mail->send();
 
+            // Log OTP details for debugging
+            error_log("OTP generated and stored in session: " . $otp);
+            error_log("Session ID before write: " . session_id());
+            
             // Ensure session is written to storage
             session_write_close();
             session_start();
+            
+            error_log("Session ID after restart: " . session_id());
 
             error_log("OTP email sent successfully to " . $user['employee_email']);
             echo json_encode(['status' => 'success', 'message' => 'OTP sent successfully']);
@@ -102,7 +116,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP: ' . $mail->ErrorInfo]);
         }
         exit;
-        */
     }
 
     if (isset($_POST['verify_otp'])) {
@@ -511,7 +524,7 @@ function generateOTP($length = 6)
                 <a href="../index.php" class="inline-flex items-center text-sm text-gray-600 hover:text-primary">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                    </svg>
+                    </svg>  
                     Back to Home Page
                 </a>
             </div>

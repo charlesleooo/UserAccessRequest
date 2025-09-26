@@ -650,7 +650,10 @@ try {
                                                     <?php echo $daysPending; ?> days
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                    <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
+                                                <?php 
+                                                $dateNeeded = new DateTime($request['date_needed'] ?? 'now');
+                                                echo $dateNeeded->format('M d, Y'); 
+                                                ?>
                                                 </td>
 
                                             </tr>

@@ -106,99 +106,131 @@
                 throw new Exception("Failed to generate request number: " . $e->getMessage());
             }
 
-            foreach ($userForms as $form_index => $form) {
-                // Debug: Log the current form being processed
-                error_log("Processing form #" . ($form_index + 1) . ": " . print_r($form, true));
+            // Begin transaction for all forms
+            $pdo->beginTransaction();
+            
+            // Insert only one record into access_requests table
+            $sql = "INSERT INTO access_requests (
+                requestor_name, business_unit, access_request_number, department, 
+                email, employee_id, request_date, system_type, other_system_type,
+                submission_date, status
+            ) VALUES (
+                :requestor_name, :business_unit, :access_request_number, :department,
+                :email, :employee_id, :request_date, :system_type, :other_system_type,
+                NOW(), 'pending_superior'
+            )";
 
-                try {
-                    // Handle system type array if present
-                    $system_type = null;
-                    if (isset($form['system_type'])) {
-                        $system_type = is_array($form['system_type']) ? implode(', ', $form['system_type']) : $form['system_type'];
-                    }
+            $stmt = $pdo->prepare($sql);
+            
+            // Get system types from all forms
+            $allSystemTypes = array_map(function($form) {
+                if (isset($form['system_type'])) {
+                    return is_array($form['system_type']) ? implode(', ', $form['system_type']) : $form['system_type'];
+                }
+                return null;
+            }, $userForms);
+            
+            // Filter out null values and join with commas
+            $allSystemTypes = array_filter($allSystemTypes);
+            $combinedSystemType = implode(', ', array_unique($allSystemTypes));
+            
+            // Parameters for access_requests
+            $params = [
+                'requestor_name' => $_POST['requestor_name'],
+                'business_unit' => $_POST['business_unit'],
+                'access_request_number' => $access_request_number,
+                'department' => $_POST['department'],
+                'email' => $_POST['email'],
+                'employee_id' => $_POST['employee_id'],
+                'request_date' => $_POST['request_date'],
+                'system_type' => $combinedSystemType,
+                'other_system_type' => null
+            ];
 
-                    // Begin transaction
-                    $pdo->beginTransaction();
+            // Debug parameters
+            error_log("Executing access_requests SQL with params: " . print_r($params, true));
+            
+            $success = $stmt->execute($params);
+            
+            if (!$success) {
+                $all_success = false;
+                $error_message = 'Failed to insert main request record: ' . implode(', ', $stmt->errorInfo());
+                error_log("SQL Error: " . implode(', ', $stmt->errorInfo()));
+                $pdo->rollBack();
+            } else {
+                // Get the inserted ID
+                $access_request_id = $pdo->lastInsertId();
+                
+                // Process each form
+                foreach ($userForms as $form_index => $form) {
+                    // Debug: Log the current form being processed
+                    error_log("Processing form #" . ($form_index + 1) . ": " . print_r($form, true));
 
-                    // Insert into access_requests table first (parent record)
-                    $sql = "INSERT INTO access_requests (
-                        requestor_name, business_unit, access_request_number, department, 
-                        email, employee_id, request_date, system_type, other_system_type,
-                        submission_date, status
-                    ) VALUES (
-                        :requestor_name, :business_unit, :access_request_number, :department,
-                        :email, :employee_id, :request_date, :system_type, :other_system_type,
-                        NOW(), 'pending_superior'
-                    )";
-
-                    $stmt = $pdo->prepare($sql);
-                    
-                    // Parameters for access_requests
-                    $params = [
-                        'requestor_name' => $_POST['requestor_name'],
-                        'business_unit' => $_POST['business_unit'],
-                        'access_request_number' => $access_request_number,
-                        'department' => $_POST['department'],
-                        'email' => $_POST['email'],
-                        'employee_id' => $_POST['employee_id'],
-                        'request_date' => $_POST['request_date'],
-                        'system_type' => $system_type,
-                        'other_system_type' => $form['other_system_type'] ?? null
-                    ];
-
-                    // Debug parameters
-                    error_log("Executing access_requests SQL with params: " . print_r($params, true));
-                    
-                    $success = $stmt->execute($params);
-                    
-                    if (!$success) {
-                        $all_success = false;
-                        $error_message = 'Failed to insert record for user form #' . ($form_index + 1) . ': ' . implode(', ', $stmt->errorInfo());
-                        error_log("SQL Error: " . implode(', ', $stmt->errorInfo()));
-                        $pdo->rollBack();
-                        break;
-                    }
-                    
-                    // Get the inserted ID
-                    $access_request_id = $pdo->lastInsertId();
-                    
-                    // Handle usernames array if present
-                    $usernames = null;
-                    if (isset($form['user_names'])) {
-                        if (is_array($form['user_names'])) {
-                            // Filter out empty values
-                            $filteredUsernames = array_filter($form['user_names'], function($value) {
-                                return !empty($value);
-                            });
-                            $usernames = $filteredUsernames;
-                        } else {
-                            // Single username
-                            $usernames = [$form['user_names']];
+                    try {
+                        // Handle usernames array if present
+                        $usernames = null;
+                        if (isset($form['user_names'])) {
+                            if (is_array($form['user_names'])) {
+                                // Filter out empty values
+                                $filteredUsernames = array_filter($form['user_names'], function($value) {
+                                    return !empty($value);
+                                });
+                                $usernames = $filteredUsernames;
+                            } else {
+                                // Single username
+                                $usernames = [$form['user_names']];
+                            }
+                            // Debug the usernames
+                            error_log("Usernames for form: " . json_encode($usernames));
                         }
-                        // Debug the usernames
-                        error_log("Usernames for form: " . json_encode($usernames));
-                    }
 
-                    // Determine which table to insert into based on access_type
-                    $requestTable = ($form['access_type'] === 'individual') ? 'individual_requests' : 'group_requests';
-                    
-                    // Insert into the appropriate request table
-                    $sql = "INSERT INTO {$requestTable} (
-                        access_request_number, username, application_system, access_type,
-                        access_duration, start_date, end_date, date_needed, justification
-                    ) VALUES (
-                        :access_request_number, :username, :application_system, :access_type,
-                        :access_duration, :start_date, :end_date, :date_needed, :justification
-                    )";
-                    
-                    $stmt = $pdo->prepare($sql);
-                    
-                    // If we have multiple usernames, insert a record for each one
-                    if (is_array($usernames) && !empty($usernames)) {
-                        foreach ($usernames as $username) {
+                        // Determine which table to insert into based on access_type
+                        $requestTable = ($form['access_type'] === 'individual') ? 'individual_requests' : 'group_requests';
+                        
+                        // Insert into the appropriate request table
+                        $sql = "INSERT INTO {$requestTable} (
+                            access_request_number, username, application_system, access_type,
+                            access_duration, start_date, end_date, date_needed, justification
+                        ) VALUES (
+                            :access_request_number, :username, :application_system, :access_type,
+                            :access_duration, :start_date, :end_date, :date_needed, :justification
+                        )";
+                        
+                        $stmt = $pdo->prepare($sql);
+                        
+                        // If we have multiple usernames, insert a record for each one
+                        if (is_array($usernames) && !empty($usernames)) {
+                            foreach ($usernames as $username) {
+                                $requestParams = [
+                                    'access_request_number' => $access_request_number,
+                                    'username' => $username,
+                                    'application_system' => $form['application_system'] ?? null,
+                                    'access_type' => $form['role_access_type'] ?? null,
+                                    'access_duration' => $form['duration_type'] ?? null,
+                                    'start_date' => (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['start_date'] ?? null) : null,
+                                    'end_date' => (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['end_date'] ?? null) : null,
+                                    'date_needed' => $form['date_needed'] ?? null,
+                                    'justification' => $form['justification'] ?? null
+                                ];
+                                
+                                // Debug parameters
+                                error_log("Executing {$requestTable} SQL with params: " . print_r($requestParams, true));
+                                
+                                $success = $stmt->execute($requestParams);
+                                
+                                if (!$success) {
+                                    $all_success = false;
+                                    $error_message = "Failed to insert record for username {$username} in form #" . ($form_index + 1) . ': ' . implode(', ', $stmt->errorInfo());
+                                    error_log("SQL Error: " . implode(', ', $stmt->errorInfo()));
+                                    $pdo->rollBack();
+                                    break 2; // Break out of both loops
+                                }
+                            }
+                        } else {
+                            // No usernames specified or single username
                             $requestParams = [
                                 'access_request_number' => $access_request_number,
-                                'username' => $username,
+                                'username' => is_array($usernames) && !empty($usernames) ? $usernames[0] : null,
                                 'application_system' => $form['application_system'] ?? null,
                                 'access_type' => $form['role_access_type'] ?? null,
                                 'access_duration' => $form['duration_type'] ?? null,
@@ -215,83 +247,56 @@
                             
                             if (!$success) {
                                 $all_success = false;
-                                $error_message = "Failed to insert record for username {$username} in form #" . ($form_index + 1) . ': ' . implode(', ', $stmt->errorInfo());
+                                $error_message = 'Failed to insert record for user form #' . ($form_index + 1) . ': ' . implode(', ', $stmt->errorInfo());
                                 error_log("SQL Error: " . implode(', ', $stmt->errorInfo()));
                                 $pdo->rollBack();
-                                break 2; // Break out of both loops
+                                break;
                             }
                         }
-                    } else {
-                        // No usernames specified or single username
-                        $requestParams = [
-                            'access_request_number' => $access_request_number,
-                            'username' => is_array($usernames) && !empty($usernames) ? $usernames[0] : null,
-                            'application_system' => $form['application_system'] ?? null,
-                            'access_type' => $form['role_access_type'] ?? null,
-                            'access_duration' => $form['duration_type'] ?? null,
-                            'start_date' => (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['start_date'] ?? null) : null,
-                            'end_date' => (isset($form['duration_type']) && $form['duration_type'] === 'temporary') ? ($form['end_date'] ?? null) : null,
-                            'date_needed' => $form['date_needed'] ?? null,
-                            'justification' => $form['justification'] ?? null
-                        ];
-                        
-                        // Debug parameters
-                        error_log("Executing {$requestTable} SQL with params: " . print_r($requestParams, true));
-                        
-                        $success = $stmt->execute($requestParams);
-                        
-                        if (!$success) {
-                            $all_success = false;
-                            $error_message = 'Failed to insert record for user form #' . ($form_index + 1) . ': ' . implode(', ', $stmt->errorInfo());
-                            error_log("SQL Error: " . implode(', ', $stmt->errorInfo()));
-                            $pdo->rollBack();
-                            break;
-                        }
+                    } catch (PDOException $e) {
+                        $pdo->rollBack();
+                        error_log("PDO Exception in form insertion: " . $e->getMessage());
+                        $all_success = false;
+                        $error_message = 'Database error for user form #' . ($form_index + 1) . ': ' . $e->getMessage();
+                        break;
                     }
-                    
-                    // Commit the transaction
+                }
+                
+                // If all insertions were successful, commit the transaction
+                if ($all_success) {
                     $pdo->commit();
-                    
-                } catch (PDOException $e) {
-                    $pdo->rollBack();
-                    error_log("PDO Exception in form insertion: " . $e->getMessage());
-                    $all_success = false;
-                    $error_message = 'Database error for user form #' . ($form_index + 1) . ': ' . $e->getMessage();
-                    break;
                 }
 
-                // Get the superior from the same department (only for first form, to avoid spamming)
+                // Get the superior from the same department
                 try {
-                    if ($form_index === 0) {
+                    $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
+                                        FROM employees 
+                                        WHERE department = ? 
+                                        AND role = 'superior' 
+                                        LIMIT 1");
+                    $stmt->execute([$_POST['department']]);
+                    $superior = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if (!$superior) {
                         $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
                                             FROM employees 
-                                            WHERE department = ? 
-                                            AND role = 'superior' 
+                                            WHERE role = 'superior' 
                                             LIMIT 1");
-                        $stmt->execute([$_POST['department']]);
+                        $stmt->execute();
                         $superior = $stmt->fetch(PDO::FETCH_ASSOC);
-                        if (!$superior) {
-                            $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
-                                                FROM employees 
-                                                WHERE role = 'superior' 
-                                                LIMIT 1");
-                            $stmt->execute();
-                            $superior = $stmt->fetch(PDO::FETCH_ASSOC);
-                        }
-                        $first_superior = $superior;
+                    }
+                    $first_superior = $superior;
 
-                        // Log superior info
-                        error_log("Superior found: " . print_r($superior, true));
+                    // Log superior info
+                    error_log("Superior found: " . print_r($superior, true));
 
-                        // Update the request with the superior's ID
-                        if ($superior) {
-                            $stmt = $pdo->prepare("UPDATE access_requests 
-                                                SET superior_id = ? 
-                                                WHERE access_request_number = ?");
-                            $stmt->execute([$superior['employee_id'], $access_request_number]);
-                        } else {
-                            error_log("No superior found for department: " . $_POST['department']);
-                        }
+                    // Update the request with the superior's ID
+                    if ($superior) {
+                        $stmt = $pdo->prepare("UPDATE access_requests 
+                                            SET superior_id = ? 
+                                            WHERE access_request_number = ?");
+                        $stmt->execute([$superior['employee_id'], $access_request_number]);
+                    } else {
+                        error_log("No superior found for department: " . $_POST['department']);
                     }
                 } catch (PDOException $e) {
                     error_log("Error updating superior info: " . $e->getMessage());
