@@ -38,10 +38,48 @@ try {
     $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
 
     // First get the main request details
-    $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
-                 FROM access_requests ar
-                 LEFT JOIN employees e ON ar.employee_id = e.employee_id
-                 WHERE ar.id = :request_id";
+    $mainQuery = "SELECT 
+                    ar.*,
+                    e.employee_name as requestor_name,
+                    -- Superior Review Info
+                    s.username as superior_username,
+                    es.employee_name as superior_name,
+                    (SELECT emp.employee_name FROM employees emp 
+                     JOIN admin_users au ON emp.employee_id = au.username 
+                     WHERE au.id = ar.superior_id) as superior_reviewer_name,
+                    -- Technical Review Info
+                    t.username as technical_username,
+                    et.employee_name as technical_name,
+                    (SELECT emp.employee_name FROM employees emp 
+                     JOIN admin_users au ON emp.employee_id = au.username 
+                     WHERE au.id = ar.technical_id) as technical_reviewer_name,
+                    -- Process Owner Review Info
+                    p.username as process_owner_username,
+                    ep.employee_name as process_owner_name,
+                    (SELECT emp.employee_name FROM employees emp 
+                     JOIN admin_users au ON emp.employee_id = au.username 
+                     WHERE au.id = ar.process_owner_id) as process_owner_reviewer_name,
+                    -- Admin Review Info
+                    a.username as admin_username,
+                    ea.employee_name as admin_name,
+                    (SELECT emp.employee_name FROM employees emp 
+                     JOIN admin_users au ON emp.employee_id = au.username 
+                     WHERE au.id = ar.admin_id) as admin_reviewer_name
+                FROM access_requests ar
+                LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                -- Superior Info
+                LEFT JOIN admin_users s ON ar.superior_id = s.id
+                LEFT JOIN employees es ON s.username = es.employee_id
+                -- Technical Support Info
+                LEFT JOIN admin_users t ON ar.technical_id = t.id
+                LEFT JOIN employees et ON t.username = et.employee_id
+                -- Process Owner Info
+                LEFT JOIN admin_users p ON ar.process_owner_id = p.id
+                LEFT JOIN employees ep ON p.username = ep.employee_id
+                -- Admin Info
+                LEFT JOIN admin_users a ON ar.admin_id = a.id
+                LEFT JOIN employees ea ON a.username = ea.employee_id
+                WHERE ar.id = :request_id";
 
     $stmt = $pdo->prepare($mainQuery);
     $stmt->execute([
@@ -77,12 +115,52 @@ try {
     }
 
     // Get review history
-    $historyQuery = "SELECT ah.*, au.role, e.employee_name
-                    FROM approval_history ah
-                    LEFT JOIN admin_users au ON ah.admin_id = au.id
-                    LEFT JOIN employees e ON au.username = e.employee_id
-                    WHERE ah.request_id = :request_id
-                    ORDER BY ah.created_at ASC";
+    $historyQuery = "SELECT 
+                        ah.*,
+                        CASE
+                            WHEN ah.admin_id IS NOT NULL THEN (
+                                SELECT CONCAT(e.employee_name, ' (Admin)')
+                                FROM admin_users au 
+                                JOIN employees e ON au.username = e.employee_id 
+                                WHERE au.id = ah.admin_id
+                            )
+                            WHEN ah.superior_id IS NOT NULL THEN (
+                                SELECT CONCAT(e.employee_name, ' (Superior)')
+                                FROM admin_users au 
+                                JOIN employees e ON au.username = e.employee_id 
+                                WHERE au.id = ah.superior_id
+                            )
+                            WHEN ah.help_desk_id IS NOT NULL THEN (
+                                SELECT CONCAT(e.employee_name, ' (Help Desk)')
+                                FROM admin_users au 
+                                JOIN employees e ON au.username = e.employee_id 
+                                WHERE au.id = ah.help_desk_id
+                            )
+                            WHEN ah.technical_id IS NOT NULL THEN (
+                                SELECT CONCAT(e.employee_name, ' (Technical Support)')
+                                FROM admin_users au 
+                                JOIN employees e ON au.username = e.employee_id 
+                                WHERE au.id = ah.technical_id
+                            )
+                            WHEN ah.process_owner_id IS NOT NULL THEN (
+                                SELECT CONCAT(e.employee_name, ' (Process Owner)')
+                                FROM admin_users au 
+                                JOIN employees e ON au.username = e.employee_id 
+                                WHERE au.id = ah.process_owner_id
+                            )
+                            ELSE 'Unknown User'
+                        END as employee_name,
+                        CASE
+                            WHEN ah.admin_id IS NOT NULL THEN ah.comments
+                            WHEN ah.superior_id IS NOT NULL THEN ah.superior_notes
+                            WHEN ah.help_desk_id IS NOT NULL THEN ah.help_desk_notes
+                            WHEN ah.technical_id IS NOT NULL THEN ah.technical_notes
+                            WHEN ah.process_owner_id IS NOT NULL THEN ah.process_owner_notes
+                            ELSE NULL
+                        END as notes
+                     FROM approval_history ah
+                     WHERE ah.request_id = :request_id
+                     ORDER BY ah.created_at ASC";
 
     $stmt = $pdo->prepare($historyQuery);
     $stmt->execute([
@@ -429,92 +507,157 @@ try {
             </div>
 
             <!-- Review History Section -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="200">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
+                <h3 class="text-lg font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100 flex items-center">
                     <i class='bx bx-history text-primary-500 text-xl mr-2'></i>
-                    Review History
-                </h3>
-
-                <div class="space-y-4">
-                    <?php if (empty($reviewHistory)): ?>
-                        <p class="text-gray-500 italic">No review history available for this request.</p>
-                    <?php else: ?>
-                        <div class="relative">
-                            <!-- Timeline Line -->
-                            <div class="absolute left-5 top-0 bottom-0 w-0.5 bg-gray-200"></div>
-
-                            <!-- Timeline Items -->
-                            <div class="space-y-6">
-                                <?php foreach ($reviewHistory as $history): ?>
-                                    <div class="relative pl-10">
-                                        <!-- Timeline Dot -->
-                                        <?php if ($history['action'] === 'approved'): ?>
-                                            <div class="absolute left-0 mt-1.5 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                                                <i class='bx bx-check text-green-500 text-2xl'></i>
-                                            </div>
-                                        <?php elseif ($history['action'] === 'rejected'): ?>
-                                            <div class="absolute left-0 mt-1.5 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                                                <i class='bx bx-x text-red-500 text-2xl'></i>
-                                            </div>
-                                        <?php else: ?>
-                                            <div class="absolute left-0 mt-1.5 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                                <i class='bx bx-right-arrow-alt text-blue-500 text-2xl'></i>
-                                            </div>
+                    Approval Timeline
+                </h3>            
+                
+                <div class="relative">
+                    <!-- Vertical Line - will end at the last item -->
+                    <div class="absolute left-5 top-0 h-[calc(98%-4rem)] w-0.5 bg-gray-200"></div>
+                    
+                    <div class="space-y-8">
+                        <!-- Superior Review -->
+                        <div class="relative flex items-start group">
+                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                                <div class="w-10 h-10 rounded-full <?php echo $request['superior_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                    <i class='bx bxs-user-check text-xl text-white'></i>
+                                </div>
+                            </div>
+                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                    <h4 class="text-base font-semibold text-gray-900">
+                                        Superior Review
+                                        <?php if (!empty($request['superior_reviewer_name'])): ?>
+                                            <span class="text-sm font-normal text-gray-600">
+                                                (<?php echo htmlspecialchars($request['superior_reviewer_name']); ?>)
+                                            </span>
                                         <?php endif; ?>
-
-                                        <!-- Content -->
-                                        <div class="bg-gray-50 rounded-lg p-4">
-                                            <div class="flex flex-wrap justify-between mb-2">
-                                                <h4 class="text-gray-800 font-medium">
-                                                    <?php echo htmlspecialchars($history['employee_name'] ?? 'Unknown'); ?>
-                                                    <span class="text-gray-500 font-normal">
-                                                        (<?php echo htmlspecialchars(ucfirst($history['role'] ?? 'Unknown')); ?>)
-                                                    </span>
-                                                </h4>
-                                                <span class="text-gray-500 text-sm">
-                                                    <?php
-                                                    if (!empty($history['created_at'])) {
-                                                        $historyDate = new DateTime($history['created_at']);
-                                                        echo $historyDate->format('M d, Y - h:i A');
-                                                    }
-                                                    ?>
-                                                </span>
-                                            </div>
-
-                                            <div class="mb-2">
-                                                <?php if ($history['action'] === 'approved'): ?>
-                                                    <span class="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                                                        Approved
-                                                    </span>
-                                                <?php elseif ($history['action'] === 'rejected'): ?>
-                                                    <span class="px-3 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                                                        Rejected
-                                                    </span>
-                                                <?php elseif ($history['action'] === 'forwarded'): ?>
-                                                    <span class="px-3 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                                        Forwarded
-                                                    </span>
-                                                <?php else: ?>
-                                                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full">
-                                                        <?php echo htmlspecialchars(ucfirst($history['action'] ?? 'Action')); ?>
-                                                    </span>
-                                                <?php endif; ?>
-                                            </div>
-
-                                            <?php if (!empty($history['notes'])): ?>
-                                                <div class="mt-2">
-                                                    <h5 class="text-sm text-gray-600 mb-1">Notes:</h5>
-                                                    <p class="text-gray-700 text-sm">
-                                                        <?php echo nl2br(htmlspecialchars($history['notes'])); ?>
-                                                    </p>
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                                    </h4>
+                                    <?php if ($request['superior_review_date']): ?>
+                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                            <?php echo date('M j, Y h:i A', strtotime($request['superior_review_date'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                    <?php 
+                                    if (!empty($request['superior_notes'])) {
+                                        echo nl2br(htmlspecialchars($request['superior_notes']));
+                                    } else {
+                                        echo '<span class="text-gray-500 italic">Pending review</span>';
+                                    }
+                                    ?>
+                                </div>
                             </div>
                         </div>
-                    <?php endif; ?>
+
+                        <!-- Technical Review -->
+                        <div class="relative flex items-start group">
+                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                                <div class="w-10 h-10 rounded-full <?php echo $request['technical_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                    <i class='bx bx-code-alt text-xl text-white'></i>
+                                </div>
+                            </div>
+                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                    <h4 class="text-base font-semibold text-gray-900">
+                                        Technical Support Review
+                                        <?php if (!empty($request['technical_reviewer_name'])): ?>
+                                            <span class="text-sm font-normal text-gray-600">
+                                                (<?php echo htmlspecialchars($request['technical_reviewer_name']); ?>)
+                                            </span>
+                                        <?php endif; ?>
+                                    </h4>
+                                    <?php if ($request['technical_review_date']): ?>
+                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                            <?php echo date('M j, Y h:i A', strtotime($request['technical_review_date'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                    <?php 
+                                    if (!empty($request['technical_notes'])) {
+                                        echo nl2br(htmlspecialchars($request['technical_notes']));
+                                    } else {
+                                        echo '<span class="text-gray-500 italic">Awaiting technical review</span>';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Process Owner Review -->
+                        <div class="relative flex items-start group">
+                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                                <div class="w-10 h-10 rounded-full <?php echo $request['process_owner_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                    <i class='bx bx-user-voice text-xl text-white'></i>
+                                </div>
+                            </div>
+                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                    <h4 class="text-base font-semibold text-gray-900">
+                                        Process Owner Review
+                                        <?php if (!empty($request['process_owner_reviewer_name'])): ?>
+                                            <span class="text-sm font-normal text-gray-600">
+                                                (<?php echo htmlspecialchars($request['process_owner_reviewer_name']); ?>)
+                                            </span>
+                                        <?php endif; ?>
+                                    </h4>
+                                    <?php if ($request['process_owner_review_date']): ?>
+                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                            <?php echo date('M j, Y h:i A', strtotime($request['process_owner_review_date'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                    <?php 
+                                    if (!empty($request['process_owner_notes'])) {
+                                        echo nl2br(htmlspecialchars($request['process_owner_notes']));
+                                    } else {
+                                        echo '<span class="text-gray-500 italic">Awaiting process owner review</span>';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Review -->
+                        <div class="relative flex items-start group">
+                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
+                                <div class="w-10 h-10 rounded-full <?php echo $request['admin_review_date'] ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
+                                    <i class='bx bx-shield-quarter text-xl text-white'></i>
+                                </div>
+                            </div>
+                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
+                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                    <h4 class="text-base font-semibold text-gray-900">
+                                        Admin Review
+                                        <?php if (!empty($request['admin_reviewer_name'])): ?>
+                                            <span class="text-sm font-normal text-gray-600">
+                                                (<?php echo htmlspecialchars($request['admin_reviewer_name']); ?>)
+                                            </span>
+                                        <?php endif; ?>
+                                    </h4>
+                                    <?php if ($request['admin_review_date']): ?>
+                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
+                                            <?php echo date('M j, Y h:i A', strtotime($request['admin_review_date'])); ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                                    <?php 
+                                    if (!empty($request['admin_notes'])) {
+                                        echo nl2br(htmlspecialchars($request['admin_notes']));
+                                    } else {
+                                        echo '<span class="text-gray-500 italic">Awaiting admin review</span>';
+                                    }
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
