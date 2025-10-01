@@ -357,3 +357,4 @@
     [error_message] => Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'employee_id' in 'field list'
 )
 
+Database connection failed: SQLSTATE[HY000] [1045] Access denied for user ''@'localhost' (using password: NO)Database connection failed: SQLSTATE[HY000] [1045] Access denied for user ''@'localhost' (using password: NO)

@@ -110,14 +110,108 @@ try {
             break;
 
         case 'technical_support':
-            $can_handle = ($current_status === 'pending_technical');
-            // Check if this request came from process owner by checking if process_owner_id is set
-            $stmt = $pdo->prepare("SELECT process_owner_id FROM access_requests WHERE id = ?");
-            $stmt->execute([$request_id]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $came_from_process_owner = !empty($result['process_owner_id']);
+            $can_handle = ($current_status === 'pending_technical' || $current_status === 'pending_testing_setup' || $current_status === 'pending_testing_review');
+            
+            if ($current_status === 'pending_testing_setup' || $current_status === 'pending_testing_review') {
+                // Handle testing setup phase
+                if ($action === 'approve') {
+                    $next_status = 'pending_testing';
+                    
+                    // Update request with testing instructions and move to testing phase
+                    $sql = "UPDATE access_requests SET 
+                            status = 'pending_testing',
+                            testing_status = 'pending',
+                            testing_instructions = :review_notes,
+                            technical_id = :admin_users_id,
+                            technical_review_date = NOW(),
+                            technical_notes = CONCAT(COALESCE(technical_notes, ''), '\n\nTesting Setup: ', :review_notes)
+                            WHERE id = :request_id";
 
-            $next_status = ($action === 'approve') ? ($came_from_process_owner ? 'pending_admin' : 'pending_admin') : 'rejected';
+                    $stmt = $pdo->prepare($sql);
+                    $result = $stmt->execute([
+                        'review_notes' => $review_notes,
+                        'admin_users_id' => $admin_users_id,
+                        'request_id' => $request_id
+                    ]);
+
+                    if (!$result) {
+                        throw new Exception('Failed to update request with testing details');
+                    }
+
+                    // Send email to requestor with testing instructions
+                    $mail = new PHPMailer(true);
+
+                    try {
+                        // Server settings
+                        $mail->isSMTP();
+                        $mail->Host = 'smtp.gmail.com';
+                        $mail->SMTPAuth = true;
+                        $mail->Username = 'charlesondota@gmail.com';
+                        $mail->Password = 'crpf bbcb vodv xbjk';
+                        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                        $mail->Port = 587;
+
+                        // Recipients
+                        $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                        $mail->addAddress($request['employee_email'], $request['requestor_name']);
+
+                        // Content
+                        $mail->isHTML(true);
+                        $mail->Subject = 'Access Testing Instructions - ' . $request['access_request_number'];
+                        $mail->Body = "
+                            <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                                <h2 style='color: #1F2937;'>Access Testing Instructions</h2>
+                                <p>Dear {$request['requestor_name']},</p>
+
+                                <p>Your access request has been set up for testing. Please follow the instructions below:</p>
+
+                                <div style='margin-top: 20px;'>
+                                    <h3 style='color: #1F2937; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;'>Testing Instructions</h3>
+                                    <div style='background-color: #f3f4f6; padding: 15px; border-radius: 8px; margin-top: 10px;'>
+                                        " . nl2br(htmlspecialchars($review_notes)) . "
+                                    </div>
+                                </div>
+
+                                <div style='margin-top: 30px; padding: 20px; background-color: #f3f4f6; border-radius: 8px;'>
+                                    <p style='margin: 0; color: #4B5563;'>
+                                        <strong>Next Steps:</strong><br>
+                                        1. Test your access using the instructions above<br>
+                                        2. Return to the Access Request System to confirm your testing results<br>
+                                        3. If you encounter any issues, please contact technical support
+                                    </p>
+                                </div>
+                            </div>
+                        ";
+
+                        $mail->send();
+                        $message = "Testing instructions sent to requestor successfully.";
+                    } catch (Exception $e) {
+                        error_log("Email sending failed: {$mail->ErrorInfo}");
+                        $message = "Testing instructions processed, but email notification failed.";
+                    }
+
+                    $pdo->commit();
+                    $transaction_active = false;
+
+                    echo json_encode([
+                        'success' => true,
+                        'message' => $message
+                    ]);
+                    return;
+                } else {
+                    $next_status = 'rejected';
+                }
+            } else {
+                // Handle regular technical review
+                // Check if this request came from process owner by checking if process_owner_id is set
+                $stmt = $pdo->prepare("SELECT process_owner_id FROM access_requests WHERE id = ?");
+                $stmt->execute([$request_id]);
+                $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $came_from_process_owner = !empty($result['process_owner_id']);
+
+                $next_status = ($action === 'approve') ? ($came_from_process_owner ? 'pending_admin' : 'pending_admin') : 'rejected';
+            }
+            
             $id_field = 'technical_id';
             $date_field = 'technical_review_date';
             $notes_field = 'technical_notes';
@@ -146,7 +240,7 @@ try {
                             admin_id = :admin_users_id,
                             admin_review_date = NOW(),
                             admin_notes = :review_notes,
-                            testing_status = 'awaiting_setup'
+                            testing_status = 'not_required'
                             WHERE id = :request_id";
 
                     $stmt = $pdo->prepare($sql);
@@ -178,7 +272,7 @@ try {
                         // Recipients
                         $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
                         // Add technical support team email here
-                        $mail->addAddress('tech.support@example.com', 'Technical Support Team');
+                        $mail->addAddress('charlesondota@gmail.com', 'Technical Support Team');
 
                         // Content
                         $mail->isHTML(true);
@@ -241,20 +335,20 @@ try {
                 } else {
                     $next_status = 'approved';
                 }
-            } else if ($action === 'finalize_approval' && $current_status === 'pending_testing' && $routeCheck['testing_status'] === 'success') {
+            } else if ($action === 'finalize_approval' && $current_status === 'pending_testing' && $request['testing_status'] === 'success') {
                 // Final approval after successful testing
                 $next_status = 'approved';
                 $review_notes = "Access request approved after successful testing. " . $review_notes;
-            } else if ($action === 'reject_after_testing' && $current_status === 'pending_testing' && $routeCheck['testing_status'] === 'failed') {
+            } else if ($action === 'reject_after_testing' && $current_status === 'pending_testing' && $request['testing_status'] === 'failed') {
                 // Rejection after failed testing
                 $next_status = 'rejected';
                 $review_notes = "Access request rejected due to failed testing. " . $review_notes;
-            } else if ($action === 'retry_testing' && $current_status === 'pending_testing' && $routeCheck['testing_status'] === 'failed') {
+            } else if ($action === 'retry_testing' && $current_status === 'pending_testing' && $request['testing_status'] === 'failed') {
                 // Reset testing status for retry
                 $next_status = 'pending_testing_setup';
                 $sql = "UPDATE access_requests SET 
                         status = :next_status,
-                        testing_status = 'awaiting_setup',
+                        testing_status = 'not_required',
                         testing_notes = CONCAT('Previous testing failed. Retrying testing. ', :review_notes)
                         WHERE id = :request_id";
 

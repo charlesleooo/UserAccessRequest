@@ -50,14 +50,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         // Verify this request belongs to the current user and is in pending_testing status
         $sql = "SELECT * FROM access_requests 
                 WHERE id = :request_id 
-                AND requestor_id = :requestor_id
+                AND employee_id = :employee_id
                 AND testing_status = 'pending'
                 AND status = 'pending_testing'";
         
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             'request_id' => $request_id,
-            'requestor_id' => $requestor_id
+            'employee_id' => $requestor_id
         ]);
         
         error_log("Checking request: ID=$request_id");
@@ -69,72 +69,218 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
             throw new Exception('Invalid request or you do not have permission to update this request.');
         }
         
+        // Determine next status based on testing result
+        if ($testing_status === 'success') {
+            // If testing is successful, automatically approve the request
+            $next_status = 'approved';
+            $success_message = 'Testing successful! Your access request has been automatically approved.';
+        } else {
+            // If testing failed, send back to technical support for review
+            $next_status = 'pending_testing_review';
+            $success_message = 'Testing status updated. Technical support will review your results.';
+        }
+        
         // Update the request status and testing status
         $sql = "UPDATE access_requests SET 
                 testing_status = :testing_status,
                 testing_notes = :testing_notes,
-                status = 'pending_testing_review'
+                status = :next_status
                 WHERE id = :request_id 
-                AND requestor_id = :requestor_id";
+                AND employee_id = :employee_id";
         
         $stmt = $pdo->prepare($sql);
         $result = $stmt->execute([
             'testing_status' => $testing_status,
             'testing_notes' => $testing_notes,
+            'next_status' => $next_status,
             'request_id' => $request_id,
-            'requestor_id' => $requestor_id
+            'employee_id' => $requestor_id
         ]);
         
         if (!$result) {
             throw new Exception('Failed to update request status.');
         }
         
-        // Send email notification to technical support
-        try {
-            $mail = new PHPMailer(true);
-            $mail->isSMTP();
-            $mail->Host = SMTP_HOST;
-            $mail->SMTPAuth = true;
-            $mail->Username = SMTP_USERNAME;
-            $mail->Password = SMTP_PASSWORD;
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = SMTP_PORT;
-            
-            $mail->setFrom(SMTP_USERNAME, 'Access Request System');
-            
-            // Get technical support email
-            $techSql = "SELECT email FROM admin_users WHERE id = :tech_id";
-            $techStmt = $pdo->prepare($techSql);
-            $techStmt->execute(['tech_id' => $request['technical_id']]);
-            $techEmail = $techStmt->fetchColumn();
-            
-            if ($techEmail) {
-                $mail->addAddress($techEmail);
-                $mail->isHTML(true);
-                $mail->Subject = "Testing Results Available - Access Request {$request['access_request_number']}";
-                $mail->Body = "
-                    <div style='font-family: Arial, sans-serif; padding: 20px;'>
-                        <h2>Testing Results Available</h2>
-                        <p>The user has completed testing for access request {$request['access_request_number']}.</p>
-                        <p><strong>Testing Status:</strong> " . ucfirst($testing_status) . "</p>
-                        <p><strong>Testing Notes:</strong> {$testing_notes}</p>
-                        <p>Please review the testing results and take appropriate action.</p>
-                        <p><a href='" . BASE_URL . "technical_support/requests.php'>Click here to review</a></p>
-                    </div>
-                ";
-                $mail->send();
+        // If approved, move to approval history
+        if ($next_status === 'approved') {
+            // Get the current request data for history
+            $requestDataQuery = $pdo->prepare("
+                SELECT 
+                    access_request_number,
+                    requestor_name, 
+                    employee_id, 
+                    employee_email as email, 
+                    department, 
+                    business_unit, 
+                    'System Application' as access_type, 
+                    system_type,
+                    '' as justification, 
+                    'permanent' as duration_type, 
+                    NULL as start_date, 
+                    NULL as end_date,
+                    superior_id, 
+                    superior_notes,
+                    help_desk_id,
+                    help_desk_notes, 
+                    process_owner_id,
+                    process_owner_notes, 
+                    technical_id,
+                    technical_notes,
+                    admin_id,
+                    testing_status
+                FROM 
+                    access_requests 
+                WHERE 
+                    id = :request_id
+            ");
+
+            $requestDataQuery->execute(['request_id' => $request_id]);
+            $requestData = $requestDataQuery->fetch(PDO::FETCH_ASSOC);
+
+            if ($requestData) {
+                // Insert into approval_history table
+                $historyInsert = $pdo->prepare("
+                    INSERT INTO approval_history (
+                        access_request_number,
+                        requestor_name, 
+                        employee_id, 
+                        email, 
+                        department, 
+                        business_unit, 
+                        access_type, 
+                        system_type,
+                        justification, 
+                        duration_type, 
+                        start_date, 
+                        end_date,
+                        superior_id, 
+                        superior_notes,
+                        help_desk_id, 
+                        help_desk_notes,
+                        process_owner_id, 
+                        process_owner_notes,
+                        technical_id, 
+                        technical_notes,
+                        admin_id, 
+                        action, 
+                        comments,
+                        testing_status,
+                        created_at
+                    ) VALUES (
+                        :access_request_number,
+                        :requestor_name, 
+                        :employee_id, 
+                        :email, 
+                        :department, 
+                        :business_unit, 
+                        :access_type, 
+                        :system_type,
+                        :justification, 
+                        :duration_type, 
+                        :start_date, 
+                        :end_date,
+                        :superior_id, 
+                        :superior_notes,
+                        :help_desk_id, 
+                        :help_desk_notes,
+                        :process_owner_id, 
+                        :process_owner_notes,
+                        :technical_id, 
+                        :technical_notes,
+                        :admin_id, 
+                        'approved', 
+                        :comments,
+                        :testing_status,
+                        NOW()
+                    )
+                ");
+
+                $historyParams = [
+                    'access_request_number' => $requestData['access_request_number'],
+                    'requestor_name' => $requestData['requestor_name'],
+                    'employee_id' => $requestData['employee_id'],
+                    'email' => $requestData['email'],
+                    'department' => $requestData['department'],
+                    'business_unit' => $requestData['business_unit'],
+                    'access_type' => $requestData['access_type'],
+                    'system_type' => $requestData['system_type'],
+                    'justification' => $requestData['justification'],
+                    'duration_type' => $requestData['duration_type'],
+                    'start_date' => $requestData['start_date'],
+                    'end_date' => $requestData['end_date'],
+                    'superior_id' => $requestData['superior_id'],
+                    'superior_notes' => $requestData['superior_notes'],
+                    'help_desk_id' => $requestData['help_desk_id'],
+                    'help_desk_notes' => $requestData['help_desk_notes'],
+                    'process_owner_id' => $requestData['process_owner_id'],
+                    'process_owner_notes' => $requestData['process_owner_notes'],
+                    'technical_id' => $requestData['technical_id'],
+                    'technical_notes' => $requestData['technical_notes'],
+                    'admin_id' => $requestData['admin_id'],
+                    'comments' => 'Automatically approved after successful testing. Testing notes: ' . $testing_notes,
+                    'testing_status' => $requestData['testing_status']
+                ];
+
+                $historyInsert->execute($historyParams);
+                
+                // Delete from access_requests table since it's now in history
+                $deleteStmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
+                $deleteStmt->execute([$request_id]);
             }
-        } catch (Exception $e) {
-            error_log("Failed to send email notification: " . $e->getMessage());
-            // Continue processing even if email fails
+        }
+        
+        // Send email notification only for failed tests
+        if ($testing_status === 'failed') {
+            try {
+                $mail = new PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host = SMTP_HOST;
+                $mail->SMTPAuth = true;
+                $mail->Username = SMTP_USERNAME;
+                $mail->Password = SMTP_PASSWORD;
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = SMTP_PORT;
+                
+                $mail->setFrom(SMTP_USERNAME, 'Access Request System');
+                
+                // Get technical support email
+                $techSql = "SELECT email FROM admin_users WHERE id = :tech_id";
+                $techStmt = $pdo->prepare($techSql);
+                $techStmt->execute(['tech_id' => $request['technical_id']]);
+                $techEmail = $techStmt->fetchColumn();
+                
+                if ($techEmail) {
+                    $mail->addAddress($techEmail);
+                    $mail->isHTML(true);
+                    $mail->Subject = "Testing Failed - Action Required - Access Request {$request['access_request_number']}";
+                    $mail->Body = "
+                        <div style='font-family: Arial, sans-serif; padding: 20px;'>
+                            <h2>Testing Failed - Action Required</h2>
+                            <p>The user has reported that testing failed for access request {$request['access_request_number']}.</p>
+                            <p><strong>Testing Status:</strong> Failed</p>
+                            <p><strong>Testing Notes:</strong> {$testing_notes}</p>
+                            <p>Please review the testing results and take appropriate action.</p>
+                            <p><a href='" . BASE_URL . "technical_support/requests.php'>Click here to review</a></p>
+                        </div>
+                    ";
+                    $mail->send();
+                }
+            } catch (Exception $e) {
+                error_log("Failed to send email notification: " . $e->getMessage());
+                // Continue processing even if email fails
+            }
         }
         
         $pdo->commit();
         $transaction_active = false;
         error_log("Transaction committed");
         
-        $_SESSION['success_message'] = "Testing status updated successfully. Technical support will review your results.";
-        header('Location: dashboard.php');
+        // Return JSON response for AJAX calls
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'message' => $success_message
+        ]);
         exit();
         
     } catch (Exception $e) {
@@ -146,8 +292,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         error_log("Error occurred: " . $e->getMessage());
         error_log("Stack trace: " . $e->getTraceAsString());
         
-        $_SESSION['error_message'] = "Error: " . $e->getMessage();
-        header('Location: dashboard.php');
+        // Return JSON error response for AJAX calls
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ]);
         exit();
     }
 }
@@ -172,7 +322,7 @@ if ($current_status && $current_status !== 'pending') {
 try {
     $sql = "SELECT * FROM access_requests 
             WHERE id = :request_id 
-            AND requestor_id = :requestor_id
+            AND employee_id = :employee_id
             AND status = 'pending_testing'
             AND testing_status = 'pending'";
     
@@ -184,7 +334,7 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         'request_id' => $request_id,
-        'requestor_id' => $requestor_id
+        'employee_id' => $requestor_id
     ]);
     
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -244,6 +394,23 @@ try {
                     </div>
                     
                     <div class="p-6">
+                        <!-- Technical Support Instructions -->
+                        <?php if (!empty($request['testing_instructions'])): ?>
+                        <div class="mb-6 bg-green-50 rounded-lg p-4 border border-green-100">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-0.5">
+                                    <i class='bx bx-test-tube text-green-600 text-xl'></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-green-800">Testing Instructions from Technical Support</h3>
+                                    <div class="mt-2 text-sm text-green-700 bg-white p-3 rounded border">
+                                        <?php echo nl2br(htmlspecialchars($request['testing_instructions'])); ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <?php endif; ?>
+
                         <div class="mb-6 bg-blue-50 rounded-lg p-4 border border-blue-100">
                             <div class="flex items-start">
                                 <div class="flex-shrink-0 pt-0.5">
@@ -252,12 +419,7 @@ try {
                                 <div class="ml-3">
                                     <h3 class="text-sm font-medium text-blue-800">Testing Instructions</h3>
                                     <div class="mt-2 text-sm text-blue-700">
-                                        <?php 
-                                        $testing_reason = $request['access_type'] === 'System Application' ? 
-                                            'System Application access' : 
-                                            'Admin role access';
-                                        ?>
-                                        <p>Testing is required for your <?php echo $testing_reason; ?>. After testing your application access, please update the status:</p>
+                                        <p>Please test your system access and update the status below:</p>
                                         <ul class="list-disc pl-5 mt-1 space-y-1">
                                             <li>Select "Testing Successful" if you were able to access the system properly</li>
                                             <li>Select "Testing Failed" if you encountered any issues with the access</li>

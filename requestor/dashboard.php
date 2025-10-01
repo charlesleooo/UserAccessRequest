@@ -45,7 +45,8 @@ try {
             status,
             submission_date as request_date,
             system_type,
-            access_type
+            'System Application' as access_type,
+            testing_status
          FROM access_requests 
          WHERE employee_id = :employee_id)
         UNION ALL
@@ -56,7 +57,8 @@ try {
             action as status,
             created_at as request_date,
             system_type,
-            access_type
+            access_type,
+            COALESCE(testing_status, 'not_required') as testing_status
          FROM approval_history 
          WHERE requestor_name = :username)
         ORDER BY request_date DESC 

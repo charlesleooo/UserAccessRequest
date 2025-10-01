@@ -14,9 +14,17 @@ function loadEnv($path)
         }
 
         // Parse the line
-        list($name, $value) = explode('=', $line, 2);
-        $name = trim($name);
-        $value = trim($value);
+        $parts = explode('=', $line, 2);
+        if (count($parts) < 2) {
+            continue; // Skip malformed lines
+        }
+        $name = trim($parts[0]);
+        $value = isset($parts[1]) ? trim($parts[1]) : '';
+        
+        // Skip if name is empty
+        if (empty($name)) {
+            continue;
+        }
 
         // Remove quotes if present
         if (strpos($value, '"') === 0 && strrpos($value, '"') === strlen($value) - 1) {

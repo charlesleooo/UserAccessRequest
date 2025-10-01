@@ -236,6 +236,14 @@ try {
                             <i class='bx bx-check-circle mr-2'></i> Approve
                         </button>
                     <?php endif; ?>
+                    <?php if ($request['status'] === 'pending_testing_review'): ?>
+                        <button onclick="scrollToReviewSection('testingForm')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                            <i class='bx bx-edit mr-2'></i> Add Testing Instructions
+                        </button>
+                        <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                            <i class='bx bx-refresh mr-2'></i> Send for Retest
+                        </button>
+                    <?php endif; ?>
                     <?php if ($request['status'] === 'pending_testing_setup'): ?>
                         <button onclick="scrollToReviewSection('testingForm')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
                             <i class='bx bx-edit mr-2'></i> Add Instructions
@@ -474,12 +482,31 @@ try {
             <?php endif; ?>
 
             <!-- Testing Setup -->
-            <?php if ($request['status'] === 'pending_testing_setup'): ?>
+            <?php if ($request['status'] === 'pending_testing_setup' || $request['status'] === 'pending_testing_review'): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-test-tube text-primary-500 text-xl mr-2'></i>
-                        Testing Setup
+                        <?php echo $request['status'] === 'pending_testing_review' ? 'Testing Failed - Review and Retest' : 'Testing Setup'; ?>
                     </h3>
+                    
+                    <?php if ($request['status'] === 'pending_testing_review' && !empty($request['testing_notes'])): ?>
+                    <div class="mb-6 bg-red-50 rounded-lg p-4 border border-red-100">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0 pt-0.5">
+                                <i class='bx bx-error-circle text-red-600 text-xl'></i>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">Previous Testing Failed</h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <strong>User's Testing Notes:</strong>
+                                    <div class="mt-1 bg-white p-3 rounded border">
+                                        <?php echo nl2br(htmlspecialchars($request['testing_notes'])); ?>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                     <div class="p-4">
                         <form id="testingForm">
                             <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
