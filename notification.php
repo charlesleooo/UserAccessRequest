@@ -2,7 +2,8 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-require 'vendor/autoload.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/vendor/autoload.php';
 
 function sendConfirmationEmail($formData) {
     $mail = new PHPMailer(true);
@@ -10,15 +11,15 @@ function sendConfirmationEmail($formData) {
     try {
         // SMTP Configuration
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+        $mail->Host       = SMTP_HOST;
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'charlesondota@gmail.com'; // Replace with your email
-        $mail->Password   = 'crpf bbcb vodv xbjk';    // Replace with your app password
+        $mail->Username   = SMTP_USERNAME;
+        $mail->Password   = SMTP_PASSWORD;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port       = SMTP_PORT;
 
         // Email content preparation
-        $mail->setFrom('charlesondota@gmail.com', 'Alsons Agribusiness Unit');
+        $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, SMTP_FROM_NAME);
         $mail->addAddress($formData['email'], $formData['requestor_name']);
         $mail->isHTML(true);
         $mail->Subject = 'User Access Request Confirmation';
@@ -102,15 +103,15 @@ function sendHelpDeskNotification($requestData) {
     try {
         // SMTP Configuration
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com';
+        $mail->Host       = SMTP_HOST;
         $mail->SMTPAuth   = true;
-        $mail->Username   = 'charlesondota@gmail.com';
-        $mail->Password   = 'crpf bbcb vodv xbjk';
+        $mail->Username   = SMTP_USERNAME;
+        $mail->Password   = SMTP_PASSWORD;
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port       = SMTP_PORT;
 
         // Email content preparation
-        $mail->setFrom('charlesondota@gmail.com', 'Alsons Agribusiness Unit');
+        $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, SMTP_FROM_NAME);
         
         // Add help desk recipients
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
@@ -191,6 +192,14 @@ function sendHelpDeskNotification($requestData) {
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Basic authentication for this endpoint to prevent abuse
+    $providedKey = $_SERVER['HTTP_X_API_KEY'] ?? ($_POST['api_key'] ?? '');
+    if (!EMAIL_API_KEY || $providedKey !== EMAIL_API_KEY) {
+        http_response_code(401);
+        header('Content-Type: application/json');
+        echo json_encode(['success' => false, 'message' => 'Unauthorized']);
+        exit;
+    }
     // Only validate these fields for initial request submissions
     if (isset($_POST['form_type']) && $_POST['form_type'] === 'initial_request') {
         // Sanitize and validate input

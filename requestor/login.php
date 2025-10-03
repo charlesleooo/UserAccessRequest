@@ -63,14 +63,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             'message' => 'OTP generated (DEV MODE). Check server logs for OTP.'
         ]);
         exit;
-
-        // Generate and store OTP
-        $otp = generateOTP();
-        $_SESSION['otp'] = $otp;
-        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes    
-        $_SESSION['temp_user'] = $user;
-
-        error_log("OTP generated for " . $employee_email . ": " . $otp);
         */
 
         // Generate and store OTP
@@ -79,19 +71,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         $_SESSION['otp_expiry'] = time() + 300; // 5 minutes    
         $_SESSION['temp_user'] = $user;
 
+        error_log("OTP generated for " . $employee_email . ": " . $otp);
+
         // Send OTP via PHPMailer
         $mail = new PHPMailer\PHPMailer\PHPMailer(true); // Enable exceptions
         try {
             $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
+            $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
-            $mail->Username = 'charlesondota@gmail.com';
-            $mail->Password = 'crpf bbcb vodv xbjk';
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
             $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
+            $mail->Port = SMTP_PORT;
             $mail->SMTPDebug = 0; // 0 = off, 1 = client messages, 2 = client and server messages
 
-            $mail->setFrom('charlesondota@gmail.com', 'Alsons Agribusiness');
+            $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, SMTP_FROM_NAME);
             $mail->addAddress($user['employee_email'], $user['employee_name']);
             $mail->isHTML(true);
             $mail->Subject = 'Your One Time Password for Login';

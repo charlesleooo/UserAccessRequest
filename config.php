@@ -60,6 +60,8 @@ define('SMTP_PORT', getenv('SMTP_PORT') ?: 587);
 define('SMTP_USERNAME', getenv('SMTP_USERNAME') ?: '');
 define('SMTP_PASSWORD', getenv('SMTP_PASSWORD') ?: '');
 define('SMTP_FROM_EMAIL', getenv('SMTP_FROM_EMAIL') ?: '');
+define('SMTP_FROM_NAME', getenv('SMTP_FROM_NAME') ?: (getenv('COMPANY_NAME') ?: 'UAR System'));
+define('EMAIL_API_KEY', getenv('EMAIL_API_KEY') ?: '');
 
 // Additional configurations (optional, based on your .env)
 define('APP_DEBUG', getenv('APP_DEBUG') === 'true');
