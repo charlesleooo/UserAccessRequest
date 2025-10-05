@@ -33,7 +33,8 @@ $query = "SELECT
             system_type,
             NULL as justification,
             employee_email as email,
-            employee_id
+            employee_id,
+            requestor_name
           FROM access_requests 
           WHERE employee_id = :employee_id
           
@@ -52,7 +53,8 @@ $query = "SELECT
             ah.system_type,
             ah.justification,
             ah.email,
-            ah.employee_id
+            ah.employee_id,
+            ah.requestor_name
           FROM approval_history ah
           WHERE ah.employee_id = :employee_id";
 
@@ -150,13 +152,8 @@ try {
     <!-- Animate on Scroll -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <!-- Bootstrap 5 + DataTables (match admin table styling) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- jQuery for basic functionality -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -266,50 +263,12 @@ try {
 
         /* Responsive table */
         @media (max-width: 768px) {
-            .responsive-table thead {
-                display: none;
+            .overflow-x-auto {
+                overflow-x: auto;
             }
 
-            .responsive-table tr {
-                display: block;
-                margin-bottom: 1rem;
-                border-radius: 0.5rem;
-                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                background-color: white;
-            }
-
-            .responsive-table td {
-                display: flex;
-                padding: 0.75rem 1rem;
-                border-bottom: 1px solid #e5e7eb;
-                text-align: left !important;
-                justify-content: flex-start !important;
-            }
-
-            .responsive-table td:before {
-                content: attr(data-label);
-                font-weight: 600;
-                width: 120px;
-                flex-shrink: 0;
-                margin-right: 1rem;
-            }
-
-            .responsive-table td:last-child {
-                border-bottom: none;
-            }
-
-            .dataTables_wrapper .dataTables_paginate .paginate_button {
-                padding: 0.3em 0.8em;
-            }
-
-            .dataTables_wrapper .dataTables_filter input {
-                width: 120px;
-            }
-
-            /* Ensure proper spacing for status badges */
-            .status-badge {
-                display: inline-block;
-                margin-left: auto;
+            .min-w-full {
+                min-width: 600px;
             }
         }
 
@@ -334,16 +293,6 @@ try {
             .sidebar-closed {
                 transform: translateX(-100%);
             }
-        }
-
-        /* Clickable rows styling */
-        #requests-table tbody tr {
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        #requests-table tbody tr:hover {
-            background-color: rgba(14, 165, 233, 0.05) !important;
         }
     </style>
 </head>
@@ -386,12 +335,6 @@ try {
                         <i class='bx bx-send text-xl'></i>
                     </span>
                     <span class="font-medium">Create Request</span>
-                </a>
-                <a href="my_requests.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
-                        <i class='bx bx-list-ul text-xl'></i>
-                    </span>
-                    <span class="font-medium">Pending Requests</span>
                 </a>
                 <a href="request_history.php" class="flex items-center p-3 text-primary-600 bg-primary-50 rounded-xl transition-all duration-200 group">
                     <span class="flex items-center justify-center w-10 h-10 bg-primary-100 text-primary-600 rounded-xl mr-3">
@@ -572,73 +515,132 @@ try {
 
             <!-- Request History Table -->
             <div class="bg-white rounded-xl shadow-sm">
-                <div class="px-6 py-4 border-b border-gray-100">
-                    <h3 class="text-lg font-semibold text-gray-800">Request History</h3>
+                <div class="border-b border-gray-100 px-6 py-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-gray-800">Request History</h3>
+                        <div class="flex gap-2">
+                            <button onclick="filterRequests('all')" class="px-3 py-1 text-sm bg-blue-50 text-primary rounded">All</button>
+                            <button onclick="filterRequests('pending')" class="px-3 py-1 text-sm text-gray-500 hover:bg-gray-50 rounded">Pending</button>
+                            <button onclick="filterRequests('approved')" class="px-3 py-1 text-sm text-gray-500 hover:bg-gray-50 rounded">Approved</button>
+                            <button onclick="filterRequests('rejected')" class="px-3 py-1 text-sm text-gray-500 hover:bg-gray-50 rounded">Rejected</button>
+                        </div>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table id="requests-table" class="table table-striped table-hover align-middle">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Request No.</th>
-                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Status</th>
-                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Processed Date</th>
-                                <th class="text-left text-xs text-gray-500 uppercase tracking-wider">Days Since</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <?php if (count($requests) > 0): ?>
-                                <?php foreach ($requests as $request): ?>
-                                    <tr class="hover:bg-gray-50" data-request-id="<?php echo $request['request_id']; ?>">
-                                        <td class="whitespace-nowrap" data-label="Request No.">
-                                            <div class="text-sm font-medium text-gray-900">
-                                                <?php echo htmlspecialchars($request['access_request_number']); ?>
-                                            </div>
-                                        </td>
-                                        <td class="whitespace-nowrap text-center" data-label="Status">
-                                            <?php
-                                            $statusClass = '';
-                                            $status = $request['source'] === 'pending' ? 'Pending' : ucfirst(strtolower($request['status']));
+                <div class="flex flex-col">
+                    <div class="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                        <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
+                            <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                UAR REF NO.
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Requestor
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Business Unit
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Department
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Date Requested
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Days Since
+                                            </th>
+                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Status
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <?php if (count($requests) > 0): ?>
+                                            <?php foreach ($requests as $request): ?>
+                                                <tr class="cursor-pointer hover:bg-gray-50" onclick="window.location.href='view_request.php?id=<?php echo $request['request_id']; ?>'">
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                        <?php echo htmlspecialchars($request['access_request_number']); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php
+                                                        // Get requestor name from the request data or use email as fallback
+                                                        $requestorName = $request['requestor_name'] ?? 'Unknown User';
+                                                        echo htmlspecialchars($requestorName);
+                                                        ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php echo htmlspecialchars($request['business_unit']); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php echo htmlspecialchars($request['department']); ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php
+                                                        $date = new DateTime($request['created_at'] ?? 'now');
+                                                        echo $date->format('M d, Y');
+                                                        ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        <?php
+                                                        $today = new DateTime('now');
+                                                        $date = new DateTime($request['created_at'] ?? 'now');
+                                                        $interval = $today->diff($date);
+                                                        $daysSince = $interval->days;
+                                                        echo $daysSince . ' day/s';
+                                                        ?>
+                                                    </td>
+                                                    <td class="px-6 py-4 whitespace-nowrap">
+                                                        <?php
+                                                        $statusClass = '';
+                                                        $status = $request['source'] === 'pending' ? 'Pending' : ucfirst(strtolower($request['status']));
+                                                        $displayStatus = '';
 
-                                            switch ($status) {
-                                                case 'Pending':
-                                                    $statusClass = 'status-pending';
-                                                    break;
-                                                case 'Approved':
-                                                    $statusClass = 'status-approved';
-                                                    break;
-                                                case 'Rejected':
-                                                    $statusClass = 'status-rejected';
-                                                    break;
-                                                case 'Cancelled':
-                                                    $statusClass = 'status-cancelled';
-                                                    break;
-                                            }
-                                            ?>
-                                            <span class="status-badge <?php echo $statusClass; ?>">
-                                                <?php echo $status; ?>
-                                            </span>
-                                        </td>
-                                        <td class="whitespace-nowrap text-gray-700" data-label="Processed Date">
-                                            <?php
-                                            $date = new DateTime($request['created_at'] ?? 'now');
-                                            echo $date->format('M d, Y');
-                                            ?>
-                                        </td>
-                                        <td class="whitespace-nowrap text-gray-700" data-label="Days Since">
-                                            <?php
-                                            $today = new DateTime('now');
-                                            $date = new DateTime($request['created_at'] ?? 'now');
-                                            $interval = $today->diff($date);
-                                            $daysSince = $interval->days;
-
-                                            echo "<span class='text-sm font-medium text-gray-600'>{$daysSince} days ago</span>";
-                                            ?>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            <?php endif; ?>
-                        </tbody>
-                    </table>
+                                                        switch ($status) {
+                                                            case 'Pending':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending';
+                                                                break;
+                                                            case 'Approved':
+                                                                $statusClass = 'bg-green-100 text-green-800';
+                                                                $displayStatus = 'Approved';
+                                                                break;
+                                                            case 'Rejected':
+                                                                $statusClass = 'bg-red-100 text-red-800';
+                                                                $displayStatus = 'Rejected';
+                                                                break;
+                                                            case 'Cancelled':
+                                                                $statusClass = 'bg-gray-100 text-gray-800';
+                                                                $displayStatus = 'Cancelled';
+                                                                break;
+                                                            default:
+                                                                $statusClass = 'bg-gray-100 text-gray-800';
+                                                                $displayStatus = ucfirst($status);
+                                                        }
+                                                        ?>
+                                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
+                                                            <?php echo $displayStatus; ?>
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <tr>
+                                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                                    <div class="flex flex-col items-center">
+                                                        <i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i>
+                                                        <p class="text-lg font-medium">No request history found</p>
+                                                        <p class="text-sm mt-1">Try adjusting your filters or create new access requests</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -668,9 +670,8 @@ try {
             };
         });
 
-        // Initialize DataTables with Bootstrap 5 styling (to match admin)
+        // Initialize Alpine store for sidebar state if Alpine.js is loaded
         $(document).ready(function() {
-            // Initialize Alpine store for sidebar state if Alpine.js is loaded
             if (typeof Alpine !== 'undefined') {
                 if (!Alpine.store) {
                     // If Alpine.store is not available yet, wait for Alpine to initialize
@@ -686,33 +687,6 @@ try {
                     });
                 }
             }
-
-            $('#requests-table').DataTable({
-                pageLength: 10,
-                searching: true,
-                order: [],
-                language: {
-                    lengthMenu: "Show _MENU_ entries per page",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    paginate: {
-                        first: "First",
-                        last: "Last",
-                        next: "Next",
-                        previous: "Previous"
-                    },
-                    search: "Search in table:",
-                    emptyTable: '<div class="flex flex-col items-center justify-center py-6"><i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i><p>No request history found</p><p class="text-sm mt-1">Try adjusting your filters or create new access requests</p></div>'
-                },
-                drawCallback: function() {
-                    // Make rows clickable after table is drawn
-                    $('#requests-table tbody tr').css('cursor', 'pointer');
-
-                    $('#requests-table tbody tr').on('click', function() {
-                        const requestId = $(this).data('request-id');
-                        window.location.href = 'view_history_detail.php?id=' + requestId;
-                    });
-                }
-            });
 
             // Initialize AOS
             AOS.init();
@@ -739,6 +713,38 @@ try {
                 document.getElementById("progressBar").style.width = scrolled + "%";
             };
         });
+
+        // Filter function to match admin design
+        function filterRequests(status) {
+            const buttons = document.querySelectorAll('.flex.gap-2 button');
+            buttons.forEach(button => {
+                if (button.textContent.toLowerCase() === status || (status === 'all' && button.textContent === 'All')) {
+                    button.classList.add('bg-blue-50', 'text-primary');
+                    button.classList.remove('text-gray-500', 'hover:bg-gray-50');
+                } else {
+                    button.classList.remove('bg-blue-50', 'text-primary');
+                    button.classList.add('text-gray-500', 'hover:bg-gray-50');
+                }
+            });
+
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                // Skip the empty state row
+                if (row.querySelector('td[colspan]')) {
+                    return;
+                }
+
+                const statusCell = row.querySelector('td:last-child span');
+                if (!statusCell) return;
+
+                const rowStatus = statusCell.textContent.trim().toLowerCase();
+                if (status === 'all' || rowStatus === status) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
     </script>
 </body>
 

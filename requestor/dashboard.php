@@ -337,12 +337,6 @@ try {
                     </span>
                     <span class="ml-3">Create Request</span>
                 </a>
-                <a href="my_requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                        <i class='bx bx-list-ul text-xl'></i>
-                    </span>
-                    <span class="ml-3">Pending Requests</span>
-                </a>
                 <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
                     <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                         <i class='bx bx-history text-xl'></i>
@@ -652,10 +646,10 @@ try {
                                                     <?php echo $daysPending; ?> days
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                <?php 
-                                                $dateNeeded = new DateTime($request['date_needed'] ?? 'now');
-                                                echo $dateNeeded->format('M d, Y'); 
-                                                ?>
+                                                    <?php
+                                                    $dateNeeded = new DateTime($request['date_needed'] ?? 'now');
+                                                    echo $dateNeeded->format('M d, Y');
+                                                    ?>
                                                 </td>
 
                                             </tr>

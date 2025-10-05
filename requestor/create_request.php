@@ -201,12 +201,6 @@ try {
                     </span>
                     <span class="ml-3 font-medium">Create Request</span>
                 </a>
-                <a href="my_requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                        <i class='bx bx-list-ul text-xl'></i>
-                    </span>
-                    <span class="ml-3">Pending Requests</span>
-                </a>
                 <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
                     <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
                         <i class='bx bx-history text-xl'></i>
@@ -433,7 +427,7 @@ try {
                                     </td>
                                     <td class="border border-gray-200 p-2">
                                         <div class="flex items-center gap-2">
-                        <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                                            <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
                                             <button type="button" class="bg-primary hover:bg-primary-dark text-white p-2 rounded transition flex-shrink-0" onclick="addUserRow(this)" title="Add User">
                                                 <i class="fa fa-user-plus"></i>
                                             </button>
@@ -837,7 +831,7 @@ try {
 
                 // Check if the last row is complete
                 const application = lastRow.querySelector('select[name="grp_application[]"]').value;
-                    const username = lastRow.querySelector('input[name="grp_user_names[]"]').value;
+                const username = lastRow.querySelector('input[name="grp_user_names[]"]').value;
                 const accessType = lastRow.querySelector('select[name="grp_access_type[]"]').value;
                 const durationType = lastRow.querySelector('select[name="grp_duration_type[]"]').value;
                 const dateNeeded = lastRow.querySelector('input[name="grp_date_needed[]"]').value;
@@ -1182,7 +1176,7 @@ try {
                                 end_date: endDate,
                                 date_needed: dateNeeded,
                                 justification: justification,
-                                    user_names: [username]
+                                user_names: [username]
                             });
                         }
                     } else {
@@ -1232,7 +1226,7 @@ try {
             for (let pair of formData.entries()) {
                 console.log(pair[0] + ': ' + pair[1]);
             }
-            
+
             // Debug userForms specifically
             console.log('User forms data:');
             console.log(JSON.stringify(userForms, null, 2));

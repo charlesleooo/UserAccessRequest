@@ -1,8 +1,10 @@
 <?php
 session_start();
 require_once '../config.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+
 require '../vendor/phpmailer/phpmailer/src/Exception.php';
 require '../vendor/phpmailer/phpmailer/src/PHPMailer.php';
 require '../vendor/phpmailer/phpmailer/src/SMTP.php';
@@ -16,7 +18,7 @@ $requestorId = $_SESSION['requestor_id'];
 
 // Check if request ID is provided
 if (!isset($_GET['id']) || empty($_GET['id'])) {
-    header("Location: my_requests.php?error=invalid_request");
+    header("Location: request_history.php?error=invalid_request");
     exit();
 }
 
@@ -25,9 +27,9 @@ $cancellationReason = $_POST['reason'] ?? '';
 
 try {
     // Check if cancelled_requests table exists, create it if it doesn't
-    $checkTableSql = "SHOW TABLES LIKE 'cancelled_requests'"; 
+    $checkTableSql = "SHOW TABLES LIKE 'cancelled_requests'";
     $tableExists = $pdo->query($checkTableSql)->rowCount() > 0;
-    
+
     if (!$tableExists) {
         // Create the cancelled_requests table
         $createTableSql = "CREATE TABLE `cancelled_requests` (
@@ -49,30 +51,30 @@ try {
             `cancelled_at` timestamp NOT NULL DEFAULT current_timestamp(),
             PRIMARY KEY (`id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci";
-        
+
         $pdo->exec($createTableSql);
     }
-    
+
     // Start transaction
     $pdo->beginTransaction();
-    
+
     // First, get the request details and verify ownership
     $query = "SELECT * FROM access_requests 
               WHERE id = :request_id 
               AND employee_id = :employee_id 
               AND status NOT IN ('approved', 'rejected', 'cancelled')";
-              
+
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         ':request_id' => $requestId,
         ':employee_id' => $requestorId
     ]);
-    
+
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$request) {
         $pdo->rollBack();
-        header("Location: my_requests.php?error=not_found");
+        header("Location: request_history.php?error=not_found");
         exit();
     }
 
@@ -86,7 +88,7 @@ try {
         :access_type, :comments, :system_type, :duration_type, :start_date,
         :end_date, :justification, :email, :employee_id, NOW()
     )";
-    
+
     $historyStmt = $pdo->prepare($historySql);
     // access_requests doesn't store access_type/justification; resolve from child tables
     $childJust = '';
@@ -127,11 +129,11 @@ try {
         ':email' => $request['email'],
         ':employee_id' => $request['employee_id']
     ]);
-    
+
     if (!$historyResult) {
         throw new PDOException("Failed to insert into approval history");
     }
-    
+
     // Insert into cancelled_requests
     $cancelSql = "INSERT INTO cancelled_requests (
         access_request_number, requestor_name, business_unit, department,
@@ -142,7 +144,7 @@ try {
         :email, :employee_id, :access_type, :system_type, :other_system_type,
         :justification, :duration_type, :start_date, :end_date, :cancellation_reason
     )";
-    
+
     $cancelStmt = $pdo->prepare($cancelSql);
     $cancelResult = $cancelStmt->execute([
         ':access_request_number' => $request['access_request_number'],
@@ -160,24 +162,24 @@ try {
         ':end_date' => $request['end_date'],
         ':cancellation_reason' => $cancellationReason
     ]);
-    
+
     if (!$cancelResult) {
         throw new PDOException("Failed to insert into cancelled_requests");
     }
-    
+
     // Update access_requests status to cancelled
     $updateSql = "UPDATE access_requests SET status = 'cancelled' WHERE id = :request_id";
     $updateStmt = $pdo->prepare($updateSql);
     $updateResult = $updateStmt->execute([':request_id' => $requestId]);
-    
+
     if (!$updateResult) {
         throw new PDOException("Failed to update request status");
     }
-    
+
     // Send email notification
     try {
         $mail = new PHPMailer(true);
-        
+
         // Server settings
         $mail->isSMTP();
         $mail->Host = 'smtp.gmail.com';
@@ -186,15 +188,15 @@ try {
         $mail->Password = 'crpf bbcb vodv xbjk';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
-        
+
         // Recipients
         $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
         $mail->addAddress($request['email'], $request['requestor_name']);
-        
+
         // Content
         $mail->isHTML(true);
         $mail->Subject = 'Access Request Cancelled - ' . $request['access_request_number'];
-        
+
         // Email body
         $mail->Body = "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
@@ -214,22 +216,21 @@ try {
                     <p>If you need to submit a new request, please create one through the system.</p>
                 </div>
             </div>";
-        
+
         $mail->send();
     } catch (Exception $e) {
         // Log email error but continue with the cancellation
         error_log("Email could not be sent. Mailer Error: {$mail->ErrorInfo}");
     }
-    
+
     // Commit transaction
     $pdo->commit();
-    
+
     header("Location: request_history.php?success=cancelled");
     exit();
-    
 } catch (PDOException $e) {
     $pdo->rollBack();
     error_log("Error cancelling request: " . $e->getMessage());
-    header("Location: my_requests.php?error=db_error");
+    header("Location: request_history.php?error=db_error");
     exit();
-} 
+}
