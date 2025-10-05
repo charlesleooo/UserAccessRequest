@@ -90,6 +90,29 @@ try {
     <!-- Alpine.js for interactions -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+
 
     <style>
         [x-cloak] {
@@ -309,53 +332,7 @@ try {
     </div>
 
     <!-- Sidebar -->
-    <div
-        class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg"
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-        x-show="sidebarOpen"
-        x-transition:enter="transition-transform ease-in-out duration-400"
-        x-transition:enter-start="-translate-x-full"
-        x-transition:enter-end="translate-x-0"
-        x-transition:leave="transition-transform ease-in-out duration-300"
-        x-transition:leave-start="translate-x-0"
-        x-transition:leave-end="-translate-x-full"
-        aria-hidden="false">
-        <div class="flex flex-col h-full">
-            <div class="text-center mt-4">
-                <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
-            </div>
-            <nav class="flex-1 pt-6 px-4 space-y-1 overflow-y-auto">
-                <a href="dashboard.php" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition hover:bg-indigo-100 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg">
-                        <i class='bx bxs-dashboard text-xl'></i>
-                    </span>
-                    <span class="ml-3 font-medium">Dashboard</span>
-                </a>
-                <a href="create_request.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                        <i class='bx bx-send text-xl'></i>
-                    </span>
-                    <span class="ml-3">Create Request</span>
-                </a>
-                <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                        <i class='bx bx-history text-xl'></i>
-                    </span>
-                    <span class="ml-3">Request History</span>
-                </a>
-            </nav>
-
-            <div class="p-4 border-t border-gray-100">
-                <a href="logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl transition hover:bg-red-100 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
-                        <i class='bx bx-log-out text-xl'></i>
-                    </span>
-                    <span class="ml-3 font-medium">Logout</span>
-                </a>
-            </div>
-
-        </div>
-    </div>
+    <?php include 'sidebar.php'; ?>
 
     <!-- Mobile header with menu toggle -->
     <div class="bg-white sticky top-0 z-20 shadow-sm md:hidden">
@@ -385,14 +362,14 @@ try {
     <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
         <!-- Header -->
         <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-            <div class="flex justify-between items-center px-8 py-4" style="padding-left: 0px;">
+            <div class="flex justify-between items-center px-8 py-4">
                 <div class="flex items-center">
                     <!-- Hamburger button for toggling sidebar -->
                     <button
                         @click="sidebarOpen = !sidebarOpen"
-                        class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
+                        class="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white mr-4"
                         aria-label="Toggle sidebar">
-                        <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
+                        <i class='bx bx-menu text-2xl'></i>
                     </button>
                     <div>
                         <h2 class="text-4xl font-bold text-white">ABU IT - Electronic User Access Request (UAR)</h2>

@@ -297,7 +297,7 @@ try {
     </style>
 </head>
 
-<body class="bg-gray-50" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
 
     <!-- Progress bar at the top of the page -->
     <div class="progress-container">
@@ -309,55 +309,8 @@ try {
     </div>
 
     <!-- Sidebar -->
-    <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-card"
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-        x-show="sidebarOpen"
-        x-transition:enter="transition-transform ease-in-out duration-500"
-        x-transition:enter-start="-translate-x-full"
-        x-transition:enter-end="translate-x-0"
-        x-transition:leave="transition-transform ease-in-out duration-500"
-        x-transition:leave-start="translate-x-0"
-        x-transition:leave-end="-translate-x-full"
-        aria-hidden="false">
-        <div class="flex flex-col h-full">
-            <div class="text-center mt-4">
-                <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
-            </div>
-            <nav class="flex-1 pt-4 px-3 space-y-1 overflow-y-auto">
-                <a href="dashboard.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
-                        <i class='bx bxs-dashboard text-xl'></i>
-                    </span>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-                <a href="create_request.php" class="flex items-center p-3 text-gray-700 rounded-xl transition-all duration-200 hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-10 h-10 bg-gray-100 text-gray-600 rounded-xl mr-3 group-hover:bg-primary-50 group-hover:text-primary-600 transition-all duration-200">
-                        <i class='bx bx-send text-xl'></i>
-                    </span>
-                    <span class="font-medium">Create Request</span>
-                </a>
-                <a href="request_history.php" class="flex items-center p-3 text-primary-600 bg-primary-50 rounded-xl transition-all duration-200 group">
-                    <span class="flex items-center justify-center w-10 h-10 bg-primary-100 text-primary-600 rounded-xl mr-3">
-                        <i class='bx bx-history text-xl'></i>
-                    </span>
-                    <span class="font-medium">Request History</span>
-                </a>
-            </nav>
+    <?php include 'sidebar.php'; ?>
 
-            <div class="p-3 mt-auto">
-                <a href="logout.php" class="flex items-center p-3 text-red-600 bg-red-50 rounded-xl transition-all duration-200 hover:bg-red-100 group">
-                    <span class="flex items-center justify-center w-10 h-10 bg-red-100 text-red-600 rounded-xl mr-3">
-                        <i class='bx bx-log-out text-xl'></i>
-                    </span>
-                    <span class="font-medium">Logout</span>
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mobile menu toggle removed -->
-
-    <!-- Main Content -->
     <!-- Mobile menu toggle -->
     <div class="fixed bottom-4 right-4 z-50 md:hidden">
         <button @click="sidebarOpen = !sidebarOpen"
@@ -394,14 +347,14 @@ try {
     <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
         <!-- Header -->
         <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-            <div class="flex justify-between items-center px-6 py-4" style="padding-left: 0px;">
+            <div class="flex justify-between items-center px-6 py-4">
                 <div data-aos="fade-right" data-aos-duration="800" class="flex items-center">
                     <!-- Hamburger button for toggling sidebar -->
                     <button
                         @click="sidebarOpen = !sidebarOpen"
-                        class="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 mr-4"
+                        class="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white mr-4"
                         aria-label="Toggle sidebar">
-                        <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
+                        <i class='bx bx-menu text-2xl'></i>
                     </button>
                     <div>
                         <h2 class="text-4xl font-bold text-white">Request History</h2>

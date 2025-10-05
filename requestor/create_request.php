@@ -177,46 +177,27 @@ try {
     </script>
 </head>
 
-<body class="bg-gray-100" x-data="{ sidebarOpen: window.innerWidth >= 768 }" @resize.window="sidebarOpen = window.innerWidth >= 768">
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
+
+    <!-- Mobile menu toggle -->
+    <div class="fixed bottom-4 right-4 z-50 md:hidden">
+        <button @click="sidebarOpen = !sidebarOpen"
+            class="flex items-center justify-center w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 focus:outline-none transition-all duration-300 transform hover:scale-105">
+            <i class='bx bx-menu text-2xl' x-show="!sidebarOpen"></i>
+            <i class='bx bx-x text-2xl' x-show="sidebarOpen"></i>
+        </button>
+    </div>
 
     <!-- Sidebar -->
-    <div
-        class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300 ease-in-out"
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-        aria-hidden="false">
-        <div class="flex flex-col h-full">
-            <div class="text-center mt-4">
-                <img src="../logo.png" alt="Logo" class="w-48 mx-auto">
-            </div>
-            <nav class="flex-1 pt-6 px-4 space-y-1 overflow-y-auto">
-                <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                        <i class='bx bxs-dashboard text-xl'></i>
-                    </span>
-                    <span class="ml-3">Dashboard</span>
-                </a>
-                <a href="create_request.php" class="flex items-center px-4 py-3 text-indigo-600 bg-indigo-50 rounded-xl transition hover:bg-indigo-100 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-indigo-100 text-indigo-600 rounded-lg">
-                        <i class='bx bx-send text-xl'></i>
-                    </span>
-                    <span class="ml-3 font-medium">Create Request</span>
-                </a>
-                <a href="request_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition hover:bg-gray-50 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                        <i class='bx bx-history text-xl'></i>
-                    </span>
-                    <span class="ml-3">Request History</span>
-                </a>
-            </nav>
+    <?php include 'sidebar.php'; ?>
 
-            <div class="p-4 border-t border-gray-100">
-                <a href="logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl transition hover:bg-red-100 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
-                        <i class='bx bx-log-out text-xl'></i>
-                    </span>
-                    <span class="ml-3 font-medium">Logout</span>
-                </a>
-            </div>
+    <!-- Mobile header with menu toggle -->
+    <div class="bg-white sticky top-0 z-20 shadow-sm md:hidden">
+        <div class="flex justify-between items-center px-4 py-2">
+            <img src="../logo.png" alt="Logo" class="h-10">
+            <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg hover:bg-gray-100">
+                <i class='bx bx-menu text-2xl'></i>
+            </button>
         </div>
     </div>
 
@@ -235,17 +216,17 @@ try {
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
+    <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
         <!-- Header -->
         <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
             <div class="flex justify-between items-center px-8 py-4">
-                <div class="flex items-center" style="margin-left: 0px;">
+                <div class="flex items-center">
                     <!-- Hamburger button for toggling sidebar -->
                     <button
                         @click="sidebarOpen = !sidebarOpen"
-                        class="inline-flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white mr-4"
+                        class="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white mr-4"
                         aria-label="Toggle sidebar">
-                        <i class='bx bx-menu text-2xl bg-white rounded-lg p-2'></i>
+                        <i class='bx bx-menu text-2xl'></i>
                     </button>
                     <div>
                         <h2 class="text-4xl font-bold text-white">Create New User Access Request (UAR)</h2>
@@ -1382,6 +1363,36 @@ try {
             document.querySelectorAll('.justification-input').forEach(input => {
                 input.value = '';
             });
+        });
+
+        // Set sidebar state based on screen size
+        function checkScreenSize() {
+            if (window.innerWidth < 768) {
+                Alpine.store('app').sidebarOpen = false;
+            } else {
+                Alpine.store('app').sidebarOpen = true;
+            }
+        }
+
+        // Check on resize and on load
+        window.addEventListener('resize', checkScreenSize);
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(checkScreenSize, 50);
+        });
+
+        // Initialize Alpine store for sidebar state if Alpine.js is loaded
+        $(document).ready(function() {
+            if (typeof Alpine !== 'undefined') {
+                if (!Alpine.store) {
+                    Alpine.store('app', {
+                        sidebarOpen: true
+                    });
+                } else {
+                    Alpine.store('app', {
+                        sidebarOpen: true
+                    });
+                }
+            }
         });
     </script>
     <?php include 'footer.php'; ?>
