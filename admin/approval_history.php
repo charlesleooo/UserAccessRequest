@@ -275,11 +275,11 @@ try {
                                     </td>
                                     <td class="px-4 py-4 whitespace-nowrap">
                                         <div class="flex space-x-2">
-                                            <button onclick="showDetailsModal(<?php echo $entry['history_id']; ?>)" 
-                                                    class="flex items-center px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                                            <a href="view_history.php?id=<?php echo $entry['history_id']; ?>" 
+                                               class="flex items-center px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
                                                 <i class='bx bx-info-circle text-lg'></i>
                                                 <span class="ml-1 text-sm">View</span>
-                                            </button>
+                                            </a>
                                             <a href="tcpdf_print_record.php?id=<?php echo $entry['history_id']; ?>" 
                                                class="flex items-center px-3 py-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors"
                                                target="_blank">
@@ -298,15 +298,6 @@ try {
         </div>
     </div>
 
-    <!-- Details Modal -->
-    <div id="detailsModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50 overflow-y-auto">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-xl w-[90%] max-w-7xl mx-auto shadow-xl overflow-hidden" id="modalContainer">
-                <!-- Modal content will be populated by JavaScript -->
-            </div>
-        </div>
-    </div>
-
     <script>
         // Function to filter history
         function filterHistory(type) {
@@ -321,261 +312,6 @@ try {
             });
         }
 
-        // Function to show details modal
-        function showDetailsModal(historyId) {
-            document.getElementById('detailsModal').classList.remove('hidden');
-            const modalContainer = document.getElementById('modalContainer');
-            
-            // Show loading state
-            modalContainer.innerHTML = `
-                <div class="flex justify-center items-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                    <span class="ml-2">Loading details...</span>
-                </div>
-            `;
-            
-            // Fetch request details via AJAX
-            fetch(`get_request_details.php?id=${historyId}&type=history`)
-                .then(async response => {
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(errorText || 'Failed to load request details');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Check if the response is in the expected format
-                    if (!data || typeof data !== 'object') {
-                        throw new Error('Invalid response data');
-                    }
-                    
-                    // Handle both possible response formats (direct data or data in success.data)
-                    if (data.success === false) {
-                        throw new Error(data.message || 'Failed to load request details');
-                    }
-                    
-                    // If we have a success property, extract the actual data
-                    if (typeof data.success === 'boolean' && data.success === true) {
-                        data = data.data;
-                    }
-                    
-                    // Render the entire modal content including header
-                    modalContainer.innerHTML = `
-                        <!-- Modal Header -->
-                        <div class="flex items-center px-6 py-4 border-b border-gray-200">
-                            <div class="w-1/4">
-                                <p class="text-sm font-medium text-gray-500">Request Number</p>
-                                <p class="text-lg font-semibold text-gray-900">${data.access_request_number}</p>
-                            </div>
-                            <div class="flex-1 text-center">
-                                <h3 class="text-xl font-semibold text-gray-800">Access Request Details</h3>
-                            </div>
-                            <div class="w-1/4 flex justify-end">
-                                <button onclick="hideDetailsModal()" class="text-gray-500 hover:text-gray-700">
-                                    <i class='bx bx-x text-2xl'></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Modal Content -->
-                        <div class="p-6">
-                            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                                <!-- Request Info -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                        <i class='bx bx-info-circle text-primary-600 text-xl mr-2'></i>
-                                        Request Information
-                                    </h3>
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Request No:</span>
-                                            <span class="font-medium text-gray-900">${data.access_request_number}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Action:</span>
-                                            <div class="flex justify-center items-center ${
-                                                data.action === 'approved' ? 'bg-green-50' : 'bg-red-50'
-                                            } rounded-lg px-2 py-1">
-                                                <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                                    data.action === 'approved' 
-                                                    ? 'bg-green-100 text-green-700' 
-                                                    : 'bg-red-100 text-red-700'
-                                                }">
-                                                    ${data.action ? data.action.toUpperCase() : 'UNKNOWN'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Review Date:</span>
-                                            <span class="font-medium text-gray-900">
-                                                ${data.created_at ? new Date(data.created_at).toLocaleString() : 'Unknown date'}
-                                            </span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Reviewed By:</span>
-                                            <span class="font-medium text-gray-900">${data.admin_name}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Requestor Info -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                        <i class='bx bx-user text-primary-600 text-xl mr-2'></i>
-                                        Requestor Information
-                                    </h3>
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Name:</span>
-                                            <span class="font-medium text-gray-900">${data.requestor_name}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Business Unit:</span>
-                                            <span class="font-medium text-gray-900">${data.business_unit}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Department:</span>
-                                            <span class="font-medium text-gray-900">${data.department}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Email:</span>
-                                            <span class="font-medium text-gray-900">${data.email}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Contact:</span>
-                                            <span class="font-medium text-gray-900">${data.contact_number || 'Not provided'}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Access Details -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                        <i class='bx bx-lock-open text-primary-600 text-xl mr-2'></i>
-                                        Access Details
-                                    </h3>
-                                    <div class="space-y-3">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Access Type:</span>
-                                            <span class="font-medium text-gray-900">${data.access_type}</span>
-                                        </div>
-                                        ${data.system_type ? `
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">System Type:</span>
-                                            <span class="font-medium text-gray-900">${data.system_type}</span>
-                                        </div>
-                                        ` : ''}
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Duration Type:</span>
-                                            <span class="font-medium text-gray-900">${data.duration_type ? data.duration_type.charAt(0).toUpperCase() + data.duration_type.slice(1) : 'Not specified'}</span>
-                                        </div>
-                                        ${data.duration_type === 'temporary' ? `
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-600">Duration Period:</span>
-                                            <span class="font-medium text-gray-900">${data.start_date ? new Date(data.start_date).toLocaleDateString() : 'Unknown'} - ${data.end_date ? new Date(data.end_date).toLocaleDateString() : 'Unknown'}</span>
-                                        </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Justification & Review -->
-                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                                <!-- Justification -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                        <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
-                                        Justification
-                                    </h3>
-                                    <div id="justification-text" class="bg-gray-50 p-4 rounded-lg text-gray-700 break-words overflow-auto" style="min-height: 100px; max-height: 250px;">
-                                        ${data.justification || 'No justification provided.'}
-                                    </div>
-                                </div>
-                                
-                                <!-- Review Notes -->
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                        <i class='bx bx-message-square-detail text-primary-600 text-xl mr-2'></i>
-                                        Review Notes
-                                    </h3>
-                                    <div id="review-notes-text" class="bg-gray-50 p-4 rounded-lg text-gray-700 break-words overflow-auto" style="min-height: 100px; max-height: 250px;">
-                                        ${data.comments || 'No review notes provided.'}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Action Buttons -->
-                        <div class="flex justify-end gap-3 p-6 border-t border-gray-100">
-                            <button onclick="hideDetailsModal()" 
-                                    class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                                Close
-                            </button>
-                            <a href="tcpdf_print_record.php?id=${data.history_id}" 
-                               class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center" target="_blank">
-                               <i class='bx bx-printer mr-2'></i> Print Request
-                            </a>
-                        </div>
-                    `;
-                    
-                    // Set equal heights for justification and review notes after content is loaded
-                    setTimeout(adjustTextHeights, 50);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    modalContainer.innerHTML = `
-                        <div class="flex items-center px-6 py-4 border-b border-gray-200">
-                            <div class="flex-1 text-center">
-                                <h3 class="text-xl font-semibold text-gray-800">Error</h3>
-                            </div>
-                            <button onclick="hideDetailsModal()" class="text-gray-500 hover:text-gray-700">
-                                <i class='bx bx-x text-2xl'></i>
-                            </button>
-                        </div>
-                        <div class="p-6">
-                            <div class="text-center">
-                                <div class="text-red-600 mb-2">
-                                    <i class='bx bx-error-circle text-3xl'></i>
-                                </div>
-                                <p class="text-red-600 font-medium">Error loading request details</p>
-                                <p class="text-gray-500 text-sm mt-1">${error.message}</p>
-                                <button onclick="hideDetailsModal()" 
-                                        class="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                                    Close
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                });
-        }
-
-        // Function to adjust text heights to be equal
-        function adjustTextHeights() {
-            const justDiv = document.getElementById('justification-text');
-            const reviewDiv = document.getElementById('review-notes-text');
-            
-            if (justDiv && reviewDiv) {
-                // Get scroll heights to determine content size
-                const justHeight = justDiv.scrollHeight;
-                const reviewHeight = reviewDiv.scrollHeight;
-                
-                // Use the larger height for both, but cap at 300px
-                const maxHeight = Math.min(Math.max(justHeight, reviewHeight), 300);
-                
-                // Set a minimum height
-                const height = Math.max(maxHeight, 100);
-                
-                // Apply the same height to both elements
-                justDiv.style.height = `${height}px`;
-                reviewDiv.style.height = `${height}px`;
-            }
-        }
-
-        // Function to hide details modal
-        function hideDetailsModal() {
-            document.getElementById('detailsModal').classList.add('hidden');
-        }
-
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const searchText = e.target.value.toLowerCase();
@@ -585,13 +321,6 @@ try {
                 const text = row.textContent.toLowerCase();
                 row.style.display = text.includes(searchText) ? '' : 'none';
             });
-        });
-
-        // Close modal when clicking outside
-        document.getElementById('detailsModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                hideDetailsModal();
-            }
         });
     </script>
 </body>
