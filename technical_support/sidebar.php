@@ -87,24 +87,5 @@ $current_page = basename($_SERVER['PHP_SELF']);
                 <span class="ml-3 font-medium">Logout</span>
             </a>
         </div>
-
-        <!-- User Profile -->
-        <div class="px-4 py-4 border-t border-gray-100">
-            <div class="flex items-center space-x-3">
-                <div class="flex-shrink-0">
-                    <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                        <i class='bx bxs-user text-xl'></i>
-                    </div>
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-gray-900 truncate">
-                        <?php echo htmlspecialchars($_SESSION['admin_username']); ?>
-                    </p>
-                    <p class="text-xs text-gray-500 truncate">
-                        Technical Support
-                    </p>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
