@@ -26,6 +26,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,7 +35,7 @@ try {
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -83,28 +84,28 @@ try {
                     <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Main Menu
                     </p>
-                    
+
                     <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bxs-dashboard text-xl'></i>
                         </span>
                         <span class="ml-3">Dashboard</span>
                     </a>
-                    
+
                     <a href="analytics.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-line-chart text-xl'></i>
                         </span>
                         <span class="ml-3">Analytics</span>
                     </a>
-                    
+
                     <a href="requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bxs-message-square-detail text-xl'></i>
                         </span>
                         <span class="ml-3">Requests</span>
                     </a>
-                    
+
                     <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl transition-all hover:bg-primary-100 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg group-hover:bg-primary-200">
                             <i class='bx bx-history text-xl'></i>
@@ -114,18 +115,18 @@ try {
 
                     <!-- Add a divider -->
                     <div class="my-4 border-t border-gray-100"></div>
-                    
+
                     <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                         Account
                     </p>
-                    
+
                     <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-user text-xl'></i>
                         </span>
                         <span class="ml-3">User Management</span>
                     </a>
-                    
+
                     <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
                         <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
                             <i class='bx bx-cog text-xl'></i>
@@ -133,7 +134,7 @@ try {
                         <span class="ml-3">Settings</span>
                     </a>
                 </nav>
-                
+
                 <!-- Logout Button -->
                 <div class="p-4 border-t border-gray-100">
                     <a href="logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl transition-all hover:bg-red-100 group">
@@ -185,10 +186,10 @@ try {
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="relative">
-                            <input type="text" 
-                                   id="searchInput"
-                                   placeholder="Search history..." 
-                                   class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
+                            <input type="text"
+                                id="searchInput"
+                                placeholder="Search history..."
+                                class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
                             <i class='bx bx-search absolute left-3 top-2.5 text-gray-400'></i>
                         </div>
                         <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -228,67 +229,64 @@ try {
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php foreach ($history as $entry): ?>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($entry['access_request_number']); ?></div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($entry['requestor_name']); ?></div>
-                                        <div class="text-sm text-gray-500"><?php echo htmlspecialchars($entry['email']); ?></div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['business_unit']); ?></div>
-                                        <div class="text-sm text-gray-500"><?php echo htmlspecialchars($entry['department']); ?></div>
-                                    </td>
-                                    <td class="px-4 py-4">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['access_type']); ?></div>
-                                        <?php if ($entry['system_type']): ?>
-                                            <div class="text-sm text-gray-500"><?php echo htmlspecialchars($entry['system_type']); ?></div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                            <?php echo $entry['action'] === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
-                                            <?php echo ucfirst($entry['action']); ?>
-                                        </span>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <?php if (!empty($entry['testing_status'])): ?>
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-4 whitespace-nowrap">
+                                            <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($entry['access_request_number']); ?></div>
+                                        </td>
+                                        <td class="px-4 py-4">
+                                            <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($entry['requestor_name']); ?></div>
+                                            <div class="text-sm text-gray-500"><?php echo htmlspecialchars($entry['email']); ?></div>
+                                        </td>
+                                        <td class="px-4 py-4">
+                                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['business_unit']); ?></div>
+                                            <div class="text-sm text-gray-500"><?php echo htmlspecialchars($entry['department']); ?></div>
+                                        </td>
+                                        <td class="px-4 py-4">
+                                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['access_type']); ?></div>
+                                            <?php if ($entry['system_type']): ?>
+                                                <div class="text-sm text-gray-500"><?php echo htmlspecialchars($entry['system_type']); ?></div>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap">
                                             <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                <?php echo $entry['testing_status'] === 'success' ? 'bg-blue-100 text-blue-800' : 
-                                                    ($entry['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
-                                                <?php echo $entry['testing_status'] === 'success' ? 'Successful' : 
-                                                    ($entry['testing_status'] === 'failed' ? 'Failed' : 
-                                                    ($entry['testing_status'] === 'not_required' ? 'Not Required' : ucfirst($entry['testing_status']))); ?>
+                                            <?php echo $entry['action'] === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'; ?>">
+                                                <?php echo ucfirst($entry['action']); ?>
                                             </span>
-                                        <?php else: ?>
-                                            <span class="text-sm text-gray-500">-</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['admin_name']); ?></div>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-500">
-                                            <?php echo date('M d, Y H:i', strtotime($entry['created_at'])); ?>
-                                        </div>
-                                    </td>
-                                    <td class="px-4 py-4 whitespace-nowrap">
-                                        <div class="flex space-x-2">
-                                            <a href="view_history.php?id=<?php echo $entry['history_id']; ?>" 
-                                               class="flex items-center px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-                                                <i class='bx bx-info-circle text-lg'></i>
-                                                <span class="ml-1 text-sm">View</span>
-                                            </a>
-                                            <a href="tcpdf_print_record.php?id=<?php echo $entry['history_id']; ?>" 
-                                               class="flex items-center px-3 py-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors"
-                                               target="_blank">
-                                                <i class='bx bx-printer text-lg'></i>
-                                                <span class="ml-1 text-sm">Print</span>
-                                            </a>
-                                        </div>
-                                    </td>
-                                </tr>
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap">
+                                            <?php if (!empty($entry['testing_status'])): ?>
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                                <?php echo $entry['testing_status'] === 'success' ? 'bg-blue-100 text-blue-800' : ($entry['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
+                                                    <?php echo $entry['testing_status'] === 'success' ? 'Successful' : ($entry['testing_status'] === 'failed' ? 'Failed' : ($entry['testing_status'] === 'not_required' ? 'Not Required' : ucfirst($entry['testing_status']))); ?>
+                                                </span>
+                                            <?php else: ?>
+                                                <span class="text-sm text-gray-500">-</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['admin_name']); ?></div>
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap">
+                                            <div class="text-sm text-gray-500">
+                                                <?php echo date('M d, Y H:i', strtotime($entry['created_at'])); ?>
+                                            </div>
+                                        </td>
+                                        <td class="px-4 py-4 whitespace-nowrap">
+                                            <div class="flex space-x-2">
+                                                <a href="view_history.php?id=<?php echo $entry['history_id']; ?>"
+                                                    class="flex items-center px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+                                                    <i class='bx bx-info-circle text-lg'></i>
+                                                    <span class="ml-1 text-sm">View</span>
+                                                </a>
+                                                <a href="tcpdf_print_record.php?id=<?php echo $entry['history_id']; ?>"
+                                                    class="flex items-center px-3 py-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors"
+                                                    target="_blank">
+                                                    <i class='bx bx-printer text-lg'></i>
+                                                    <span class="ml-1 text-sm">Print</span>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>
@@ -316,7 +314,7 @@ try {
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const searchText = e.target.value.toLowerCase();
             const rows = document.querySelectorAll('tbody tr');
-            
+
             rows.forEach(row => {
                 const text = row.textContent.toLowerCase();
                 row.style.display = text.includes(searchText) ? '' : 'none';
@@ -324,4 +322,5 @@ try {
         });
     </script>
 </body>
+
 </html>

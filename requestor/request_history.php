@@ -1,16 +1,20 @@
 <?php
+// Start session
 session_start();
+
+// Include database configuration
 require_once '../config.php';
 
+// Check if user is logged in
 if (!isset($_SESSION['requestor_id'])) {
-    header("Location: login.php");
+    header('Location: login.php');
     exit();
 }
 
+// Get requestor ID from session
 $requestorId = $_SESSION['requestor_id'];
-$username = $_SESSION['username'] ?? 'User';
 
-// Initialize filter variables
+// Get filter parameters from URL
 $statusFilter = $_GET['status'] ?? 'all';
 $dateFilter = $_GET['date'] ?? 'all';
 $searchQuery = $_GET['search'] ?? '';
@@ -25,14 +29,16 @@ $query = "SELECT
             NULL as admin_username,
             business_unit,
             department,
-            access_type,
+            'System Application' as access_type,
             system_type,
-            justification,
-            email,
+            NULL as justification,
+            employee_email as email,
             employee_id
           FROM access_requests 
           WHERE employee_id = :employee_id
+          
           UNION ALL
+          
           SELECT 
             'history' as source,
             ah.history_id as request_id,
@@ -46,21 +52,21 @@ $query = "SELECT
             ah.system_type,
             ah.justification,
             ah.email,
-            ar2.employee_id as employee_id
+            ah.employee_id
           FROM approval_history ah
-          INNER JOIN access_requests ar2 ON ar2.access_request_number = ah.access_request_number
-          WHERE ar2.employee_id = :employee_id";
+          WHERE ah.employee_id = :employee_id";
 
-// Add filters
+// Add filters - Fixed to use WHERE instead of HAVING
 $params = [':employee_id' => $requestorId];
+$whereConditions = [];
 
 if ($statusFilter !== 'all') {
     if ($statusFilter === 'history') {
-        $query .= " HAVING source = 'history'";
+        $whereConditions[] = "source = 'history'";
     } elseif ($statusFilter === 'pending') {
-        $query .= " HAVING source = 'pending'";
+        $whereConditions[] = "source = 'pending'";
     } else {
-        $query .= " HAVING status = :status";
+        $whereConditions[] = "status = :status";
         $params[':status'] = $statusFilter;
     }
 }
@@ -68,24 +74,29 @@ if ($statusFilter !== 'all') {
 if ($dateFilter !== 'all') {
     switch ($dateFilter) {
         case 'today':
-            $query .= " AND DATE(created_at) = CURDATE()";
+            $whereConditions[] = "DATE(created_at) = CURDATE()";
             break;
         case 'week':
-            $query .= " AND created_at >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
+            $whereConditions[] = "created_at >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
             break;
         case 'month':
-            $query .= " AND created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
+            $whereConditions[] = "created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
             break;
     }
 }
 
 if (!empty($searchQuery)) {
-    $query .= " AND (access_request_number LIKE :search 
+    $whereConditions[] = "(access_request_number LIKE :search 
                 OR business_unit LIKE :search 
                 OR department LIKE :search
                 OR access_type LIKE :search
                 OR system_type LIKE :search)";
     $params[':search'] = "%$searchQuery%";
+}
+
+// Wrap the UNION query and apply WHERE conditions
+if (!empty($whereConditions)) {
+    $query = "SELECT * FROM ($query) as combined_results WHERE " . implode(' AND ', $whereConditions);
 }
 
 // Sort by created date in descending order (newest first)
@@ -101,9 +112,9 @@ try {
     $countStmt = $pdo->prepare("
         SELECT
             (SELECT COUNT(*) FROM access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
-            (SELECT COUNT(*) FROM approval_history ah INNER JOIN access_requests ar ON ar.access_request_number = ah.access_request_number WHERE ar.employee_id = ? AND ah.action = 'approved') as approved,
-            (SELECT COUNT(*) FROM approval_history ah INNER JOIN access_requests ar ON ar.access_request_number = ah.access_request_number WHERE ar.employee_id = ? AND ah.action = 'rejected') as rejected,
-            (SELECT COUNT(*) FROM approval_history ah INNER JOIN access_requests ar ON ar.access_request_number = ah.access_request_number WHERE ar.employee_id = ? AND ah.action = 'cancelled') as cancelled
+            (SELECT COUNT(*) FROM approval_history WHERE employee_id = ? AND action = 'approved') as approved,
+            (SELECT COUNT(*) FROM approval_history WHERE employee_id = ? AND action = 'rejected') as rejected,
+            (SELECT COUNT(*) FROM approval_history WHERE employee_id = ? AND action = 'cancelled') as cancelled
     ");
 
     $countStmt->execute([$requestorId, $requestorId, $requestorId, $requestorId]);
@@ -683,7 +694,12 @@ try {
                 language: {
                     lengthMenu: "Show _MENU_ entries per page",
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    paginate: { first: "First", last: "Last", next: "Next", previous: "Previous" },
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    },
                     search: "Search in table:",
                     emptyTable: '<div class="flex flex-col items-center justify-center py-6"><i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i><p>No request history found</p><p class="text-sm mt-1">Try adjusting your filters or create new access requests</p></div>'
                 },
