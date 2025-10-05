@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 05, 2025 at 03:56 AM
+-- Generation Time: Oct 05, 2025 at 01:34 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -72,7 +72,7 @@ CREATE TABLE `access_requests` (
 
 INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_request_number`, `department`, `employee_email`, `employee_id`, `request_date`, `system_type`, `other_system_type`, `access_level`, `status`, `testing_status`, `current_test_iteration`, `test_evidence_required`, `testing_notes`, `testing_instructions`, `submission_date`, `superior_id`, `superior_review_date`, `superior_notes`, `help_desk_id`, `help_desk_review_date`, `help_desk_notes`, `technical_id`, `technical_review_date`, `technical_notes`, `process_owner_id`, `process_owner_review_date`, `process_owner_notes`, `admin_id`, `admin_review_date`, `admin_notes`, `reviewed_by`, `review_date`, `review_notes`) VALUES
 (108, 'PALOMARES, CHARLES LEO', 'AAC', '2025-002', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '2025-10-03', 'Memorandum Receipt', NULL, NULL, 'pending_superior', 'not_required', 1, 0, NULL, NULL, '2025-10-03 08:55:26', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
-(109, 'PALOMARES, CHARLES LEO', 'AAC', '2025-003', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '2025-10-03', 'Legacy Payroll, Legacy Vouchering', NULL, NULL, 'pending_superior', 'not_required', 1, 0, NULL, NULL, '2025-10-03 08:55:56', 0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+(109, 'PALOMARES, CHARLES LEO', 'AAC', '2025-003', 'INFORMATION TECHNOLOGY (IT)', 'charlesleohermano@gmail.com', 'AAC052003', '2025-10-03', 'Legacy Payroll, Legacy Vouchering', NULL, NULL, 'pending_help_desk', 'not_required', 1, 0, NULL, NULL, '2025-10-03 08:55:56', 16, '2025-10-05 12:37:51', 'qwe', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -83,6 +83,8 @@ INSERT INTO `access_requests` (`id`, `requestor_name`, `business_unit`, `access_
 CREATE TABLE `admin_users` (
   `id` int(11) NOT NULL,
   `role` varchar(255) DEFAULT NULL,
+  `employee_name` varchar(255) DEFAULT NULL,
+  `employee_id` int(11) DEFAULT NULL,
   `username` varchar(50) NOT NULL,
   `password` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -93,19 +95,19 @@ CREATE TABLE `admin_users` (
 -- Dumping data for table `admin_users`
 --
 
-INSERT INTO `admin_users` (`id`, `role`, `username`, `password`, `created_at`, `encryption_code`) VALUES
-(3, 'admin', 'admin', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-03-26 01:56:34', NULL),
-(6, 'superior', 'superior', '$2y$10$Pu46k5pVVhkX2oKpg4ZFy.BssUanZdGykoqRPPe6fuPSkfOA0ZuNe', '2025-05-05 05:31:07', NULL),
-(9, 'technical_support', 'technical_support', '$2y$10$iNe0w0/K7F6rIgRsFHTlge7auKyZMW/fbCHmN2/CnGPdhbD7vsTcG', '2025-05-18 04:25:26', NULL),
-(10, 'process_owner', 'process_owner', '$2y$10$IJrAULu0Y6ecrA6TcB7IsOJPkneQOkxL0/HVF1VGkNpvThwdiRiXS', '2025-05-18 04:25:34', NULL),
-(11, 'superior', 'AAC052002', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', '2025-05-20 05:16:12', NULL),
-(12, 'admin', 'AAC052003', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', '2025-05-20 05:17:50', NULL),
-(13, 'technical_support', 'techsupp1', '$2y$10$ey1NtHsptYY.xhxccySrT.9r4.qRjNjgeaqF79V1KTqQWtDrkxBum', '2025-05-20 05:19:28', NULL),
-(14, 'process_owner', 'process1', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', '2025-05-20 05:20:15', NULL),
-(15, 'help_desk', 'helpdesk1', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-05-21 01:00:00', NULL),
-(16, 'superior', '123', '$2y$10$Ao6tJGW4vvECcFrK6IgPlO/Q08jbcMOIxMAFRpwp1.EZ8VRAllGT.', '2025-05-28 00:22:06', NULL),
-(17, 'help_desk', 'AAC000999', '$2y$10$22B/0RUgtNM7LAT2F43chuFWMwUGD4opTqN9lwqvgttRiIzx0uB0G', '2025-05-28 23:47:38', NULL),
-(18, 'requestor', 'AAC123456', '$2y$10$Lk1a8iGdhZK5gfW.1yNWZ.OPNNp3mGbSNfJ330yhEjoadlc9s7CEq', '2025-09-22 06:36:53', NULL);
+INSERT INTO `admin_users` (`id`, `role`, `employee_name`, `employee_id`, `username`, `password`, `created_at`, `encryption_code`) VALUES
+(3, 'admin', NULL, NULL, 'admin', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-03-26 01:56:34', NULL),
+(6, 'superior', NULL, NULL, 'superior', '$2y$10$Pu46k5pVVhkX2oKpg4ZFy.BssUanZdGykoqRPPe6fuPSkfOA0ZuNe', '2025-05-05 05:31:07', NULL),
+(9, 'technical_support', NULL, NULL, 'technical_support', '$2y$10$iNe0w0/K7F6rIgRsFHTlge7auKyZMW/fbCHmN2/CnGPdhbD7vsTcG', '2025-05-18 04:25:26', NULL),
+(10, 'process_owner', NULL, NULL, 'process_owner', '$2y$10$IJrAULu0Y6ecrA6TcB7IsOJPkneQOkxL0/HVF1VGkNpvThwdiRiXS', '2025-05-18 04:25:34', NULL),
+(11, 'superior', 'TAMPUS, ALVIN A. JR.', 0, 'AAC052002', '$2y$10$Npe.Q7cqh3UzM08E0D86tum5MVKI/3KNC5eL3Ar.fd2sWhcye7IXm', '2025-05-20 05:16:12', NULL),
+(12, 'admin', 'PALOMARES, CHARLES LEO', 0, 'AAC052003', '$2y$10$tpfZgEnWgFdzm8Todliz7eLrSDIc79jopD0f4GHSecmvueM6wI34G', '2025-05-20 05:17:50', NULL),
+(13, 'technical_support', 'technical support', 0, 'techsupp1', '$2y$10$ey1NtHsptYY.xhxccySrT.9r4.qRjNjgeaqF79V1KTqQWtDrkxBum', '2025-05-20 05:19:28', NULL),
+(14, 'process_owner', 'process owner', 0, 'process1', '$2y$10$Exm.FkyH.IJzaQ.i2Fy0SeSGYbYVx6maLLmQJQwOdQeRSCTiPx4.q', '2025-05-20 05:20:15', NULL),
+(15, 'help_desk', NULL, NULL, 'helpdesk1', '$2y$10$SA4aRMZAhyKQPxzFdI1w/uwT1Xf2VKciIzpraAAxQcaRu2DTDYyHG', '2025-05-21 01:00:00', NULL),
+(16, 'superior', 'superior', 123, '123', '$2y$10$Ao6tJGW4vvECcFrK6IgPlO/Q08jbcMOIxMAFRpwp1.EZ8VRAllGT.', '2025-05-28 00:22:06', NULL),
+(17, 'help_desk', 'Jess Vitualla', 0, 'AAC000999', '$2y$10$22B/0RUgtNM7LAT2F43chuFWMwUGD4opTqN9lwqvgttRiIzx0uB0G', '2025-05-28 23:47:38', NULL),
+(18, 'requestor', 'ANDALLO, ZEARWIN B.', 0, 'AAC123456', '$2y$10$Lk1a8iGdhZK5gfW.1yNWZ.OPNNp3mGbSNfJ330yhEjoadlc9s7CEq', '2025-09-22 06:36:53', NULL);
 
 -- --------------------------------------------------------
 
@@ -213,7 +215,7 @@ CREATE TABLE `employees` (
 --
 
 INSERT INTO `employees` (`employee_id`, `company`, `employee_name`, `department`, `employee_email`, `password`, `is_temp_password`, `role`) VALUES
-('123', 'AAC', 'superior', 'INFORMATION TECHNOLOGY (IT)', 'charlesondota@gmail.com', '$2y$10$zchzv0ODdMOQyAwDB.Gcdu1.45KfxrO/8VsscZEI0HiGwyrQHJAG2', 0, 'help_desk'),
+('123', 'AAC', 'superior', 'INFORMATION TECHNOLOGY (IT)', 'charlesondota@gmail.com', '$2y$10$zchzv0ODdMOQyAwDB.Gcdu1.45KfxrO/8VsscZEI0HiGwyrQHJAG2', 0, 'superior'),
 ('AAC000000', 'AAC', 'TESTING', 'AGRI MGT. INFO. SYSTEM (AMIS)', 'TESTING@GMAIL.COM', NULL, 1, NULL),
 ('AAC000001', 'AAC', 'ALCANTARA, ALEJANDRO I.', 'G & A', '', NULL, 1, 'requestor'),
 ('AAC000003', 'AAC', 'TICAO, REX J.', 'SPECIAL PROJECT', '', NULL, 1, 'requestor'),
