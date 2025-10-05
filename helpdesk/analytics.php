@@ -20,7 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: " . $_SERVER['PHP_SELF']);
         exit();
     }
-    
+
     if (!empty($_POST['start_date'])) $filters['start_date'] = $_POST['start_date'];
     if (!empty($_POST['end_date'])) $filters['end_date'] = $_POST['end_date'];
     if (!empty($_POST['business_unit'])) $filters['business_unit'] = $_POST['business_unit'];
@@ -34,6 +34,7 @@ $statsData = getDashboardStats($pdo, $filters);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -43,7 +44,7 @@ $statsData = getDashboardStats($pdo, $filters);
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -68,9 +69,7 @@ $statsData = getDashboardStats($pdo, $filters);
                             dark: '#c82333',
                         }
                     },
-                    fontFamily: {
-                        'sans': ['Inter', 'sans-serif'],
-                    },
+
                 }
             }
         }
@@ -80,92 +79,7 @@ $statsData = getDashboardStats($pdo, $filters);
 <body class="bg-gray-50">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg transform transition-transform duration-300">
-            <div class="flex flex-col h-full">
-                <!-- Logo -->
-                <div class="text-center">
-                    <img src="../logo.png" alt="Alsons Agribusiness Logo" class="mt-1 w-60 h-auto mx-auto">
-                </div><br>
-
-                <!-- Navigation Menu -->
-                <nav class="flex-1 pt-6 pb-4 px-4 space-y-1 overflow-y-auto">
-                    <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Main Menu
-                    </p>
-                    
-                    <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
-                            <i class='bx bxs-dashboard text-xl'></i>
-                        </span>
-                        <span class="ml-3">Dashboard</span>
-                    </a>
-                    
-                    <a href="requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
-                            <i class='bx bxs-message-square-detail text-xl'></i>
-                        </span>
-                        <span class="ml-3">Requests</span>
-                    </a>
-                    
-                    <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
-                            <i class='bx bx-history text-xl'></i>
-                        </span>
-                        <span class="ml-3">Review History</span>
-                    </a>
-
-                    <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl transition-all hover:bg-primary-100 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg group-hover:bg-primary-200">
-                            <i class='bx bx-line-chart text-xl'></i>
-                        </span>
-                        <span class="ml-3 font-medium">Analytics</span>
-                    </a>
-                    
-                    <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
-                            <i class='bx bx-user text-xl'></i>
-                        </span>
-                        <span class="ml-3">User Management</span>
-                    </a>
-                    
-                    <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600">
-                            <i class='bx bx-cog text-xl'></i>
-                        </span>
-                        <span class="ml-3">Settings</span>
-                    </a>
-                </nav>
-                
-                <!-- Logout Button -->
-                <div class="p-4 border-t border-gray-100">
-                    <a href="logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl transition-all hover:bg-red-100 group">
-                        <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg group-hover:bg-red-200">
-                            <i class='bx bx-log-out text-xl group-hover:rotate-90 transition-transform duration-300'></i>
-                        </span>
-                        <span class="ml-3 font-medium">Logout</span>
-                    </a>
-                </div>
-
-                <!-- User Profile -->
-                <div class="px-4 py-4 border-t border-gray-100">
-                    <div class="flex items-center space-x-3">
-                        <div class="flex-shrink-0">
-                            <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                                <i class='bx bxs-user text-xl'></i>
-                            </div>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-sm font-medium text-gray-900 truncate">
-                                <?php echo htmlspecialchars($_SESSION['admin_name'] ?? 'Admin'); ?>
-                            </p>
-                            <p class="text-xs text-gray-500 truncate">
-                                Administrator
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <?php include 'sidebar.php'; ?>
 
         <!-- Mobile menu button (for responsive design) -->
         <div class="lg:hidden fixed bottom-6 right-6 z-50">
@@ -320,15 +234,15 @@ $statsData = getDashboardStats($pdo, $filters);
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-200">
                                     <?php foreach ($analyticsData['departmentAnalysis'] as $dept): ?>
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($dept['department']); ?></td>
-                                        <td class="px-6 py-4 text-sm text-gray-900"><?php echo $dept['total_requests']; ?></td>
-                                        <td class="px-6 py-4 text-sm text-emerald-600"><?php echo $dept['approved']; ?></td>
-                                        <td class="px-6 py-4 text-sm text-red-600"><?php echo $dept['rejected']; ?></td>
-                                        <td class="px-6 py-4 text-sm text-gray-900">
-                                            <?php echo round(($dept['approved'] / $dept['total_requests']) * 100, 1); ?>%
-                                        </td>
-                                    </tr>
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo htmlspecialchars($dept['department']); ?></td>
+                                            <td class="px-6 py-4 text-sm text-gray-900"><?php echo $dept['total_requests']; ?></td>
+                                            <td class="px-6 py-4 text-sm text-emerald-600"><?php echo $dept['approved']; ?></td>
+                                            <td class="px-6 py-4 text-sm text-red-600"><?php echo $dept['rejected']; ?></td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">
+                                                <?php echo round(($dept['approved'] / $dept['total_requests']) * 100, 1); ?>%
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -347,12 +261,12 @@ $statsData = getDashboardStats($pdo, $filters);
 
         // Simple color palette
         const colors = {
-            blue: 'rgb(0, 132, 255)',   // Facebook Messenger Blue
-            green: 'rgb(34, 197, 94)',   // Success green
-            red: 'rgb(239, 68, 68)',     // Error red
+            blue: 'rgb(0, 132, 255)', // Facebook Messenger Blue
+            green: 'rgb(34, 197, 94)', // Success green
+            red: 'rgb(239, 68, 68)', // Error red
             orange: 'rgb(249, 115, 22)', // Warning orange
             purple: 'rgb(139, 92, 246)', // Purple
-            gray: 'rgb(107, 114, 128)'   // Gray
+            gray: 'rgb(107, 114, 128)' // Gray
         };
 
         // Common chart options
@@ -444,7 +358,7 @@ $statsData = getDashboardStats($pdo, $filters);
             options: {
                 ...commonOptions,
                 scales: {
-                    x: { 
+                    x: {
                         stacked: true,
                         grid: {
                             display: false
@@ -455,7 +369,7 @@ $statsData = getDashboardStats($pdo, $filters);
                             }
                         }
                     },
-                    y: { 
+                    y: {
                         stacked: true,
                         beginAtZero: true,
                         grid: {
@@ -485,12 +399,12 @@ $statsData = getDashboardStats($pdo, $filters);
         document.querySelector('#filterForm button[type="reset"]').addEventListener('click', function(e) {
             e.preventDefault();
             const form = document.getElementById('filterForm');
-            
+
             // Clear all input fields
             form.querySelectorAll('input[type="date"]').forEach(input => {
                 input.value = '';
             });
-            
+
             // Reset all select elements to their first option
             form.querySelectorAll('select').forEach(select => {
                 select.selectedIndex = 0;
@@ -502,10 +416,11 @@ $statsData = getDashboardStats($pdo, $filters);
             resetInput.name = 'reset_filters';
             resetInput.value = '1';
             form.appendChild(resetInput);
-            
+
             // Submit the form
             form.submit();
         });
     </script>
 </body>
-</html> 
+
+</html>
