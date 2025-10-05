@@ -111,12 +111,12 @@ try {
 
         case 'technical_support':
             $can_handle = ($current_status === 'pending_technical' || $current_status === 'pending_testing_setup' || $current_status === 'pending_testing_review');
-            
+
             if ($current_status === 'pending_testing_setup' || $current_status === 'pending_testing_review') {
                 // Handle testing setup phase
                 if ($action === 'approve') {
                     $next_status = 'pending_testing';
-                    
+
                     // Update request with testing instructions and move to testing phase
                     $sql = "UPDATE access_requests SET 
                             status = 'pending_testing',
@@ -211,7 +211,7 @@ try {
 
                 $next_status = ($action === 'approve') ? ($came_from_process_owner ? 'pending_admin' : 'pending_admin') : 'rejected';
             }
-            
+
             $id_field = 'technical_id';
             $date_field = 'technical_review_date';
             $notes_field = 'technical_notes';
@@ -517,8 +517,14 @@ try {
         $message = "Request has been " . ($action === 'approve' ? 'approved' : 'declined') . " successfully";
     }
 
-    // If request is approved by admin or rejected by anyone, move to history
-    if ($next_status === 'approved' || $next_status === 'rejected') {
+    // If request is approved by admin, rejected by anyone, or recommended by any role, move to history
+    $should_create_history = ($next_status === 'approved' || $next_status === 'rejected' ||
+        ($role === 'superior' && $next_status === 'pending_help_desk') ||
+        ($role === 'help_desk' && in_array($next_status, ['pending_technical', 'pending_process_owner'])) ||
+        ($role === 'process_owner' && $next_status === 'pending_help_desk') ||
+        ($role === 'technical_support' && $next_status === 'pending_admin'));
+
+    if ($should_create_history) {
         // Get the current request data for history
         $requestDataQuery = $pdo->prepare("
             SELECT 
@@ -656,7 +662,15 @@ try {
             $historyInsert->execute($historyParams);
 
             // Update message to indicate history was created
-            $message .= " and moved to review history.";
+            if (($role === 'superior' && $next_status === 'pending_help_desk') ||
+                ($role === 'help_desk' && in_array($next_status, ['pending_technical', 'pending_process_owner'])) ||
+                ($role === 'process_owner' && $next_status === 'pending_help_desk') ||
+                ($role === 'technical_support' && $next_status === 'pending_admin')
+            ) {
+                $message = "Request has been recommended and moved to review history.";
+            } else {
+                $message .= " and moved to review history.";
+            }
         } else {
             // Log an error if we couldn't find the request data
             error_log("Failed to find request data for history record: Request ID {$request_id}");

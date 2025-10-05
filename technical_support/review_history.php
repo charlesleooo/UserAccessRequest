@@ -29,18 +29,18 @@ try {
             ar.requestor_name,
             ar.department,
             ar.business_unit,
-            ar.access_type,
+            ar.access_level as access_type,
             ar.system_type,
             ar.technical_review_date as review_date,
             ar.technical_notes as review_notes,
             ar.status,
-            ar.justification,
+            '' as justification,
             ar.employee_id,
-            ar.email,
-            ar.role_access_type,
-            ar.duration_type,
-            ar.start_date,
-            ar.end_date,
+            ar.employee_email as email,
+            '' as role_access_type,
+            '' as duration_type,
+            '' as start_date,
+            '' as end_date,
             CASE 
                 WHEN ar.status = 'rejected' AND ar.technical_id = :technical_id THEN 'Rejected'
                 ELSE 'Approved/Forwarded'
@@ -239,13 +239,14 @@ try {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Date</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
-                                    <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">View</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($reviewed_requests)): ?>
                                     <?php foreach ($reviewed_requests as $index => $request): ?>
-                                        <tr class="hover:bg-gray-50">
+                                        <tr class="hover:bg-gray-50 cursor-pointer view-btn"
+                                            data-request='<?php echo json_encode($request); ?>'
+                                            data-index="<?php echo $index; ?>">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -273,20 +274,11 @@ try {
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
                                                 <?php echo htmlspecialchars($request['review_notes']); ?>
                                             </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                                <button
-                                                    type="button"
-                                                    class="view-btn bg-primary-100 text-primary-700 hover:bg-primary-200 px-3 py-1 rounded-md text-sm"
-                                                    data-request='<?php echo json_encode($request); ?>'
-                                                    data-index="<?php echo $index; ?>">
-                                                    View Details
-                                                </button>
-                                            </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="8" class="px-6 py-4 text-center text-sm text-gray-500">
+                                        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
                                             No review history found
                                         </td>
                                     </tr>
