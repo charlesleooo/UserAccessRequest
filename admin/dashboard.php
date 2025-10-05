@@ -109,9 +109,7 @@ try {
                             dark: '#c82333',
                         }
                     },
-                    fontFamily: {
-                        'sans': ['Inter', 'sans-serif'],
-                    },
+
                 }
             }
         }
@@ -119,56 +117,63 @@ try {
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
+
         .mobile-menu-overlay {
             backdrop-filter: blur(4px);
         }
-        
+
         .sidebar-backdrop {
             backdrop-filter: blur(8px);
             background: rgba(0, 0, 0, 0.1);
         }
-        
+
         .card-hover {
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
+
         .card-hover:hover {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        
+
         .fade-in {
             animation: fadeIn 0.5s ease-in-out;
         }
-        
+
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        
+
         .mobile-nav-hidden {
             transform: translateX(-100%);
         }
-        
+
         .mobile-nav-visible {
             transform: translateX(0);
         }
-        
+
         /* Scrollbar styling */
         .custom-scrollbar::-webkit-scrollbar {
             width: 4px;
         }
-        
+
         .custom-scrollbar::-webkit-scrollbar-track {
             background: #f1f5f9;
         }
-        
+
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 2px;
         }
-        
+
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
@@ -180,104 +185,7 @@ try {
     <div id="mobileOverlay" class="lg:hidden fixed inset-0 z-40 bg-black bg-opacity-25 mobile-menu-overlay invisible opacity-0 transition-all duration-300"></div>
 
     <!-- Sidebar -->
-    <div id="sidebar" class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-xl transform transition-transform duration-300 lg:translate-x-0 mobile-nav-hidden">
-        <div class="flex flex-col h-full">
-            <!-- Logo -->
-            <div class="flex items-center justify-center py-6 border-b border-gray-100">
-                <img src="../logo.png" alt="Alsons Agribusiness Logo" class="w-48 h-auto">
-            </div>
-
-            <!-- Navigation Menu -->
-            <nav class="flex-1 pt-6 pb-4 px-4 space-y-1 overflow-y-auto custom-scrollbar">
-                <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Main Menu
-                </p>
-
-                <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl transition-all hover:bg-primary-100 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg group-hover:bg-primary-200 transition-colors">
-                        <i class='bx bxs-dashboard text-xl'></i>
-                    </span>
-                    <span class="ml-3 font-medium">Dashboard</span>
-                </a>
-
-                <a href="analytics.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                        <i class='bx bx-line-chart text-xl'></i>
-                    </span>
-                    <span class="ml-3">Analytics</span>
-                </a>
-
-                <a href="requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                        <i class='bx bxs-message-square-detail text-xl'></i>
-                    </span>
-                    <span class="ml-3">Requests</span>
-                    <?php if ($pendingRequests > 0): ?>
-                        <span class="ml-auto bg-red-500 text-white text-xs rounded-full px-2 py-1 min-w-[20px] text-center">
-                            <?php echo $pendingRequests; ?>
-                        </span>
-                    <?php endif; ?>
-                </a>
-
-                <a href="approval_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                        <i class='bx bx-history text-xl'></i>
-                    </span>
-                    <span class="ml-3">Approval History</span>
-                </a>
-
-                <!-- Add a divider -->
-                <div class="my-4 border-t border-gray-100"></div>
-
-                <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    Account
-                </p>
-
-                <a href="user_management.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                        <i class='bx bx-user text-xl'></i>
-                    </span>
-                    <span class="ml-3">User Management</span>
-                </a>
-
-                <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl transition-all hover:bg-gray-50 hover:text-primary-600 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg group-hover:bg-primary-50 group-hover:text-primary-600 transition-colors">
-                        <i class='bx bx-cog text-xl'></i>
-                    </span>
-                    <span class="ml-3">Settings</span>
-                </a>
-            </nav>
-
-            <!-- Logout Button -->
-            <div class="p-4 border-t border-gray-100">
-                <a href="logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl transition-all hover:bg-red-100 group">
-                    <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg group-hover:bg-red-200 transition-colors">
-                        <i class='bx bx-log-out text-xl group-hover:rotate-90 transition-transform duration-300'></i>
-                    </span>
-                    <span class="ml-3 font-medium">Logout</span>
-                </a>
-            </div>
-
-            <!-- User Profile -->
-            <div class="px-4 py-4 border-t border-gray-100">
-                <div class="flex items-center space-x-3">
-                    <div class="flex-shrink-0">
-                        <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                            <i class='bx bxs-user text-xl'></i>
-                        </div>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-medium text-gray-900 truncate">
-                            <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?>
-                        </p>
-                        <p class="text-xs text-gray-500 truncate">
-                            <?php echo htmlspecialchars($_SESSION['role'] ?? 'Administrator'); ?>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <?php include 'sidebar.php'; ?>
 
     <!-- Mobile menu button -->
     <div class="lg:hidden fixed top-4 left-4 z-50">
@@ -660,7 +568,7 @@ try {
 
             function toggleMobileMenu() {
                 const isHidden = sidebar.classList.contains('mobile-nav-hidden');
-                
+
                 if (isHidden) {
                     sidebar.classList.remove('mobile-nav-hidden');
                     sidebar.classList.add('mobile-nav-visible');
@@ -716,7 +624,7 @@ try {
 
         // Add smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
+            anchor.addEventListener('click', function(e) {
                 e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
@@ -737,7 +645,7 @@ try {
                     if (icon && !icon.classList.contains('bx-loader-alt')) {
                         const originalClass = icon.className;
                         icon.className = 'bx bx-loader-alt bx-spin text-xl';
-                        
+
                         // Restore original icon if page doesn't navigate (fallback)
                         setTimeout(() => {
                             icon.className = originalClass;
@@ -749,4 +657,4 @@ try {
     </script>
 </body>
 
-</html> 
+</html>
