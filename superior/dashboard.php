@@ -13,22 +13,22 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
 try {
     // Get analytics data
     $statsData = getDashboardStats($pdo);
-    
+
     // Get pending requests count
     $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status = 'pending_superior'");
     $pendingRequests = $stmt->fetchColumn();
-    
+
     // Get today's approvals count
     $todayDate = date('Y-m-d');
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'approved' AND DATE(created_at) = :today");
     $stmt->execute([':today' => $todayDate]);
     $approvedToday = $stmt->fetchColumn();
-    
+
     // Get today's rejections count
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'rejected' AND DATE(created_at) = :today");
     $stmt->execute([':today' => $todayDate]);
     $rejectedToday = $stmt->fetchColumn();
-    
+
     // Get recent requests
     $stmt = $pdo->query("SELECT ar.*, 
             CASE 
@@ -45,14 +45,13 @@ try {
             WHERE ar.status = 'pending_superior' 
             ORDER BY ar.submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Get recent approval history
     $stmt = $pdo->query("SELECT h.*, a.username as admin_username 
                         FROM approval_history h 
                         LEFT JOIN admin_users a ON h.admin_id = a.id 
                         ORDER BY h.created_at DESC LIMIT 5");
     $recentApprovals = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
 } catch (PDOException $e) {
     // Handle database errors gracefully
     error_log("Dashboard data fetch error: " . $e->getMessage());
@@ -72,6 +71,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,7 +80,7 @@ try {
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -106,64 +106,11 @@ try {
         }
     </script>
 </head>
+
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg">
-            <div class="flex flex-col h-full">
-                <!-- Logo -->
-                <div class="text-center">
-                    <img src="../logo.png" alt="Company Logo" class="mt-1 w-60 h-auto mx-auto">
-                </div>
-
-                <!-- Navigation Menu -->
-                <nav class="flex-1 pt-6 pb-4 px-4 space-y-1 overflow-y-auto">
-                    <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Main Menu
-                    </p>
-                    
-                    <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
-                        <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg">
-                            <i class='bx bxs-dashboard text-xl'></i>
-                        </span>
-                        <span class="ml-3 font-medium">Dashboard</span>
-                    </a>
-                    
-                    <a href="requests.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                            <i class='bx bxs-message-square-detail text-xl'></i>
-                        </span>
-                        <span class="ml-3">Requests</span>
-                    </a>
-                    
-                    <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                            <i class='bx bx-history text-xl'></i>
-                        </span>
-                        <span class="ml-3">Review History</span>
-                    </a>
-                    <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                            <i class='bx bx-cog text-xl'></i>
-                        </span>
-                        <span class="ml-3">Settings</span>
-                    </a>
-                </nav>
-                
-                <!-- Logout Button -->
-                <div class="p-4 border-t border-gray-100">
-                    <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
-                        <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
-                            <i class='bx bx-log-out text-xl'></i>
-                        </span>
-                        <span class="ml-3 font-medium">Logout</span>
-                    </a>
-                </div>
-
-                <!-- User Profile -->
-               
-            </div>
-        </div>
+        <?php include 'sidebar.php'; ?>
 
         <!-- Main Content -->
         <div class="flex-1 ml-72">
@@ -171,7 +118,7 @@ try {
             <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
                     <h1 class="text-4xl font-bold text-white">Superior Dashboard</h1>
-                   
+
                 </div>
             </div>
 
@@ -221,14 +168,14 @@ try {
                     <div class="px-6 py-4 border-b border-gray-100">
                         <div class="flex justify-between items-center">
                             <h3 class="text-lg font-semibold text-gray-800">Recent Requests</h3>
-                            
+
                         </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
@@ -238,9 +185,9 @@ try {
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($recentRequests)): ?>
-                                    <?php foreach($recentRequests as $request): ?>
-                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    <?php foreach ($recentRequests as $request): ?>
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="showRequestDetails(<?php echo $request['id']; ?>)">
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -250,11 +197,11 @@ try {
                                                 <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php 
-                                                    $submission_date = new DateTime($request['submission_date']);
-                                                    $today = new DateTime();
-                                                    $interval = $submission_date->diff($today);
-                                                    echo $interval->days . ' day/s';
+                                                <?php
+                                                $submission_date = new DateTime($request['submission_date']);
+                                                $today = new DateTime();
+                                                $interval = $submission_date->diff($today);
+                                                echo $interval->days . ' day/s';
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
@@ -265,7 +212,7 @@ try {
                                                     <?php echo htmlspecialchars($request['status_display']); ?>
                                                 </span>
                                             </td>
-                                    </tr>
+                                        </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
@@ -289,4 +236,5 @@ try {
         }
     </script>
 </body>
+
 </html>

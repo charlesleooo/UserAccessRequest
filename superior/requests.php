@@ -9,8 +9,10 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
 }
 
 // Check if the user needs to enter the encryption code
-if (!isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] || 
-    (time() - $_SESSION['requests_verified_time'] > 1800)) { // Expire after 30 minutes
+if (
+    !isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] ||
+    (time() - $_SESSION['requests_verified_time'] > 1800)
+) { // Expire after 30 minutes
     header('Location: requests_auth.php');
     exit();
 }
@@ -32,7 +34,7 @@ try {
             WHERE ar.status = 'pending_superior'
             GROUP BY ar.access_request_number
             ORDER BY ar.submission_date DESC";
-            
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -44,6 +46,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,7 +54,7 @@ try {
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
+
     <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
@@ -77,61 +80,11 @@ try {
         }
     </script>
 </head>
+
 <body class="bg-gray-100">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
-        <div class="fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-lg">
-            <div class="flex flex-col h-full">
-                <!-- Logo -->
-                <div class="text-center">
-                    <img src="../logo.png" alt="Company Logo" class="mt-1 w-60 h-auto mx-auto">
-                </div>
-
-                <!-- Navigation Menu -->
-                <nav class="flex-1 pt-6 pb-4 px-4 space-y-1 overflow-y-auto">
-                    <p class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        Main Menu
-                    </p>
-                    
-                    <a href="dashboard.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                            <i class='bx bxs-dashboard text-xl'></i>
-                        </span>
-                        <span class="ml-3">Dashboard</span>
-                    </a>
-                    
-                    <a href="#" class="flex items-center px-4 py-3 text-primary-600 bg-primary-50 rounded-xl">
-                        <span class="flex items-center justify-center w-9 h-9 bg-primary-100 text-primary-600 rounded-lg">
-                            <i class='bx bxs-message-square-detail text-xl'></i>
-                        </span>
-                        <span class="ml-3 font-medium">Requests</span>
-                    </a>
-                    
-                    <a href="review_history.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                            <i class='bx bx-history text-xl'></i>
-                        </span>
-                        <span class="ml-3">Review History</span>
-                    </a>
-                    <a href="settings.php" class="flex items-center px-4 py-3 text-gray-700 rounded-xl hover:bg-gray-50">
-                        <span class="flex items-center justify-center w-9 h-9 bg-gray-100 text-gray-600 rounded-lg">
-                            <i class='bx bx-cog text-xl'></i>
-                        </span>
-                        <span class="ml-3">Settings</span>
-                    </a>
-                </nav>
-                
-                <!-- Logout Button -->
-                <div class="p-4 border-t border-gray-100">
-                    <a href="../admin/logout.php" class="flex items-center px-4 py-3 text-red-600 bg-red-50 rounded-xl hover:bg-red-100">
-                        <span class="flex items-center justify-center w-9 h-9 bg-red-100 text-red-600 rounded-lg">
-                            <i class='bx bx-log-out text-xl'></i>
-                        </span>
-                        <span class="ml-3 font-medium">Logout</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <?php include 'sidebar.php'; ?>
 
         <!-- Main Content -->
         <div class="flex-1 ml-72">
@@ -156,7 +109,7 @@ try {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    
+
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -170,37 +123,37 @@ try {
                                                 <?php echo htmlspecialchars($request['requestor_name']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php 
-                                                    try {
-                                                        echo !empty($request['submission_date']) ? date('M d, Y', strtotime($request['submission_date'])) : 'N/A';
-                                                    } catch (Exception $e) {
-                                                        echo 'N/A';
-                                                    }
+                                                <?php
+                                                try {
+                                                    echo !empty($request['submission_date']) ? date('M d, Y', strtotime($request['submission_date'])) : 'N/A';
+                                                } catch (Exception $e) {
+                                                    echo 'N/A';
+                                                }
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php 
-                                                    try {
-                                                        if (!empty($request['submission_date'])) {
-                                                            $submission_date = new DateTime($request['submission_date']);
-                                                            $today = new DateTime();
-                                                            $interval = $submission_date->diff($today);
-                                                            echo $interval->days . ' day/s';
-                                                        } else {
-                                                            echo 'N/A';
-                                                        }
-                                                    } catch (Exception $e) {
+                                                <?php
+                                                try {
+                                                    if (!empty($request['submission_date'])) {
+                                                        $submission_date = new DateTime($request['submission_date']);
+                                                        $today = new DateTime();
+                                                        $interval = $submission_date->diff($today);
+                                                        echo $interval->days . ' day/s';
+                                                    } else {
                                                         echo 'N/A';
                                                     }
+                                                } catch (Exception $e) {
+                                                    echo 'N/A';
+                                                }
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                <?php 
-                                                    try {
-                                                        echo !empty($request['request_date']) ? date('M d, Y', strtotime($request['request_date'])) : 'N/A';
-                                                    } catch (Exception $e) {
-                                                        echo 'N/A';
-                                                    }
+                                                <?php
+                                                try {
+                                                    echo !empty($request['request_date']) ? date('M d, Y', strtotime($request['request_date'])) : 'N/A';
+                                                } catch (Exception $e) {
+                                                    echo 'N/A';
+                                                }
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
@@ -208,7 +161,7 @@ try {
                                                     <?php echo htmlspecialchars($request['status_display']); ?>
                                                 </span>
                                             </td>
-                                            
+
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
@@ -226,4 +179,5 @@ try {
         </div>
     </div>
 </body>
+
 </html>
