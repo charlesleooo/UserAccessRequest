@@ -33,62 +33,100 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
 $historyId = intval($_GET['id']);
 $username = $_SESSION['username'] ?? 'User';
 
-// Fetch the request history details
+// Fetch the request history details with proper employee name joins and original justification
 try {
-    $query = "SELECT ah.*, admin.username as admin_username 
+    $query = "SELECT ah.*, 
+              admin.username as admin_username,
+              admin_emp.employee_name as admin_employee_name,
+              tech_emp.employee_name as technical_employee_name,
+              superior_emp.employee_name as superior_employee_name,
+              helpdesk_emp.employee_name as helpdesk_employee_name,
+              process_emp.employee_name as process_owner_employee_name,
+              COALESCE(ir.justification, gr.justification, ah.justification) as original_justification
               FROM approval_history ah
               LEFT JOIN admin_users admin ON ah.admin_id = admin.id
+              LEFT JOIN employees admin_emp ON admin.username = admin_emp.employee_id
+              LEFT JOIN admin_users tech_admin ON ah.technical_id = tech_admin.id
+              LEFT JOIN employees tech_emp ON tech_admin.username = tech_emp.employee_id
+              LEFT JOIN admin_users superior_admin ON ah.superior_id = superior_admin.id
+              LEFT JOIN employees superior_emp ON superior_admin.username = superior_emp.employee_id
+              LEFT JOIN admin_users helpdesk_admin ON ah.help_desk_id = helpdesk_admin.id
+              LEFT JOIN employees helpdesk_emp ON helpdesk_admin.username = helpdesk_emp.employee_id
+              LEFT JOIN admin_users process_admin ON ah.process_owner_id = process_admin.id
+              LEFT JOIN employees process_emp ON process_admin.username = process_emp.employee_id
+              LEFT JOIN individual_requests ir ON ah.access_request_number = ir.access_request_number
+              LEFT JOIN group_requests gr ON ah.access_request_number = gr.access_request_number
               WHERE ah.history_id = :history_id AND ah.requestor_name = :requestor_name";
-    
+
     $stmt = $pdo->prepare($query);
     $stmt->execute([
         ':history_id' => $historyId,
         ':requestor_name' => $username
     ]);
-    
+
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$request) {
         // Request not found or doesn't belong to the user
         header("Location: request_history.php");
         exit();
     }
-    
+
     // Format the date
     $currentDate = date('F d, Y');
     $requestNumber = $request['access_request_number'] ?? 'N/A';
-    
 } catch (PDOException $e) {
     error_log("Error fetching request history details: " . $e->getMessage());
     header("Location: request_history.php?error=db");
     exit();
 }
 
-// Check if required extensions are available
-$hasGD = extension_loaded('gd');
-$hasImagick = extension_loaded('imagick');
-
 // Create new TCPDF instance
-class UARPDF extends TCPDF {
-    public function Header() {
+class UARPDF extends TCPDF
+{
+    public function Header()
+    {
         // Empty header to override default behavior
     }
-    
-    public function Footer() {
+
+    public function Footer()
+    {
         // Position at 15 mm from bottom
         $this->SetY(-15);
-        
-        // Set font
         $this->SetFont('helvetica', 'I', 8);
-        
-        // Page number
-        $this->Cell(0, 10, 'Page '.$this->getAliasNumPage().'/'.$this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
+        $this->Cell(0, 10, 'Page ' . $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, false, 'C', 0, '', 0, false, 'T', 'M');
+    }
+
+    // Helper function to create a row with dynamic height
+    public function createDynamicRow($data, $startY, $minHeight = 8)
+    {
+        $maxHeight = $minHeight;
+
+        // Calculate required height for each cell
+        foreach ($data as $item) {
+            $this->SetFont($item['font'], $item['style'], $item['size']);
+            $cellHeight = $this->getStringHeight($item['width'], $item['text']);
+            if ($cellHeight > $maxHeight) {
+                $maxHeight = $cellHeight;
+            }
+        }
+
+        // Draw all cells with the calculated height
+        $currentX = 10;
+        foreach ($data as $item) {
+            $this->SetFont($item['font'], $item['style'], $item['size']);
+            $this->SetXY($currentX, $startY);
+            $this->MultiCell($item['width'], $maxHeight, $item['text'], 1, $item['align'], false, 0, '', '', true, 0, false, true, $maxHeight, 'M');
+            $currentX += $item['width'];
+        }
+
+        return $maxHeight;
     }
 }
 
 try {
-    // Create new PDF document
-    $pdf = new UARPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    // Create new PDF document - LANDSCAPE orientation
+    $pdf = new UARPDF('L', PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
     // Set document information
     $pdf->SetCreator('UAR System');
@@ -105,7 +143,7 @@ try {
     $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
 
     // Set margins
-    $pdf->SetMargins(10, 15, 10);
+    $pdf->SetMargins(10, 10, 10);
     $pdf->SetHeaderMargin(5);
     $pdf->SetFooterMargin(10);
 
@@ -116,207 +154,265 @@ try {
     $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
 
     // Set font
-    $pdf->SetFont('helvetica', '', 10);
+    $pdf->SetFont('helvetica', '', 9);
 
     // Add a page
     $pdf->AddPage();
 
-    // Define border style for consistency
-    $borderStyle = array('width' => 0.1, 'color' => array(0, 0, 0));
-    $pdf->SetLineStyle($borderStyle);
+    // Define colors
+    $darkBlue = array(0, 51, 102);
+    $lightBlue = array(173, 216, 230);
+    $yellow = array(255, 255, 153);
 
-    // UAR Header - More consistent border
-    $pdf->Rect(10, 10, 190, 20, 'D', array('all' => $borderStyle));
+    // Header Section with border
+    $pdf->Rect(10, 10, 277, 20, 'D');
 
-    // Title in the center
+    // Left section - Logo placeholder (you can add logo here if needed)
+    $pdf->SetXY(12, 12);
+    $pdf->SetFont('helvetica', 'B', 8);
+    $pdf->Cell(60, 8, 'Alcantara Business Unit', 0, 0, 'L');
+
+    // Center - Title
     $pdf->SetFont('helvetica', 'B', 14);
-    $pdf->SetXY(10, 10);
-    $pdf->Cell(190, 10, 'USER ACCESS REQUEST (UAR)', 0, 0, 'C');
-
-    // Subtitle
+    $pdf->SetXY(10, 14);
+    $pdf->Cell(277, 6, 'USER ACCESS REQUEST (UAR)', 0, 1, 'C');
     $pdf->SetFont('helvetica', '', 10);
-    $pdf->SetXY(10, 18);
-    $pdf->Cell(190, 5, 'ABU Information Technology', 0, 0, 'C');
+    $pdf->SetXY(10, 20);
+    $pdf->Cell(277, 6, 'ABU Information Technology', 0, 0, 'C');
 
-    // Right side text
+    // Right section - Form info
     $pdf->SetFont('helvetica', '', 8);
-    $pdf->SetXY(160, 12);
-    $pdf->Cell(40, 5, 'IT-UAR-001', 0, 1, 'R');
-    $pdf->SetXY(160, 16);
-    $pdf->Cell(40, 5, 'Revision No. 00', 0, 1, 'R');
+    $pdf->SetXY(237, 12);
+    $pdf->Cell(45, 4, 'IT-UAR-001', 0, 1, 'R');
+    $pdf->SetXY(237, 16);
+    $pdf->Cell(45, 4, '', 0, 1, 'R');
+    $pdf->SetXY(237, 20);
+    $pdf->Cell(45, 4, 'Revision No. 00', 0, 0, 'R');
 
-    // Left side - Organization info
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetXY(15, 12);
-    $pdf->Cell(50, 5, 'Alcantara Business Unit', 0, 1, 'L');
-    $pdf->SetFont('helvetica', '', 8);
-    $pdf->SetXY(15, 17);
-    $pdf->Cell(50, 5, 'Information Technology', 0, 1, 'L');
-
-    // Requestor Information Section Header
-    $pdf->SetFillColor(0, 51, 102);
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->SetY(32);
-    $pdf->Cell(190, 6, 'Requestor Information', 1, 1, 'L', true);
-
-    // Requestor Information Content
-    $pdf->SetTextColor(0);
-    $pdf->SetFont('helvetica', '', 9);
-
-    // Name, Date, Ref No row - Using consistent borders
+    // Requestor Information Section
+    $pdf->SetY(35);
+    $pdf->SetFillColor($darkBlue[0], $darkBlue[1], $darkBlue[2]);
+    $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->Cell(95, 5, 'Name:', 1, 0);
-    $pdf->Cell(47.5, 5, 'Date:', 1, 0);
-    $pdf->Cell(47.5, 5, 'UAR Ref. No:', 1, 1);
+    $pdf->Cell(277, 6, 'Requestor Information', 1, 1, 'C', true);
 
-    $pdf->SetFont('helvetica', '', 9);
-    $pdf->Cell(95, 5, $request['requestor_name'] ?? 'N/A', 1, 0);
-    $pdf->Cell(47.5, 5, $currentDate, 1, 0);
-    $pdf->Cell(47.5, 5, $requestNumber, 1, 1);
+    // Requestor Info Row - IMPROVED WITH DYNAMIC HEIGHT
+    $pdf->SetTextColor(0, 0, 0);
+    $startY = $pdf->GetY();
 
-    // BU/Department row
-    $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->Cell(190, 5, 'BU/Department:', 1, 1);
-    $pdf->SetFont('helvetica', '', 9);
-    $pdf->Cell(190, 5, ($request['business_unit'] ?? 'N/A') . ' / ' . ($request['department'] ?? 'N/A'), 1, 1);
+    $requestorRowData = array(
+        array('text' => 'Name:', 'width' => 15, 'font' => 'helvetica', 'style' => 'B', 'size' => 8, 'align' => 'L'),
+        array('text' => $request['requestor_name'] ?? '', 'width' => 120, 'font' => 'helvetica', 'style' => '', 'size' => 8, 'align' => 'L'),
+        array('text' => 'BU/Department:', 'width' => 30, 'font' => 'helvetica', 'style' => 'B', 'size' => 8, 'align' => 'L'),
+        array('text' => ($request['business_unit'] ?? '') . ' / ' . ($request['department'] ?? ''), 'width' => 60, 'font' => 'helvetica', 'style' => '', 'size' => 8, 'align' => 'L'),
+        array('text' => 'Date:', 'width' => 12, 'font' => 'helvetica', 'style' => 'B', 'size' => 8, 'align' => 'L'),
+        array('text' => $currentDate, 'width' => 40, 'font' => 'helvetica', 'style' => '', 'size' => 8, 'align' => 'L')
+    );
 
-    // Request Details Section Header
-    $pdf->SetFillColor(0, 51, 102);
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('helvetica', 'B', 10);
-    $pdf->Cell(190, 6, 'Request Details', 1, 1, 'L', true);
+    $rowHeight = $pdf->createDynamicRow($requestorRowData, $startY, 8);
+    $pdf->SetY($startY + $rowHeight);
 
-    // Individual Access Section - Always used regardless of access type
-    $pdf->SetTextColor(0);
+    // UAR Ref No Row
+    $pdf->Cell(277, 6, 'UAR Ref. No. ' . $requestNumber, 1, 1, 'R');
+
+    // Request Details Section
+    $pdf->Ln(2);
+    $pdf->SetFillColor($darkBlue[0], $darkBlue[1], $darkBlue[2]);
+    $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->Cell(190, 5, 'For Individual Access', 1, 1, 'C');
-    
-    // Create a more spacious layout with fewer columns and multiple rows
-    $pdf->SetFillColor(0, 51, 102);
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('helvetica', 'B', 9);
-    
-    // First row - User and System details
-    $rowHeight = 8;
-    $pdf->Cell(60, $rowHeight, 'User Name', 1, 0, 'C', true);
-    $pdf->Cell(65, $rowHeight, 'Application/System', 1, 0, 'C', true);
-    $pdf->Cell(65, $rowHeight, 'Access Type', 1, 1, 'C', true);
-    
-    $pdf->SetTextColor(0);
-    $pdf->SetFont('helvetica', '', 9);
-    $dataRowHeight = 10;
-    $pdf->Cell(60, $dataRowHeight, $request['requestor_name'] ?? 'N/A', 1, 0, 'L');
-    
-    // Display both system_type and access_type in the Application/System field
-    $applicationSystem = ($request['system_type'] ?? 'N/A');
-    $accessType = ($request['access_type'] ?? '');
-    if (!empty($accessType)) {
-        $applicationSystem .= ' - ' . $accessType;
-    }
-    $pdf->Cell(65, $dataRowHeight, $applicationSystem, 1, 0, 'L');
-    
-    $pdf->Cell(65, $dataRowHeight, $request['role_access_type'] ?? 'N/A', 1, 1, 'L');
-    
-    // Second row - Timing details - Keep exact same column widths for alignment
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->Cell(60, $rowHeight, 'Duration', 1, 0, 'C', true);
-    $pdf->Cell(65, $rowHeight, 'Date Required', 1, 0, 'C', true);
-    $pdf->Cell(65, $rowHeight, 'Served By', 1, 1, 'C', true);
-    
-    $pdf->SetTextColor(0);
-    $pdf->SetFont('helvetica', '', 9);
-    
-    // Duration
-    $durationText = '';
-    if ($request['duration_type'] === 'permanent') {
-        $durationText = 'Permanent';
+    $pdf->Cell(277, 6, 'Request Details', 1, 1, 'C', true);
+
+    // Get employee names from the joined data
+    $requestType = strtolower($request['request_type'] ?? 'individual');
+    $servedByName = $request['admin_employee_name'] ?? $request['admin_username'] ?? '';
+    $testPerformedByName = $request['technical_employee_name'] ?? '';
+
+    // Format access duration properly
+    $accessDuration = '';
+    if (!empty($request['duration_type'])) {
+        if ($request['duration_type'] === 'permanent') {
+            $accessDuration = 'Permanent';
+        } elseif ($request['duration_type'] === 'temporary' && !empty($request['end_date'])) {
+            $endDate = new DateTime($request['end_date']);
+            $accessDuration = 'Until ' . $endDate->format('M d, Y');
+        } else {
+            $accessDuration = ucfirst($request['duration_type']);
+        }
     } else {
-        $endDate = new DateTime($request['end_date']);
-        $durationText = 'Temporary, until ' . $endDate->format('M d, Y');
+        $accessDuration = 'N/A';
     }
-    
-    // Date required
-    $requiredDate = new DateTime($request['created_at']);
-    
-    $pdf->Cell(60, $dataRowHeight, $durationText, 1, 0, 'L');
-    $pdf->Cell(65, $dataRowHeight, $requiredDate->format('M d, Y'), 1, 0, 'L');
-    $pdf->Cell(65, $dataRowHeight, $request['admin_username'] ?? '', 1, 1, 'L');
-    
-    // Third row - Justification and comments - Using consistent column width distribution
-    $pdf->SetTextColor(255);
-    $pdf->SetFont('helvetica', 'B', 9);
-    $pdf->Cell(95, $rowHeight, 'Justification', 1, 0, 'C', true);
-    $pdf->Cell(95, $rowHeight, 'Remark/IT Evaluation', 1, 1, 'C', true);
-    
-    // Reset text color for content
-    $pdf->SetTextColor(0);
-    $pdf->SetFont('helvetica', '', 9);
-    
-    // Get content
-    $justification = $request['justification'] ?? 'N/A';
-    $comments = $request['comments'] ?? '';
-    
-    // Ensure the text won't overflow by wrapping it
-    $justification = $pdf->unhtmlentities($justification);
-    $comments = $pdf->unhtmlentities($comments);
-    
-    // Calculate height needed for both cells (minimum 15mm)
-    $justHeight = $pdf->getStringHeight(95, $justification);
-    $commentsHeight = $pdf->getStringHeight(95, $comments);
-    $cellHeight = max($justHeight, $commentsHeight, 15);
-    
-    // First cell - Justification
-    $pdf->MultiCell(95, $cellHeight, $justification, 1, 'L', false, 0, '', '', true, 0, false, true, $cellHeight, 'T', true);
-    
-    // Second cell - Comments/Remarks
-    $pdf->MultiCell(95, $cellHeight, $comments, 1, 'L', false, 1, '', '', true, 0, false, true, $cellHeight, 'T', true);
 
-    // Add some space before signatures
-    $pdf->Ln(10);
+    // DEBUG: Uncomment to see what data is being used
+    // file_put_contents('debug_tcpdf.txt', print_r($request, true));
 
-    // Determine the approval status text based on the action
+    // Additional debug info for troubleshooting
+    // file_put_contents('debug_tcpdf_detailed.txt', 
+    //     "Access Duration: " . $accessDuration . "\n" .
+    //     "Justification (from approval_history): " . ($request['justification'] ?? 'EMPTY') . "\n" .
+    //     "Original Justification (from request tables): " . ($request['original_justification'] ?? 'EMPTY') . "\n" .
+    //     "Final Justification Used: " . ($request['original_justification'] ?? $request['justification'] ?? 'No justification provided') . "\n" .
+    //     "Served By: " . $servedByName . "\n" .
+    //     "Test Performed By: " . $testPerformedByName . "\n" .
+    //     "Duration Type: " . ($request['duration_type'] ?? 'EMPTY') . "\n" .
+    //     "End Date: " . ($request['end_date'] ?? 'EMPTY') . "\n"
+    // );
+
+    if ($requestType === 'group') {
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->Cell(8, 6, 'II.', 1, 0, 'C');
+        $pdf->Cell(269, 6, 'For Group Access', 1, 1, 'L');
+
+        $pdf->SetFillColor($lightBlue[0], $lightBlue[1], $lightBlue[2]);
+        $pdf->SetFont('helvetica', 'B', 7);
+        $pdf->Cell(27, 10, 'Application/System', 1, 0, 'C', true);
+        $pdf->Cell(27, 10, 'User Name', 1, 0, 'C', true);
+        $pdf->Cell(20, 10, 'Access Type', 1, 0, 'C', true);
+        $pdf->Cell(25, 10, 'Access Duration', 1, 0, 'C', true);
+        $pdf->Cell(30, 10, 'Justification', 1, 0, 'C', true);
+        $pdf->SetFillColor($yellow[0], $yellow[1], $yellow[2]);
+        $pdf->Cell(32, 10, 'Remark/IT Evaluation', 1, 0, 'C', true);
+        $pdf->SetFillColor($lightBlue[0], $lightBlue[1], $lightBlue[2]);
+        $pdf->Cell(20, 10, 'Served By', 1, 0, 'C', true);
+        $pdf->Cell(24, 10, 'Test Performed By', 1, 0, 'C', true);
+        $pdf->SetFillColor($yellow[0], $yellow[1], $yellow[2]);
+        $pdf->Cell(52, 10, 'Backup Performed By', 1, 1, 'C', true);
+
+        $pdf->SetFont('helvetica', '', 7);
+        $pdf->SetTextColor(0, 0, 0);
+        $groupRowStartY = $pdf->GetY();
+        $groupRowData = array(
+            array('text' => $request['system_type'] ?? '', 'width' => 27, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $request['group_usernames'] ?? '', 'width' => 27, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $request['access_type'] ?? '', 'width' => 20, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $accessDuration, 'width' => 25, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $request['original_justification'] ?? $request['justification'] ?? 'No justification provided', 'width' => 30, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $request['comments'] ?? '', 'width' => 32, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $servedByName, 'width' => 20, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $testPerformedByName, 'width' => 24, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => '', 'width' => 52, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L')
+        );
+        $groupRowHeight = $pdf->createDynamicRow($groupRowData, $groupRowStartY, 8);
+        $pdf->SetY($groupRowStartY + $groupRowHeight);
+    } else {
+        $pdf->SetTextColor(0, 0, 0);
+        $pdf->SetFont('helvetica', 'B', 9);
+        $pdf->Cell(8, 6, 'I.', 1, 0, 'C');
+        $pdf->Cell(269, 6, 'For Individual Access', 1, 1, 'L');
+
+        $pdf->SetFillColor($lightBlue[0], $lightBlue[1], $lightBlue[2]);
+        $pdf->SetFont('helvetica', 'B', 7);
+        $pdf->Cell(27, 10, 'User Name', 1, 0, 'C', true);
+        $pdf->Cell(27, 10, 'Application/System', 1, 0, 'C', true);
+        $pdf->Cell(20, 10, 'Access Type', 1, 0, 'C', true);
+        $pdf->Cell(25, 10, 'Access Duration', 1, 0, 'C', true);
+        $pdf->Cell(30, 10, 'Justification', 1, 0, 'C', true);
+        $pdf->SetFillColor($yellow[0], $yellow[1], $yellow[2]);
+        $pdf->Cell(32, 10, 'Remark/IT Evaluation', 1, 0, 'C', true);
+        $pdf->SetFillColor($lightBlue[0], $lightBlue[1], $lightBlue[2]);
+        $pdf->Cell(20, 10, 'Served By', 1, 0, 'C', true);
+        $pdf->Cell(24, 10, 'Test Performed By', 1, 0, 'C', true);
+        $pdf->SetFillColor($yellow[0], $yellow[1], $yellow[2]);
+        $pdf->Cell(52, 10, 'Backup Performed By', 1, 1, 'C', true);
+
+        $pdf->SetFont('helvetica', '', 7);
+        $pdf->SetTextColor(0, 0, 0);
+        $applicationSystem = ($request['system_type'] ?? '');
+        $accessTypeData = ($request['access_type'] ?? '');
+        if (!empty($accessTypeData)) {
+            $applicationSystem .= ($applicationSystem ? ' - ' : '') . $accessTypeData;
+        }
+        $dataRowStartY = $pdf->GetY();
+        $dataRowData = array(
+            array('text' => $request['requestor_name'] ?? '', 'width' => 27, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $applicationSystem, 'width' => 27, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $request['access_type'] ?? '', 'width' => 20, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $accessDuration, 'width' => 25, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $request['original_justification'] ?? $request['justification'] ?? 'No justification provided', 'width' => 30, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $request['comments'] ?? '', 'width' => 32, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $servedByName, 'width' => 20, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => $testPerformedByName, 'width' => 24, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L'),
+            array('text' => '', 'width' => 52, 'font' => 'helvetica', 'style' => '', 'size' => 7, 'align' => 'L')
+        );
+        $dataRowHeight = $pdf->createDynamicRow($dataRowData, $dataRowStartY, 8);
+        $pdf->SetY($dataRowStartY + $dataRowHeight);
+    }
+
+    // Display Admin Employee Name
+    $pdf->SetFont('helvetica', 'B', 8);
+    $pdf->Cell(50, 6, 'Admin Employee Name: ' . $servedByName, 0, 1, 'L');
+
+    // Recommended by Section
+    $pdf->Ln(3);
+    $pdf->SetFont('helvetica', 'B', 8);
+    $pdf->Cell(92, 5, 'Recommended by:', 1, 0, 'L');
+
+    // Determine approval text
     $approvalText = 'Approved by:';
     if (isset($request['action']) && strtolower($request['action']) === 'rejected') {
         $approvalText = 'Declined by:';
     }
 
-    // Signature section - improved layout with consistent borders
-    $pdf->SetFillColor(0, 51, 102);
-    $pdf->SetTextColor(255);
+    $pdf->Cell(92, 5, $approvalText, 1, 0, 'L');
+    $pdf->Cell(93, 5, '', 1, 1, 'L');
+
+    // Signature spaces
+    $pdf->SetFont('helvetica', '', 7);
+    $pdf->Cell(92, 15, '', 1, 0, 'C');
+    $pdf->Cell(92, 15, '', 1, 0, 'C');
+    $pdf->Cell(93, 15, '', 1, 1, 'C');
+
+    // Labels under signature spaces
+    $pdf->Cell(92, 5, 'Name/Signature/Date', 1, 0, 'C');
+    $pdf->Cell(92, 5, 'Name/Signature/Date', 1, 0, 'C');
+    $pdf->Cell(93, 5, 'Name/Signature/Date', 1, 1, 'C');
+
+    $pdf->SetFont('helvetica', 'I', 6);
+    $pdf->Cell(92, 4, '(Immediate Superior)', 1, 0, 'C');
+    $pdf->Cell(92, 4, '(Process Owner/Authorized Representative)', 1, 0, 'C');
+    $pdf->Cell(93, 4, '(IT Leader/Authorized Representative)', 1, 1, 'C');
+
+    // Sign-Off Section
+    $pdf->Ln(2);
+    $pdf->SetFillColor($darkBlue[0], $darkBlue[1], $darkBlue[2]);
+    $pdf->SetTextColor(255, 255, 255);
     $pdf->SetFont('helvetica', 'B', 9);
-    $signWidth = 63.33; // Make equal widths (190/3)
-    $pdf->Cell($signWidth, 8, 'Requested by:', 1, 0, 'C', true);
-    $pdf->Cell($signWidth, 8, $approvalText, 1, 0, 'C', true);
-    $pdf->Cell($signWidth, 8, 'Noted by:', 1, 1, 'C', true);
+    $pdf->Cell(277, 6, 'Sign-Off', 1, 1, 'C', true);
 
-    // Empty space for signatures with consistent borders
-    $pdf->SetTextColor(0);
-    $pdf->SetFont('helvetica', '', 9);
-    $signHeight = 20;
-    $pdf->Cell($signWidth, $signHeight, '', 1, 0, 'C');
-    $pdf->Cell($signWidth, $signHeight, '', 1, 0, 'C');
-    $pdf->Cell($signWidth, $signHeight, '', 1, 1, 'C');
+    // Sign-off signature spaces
+    $pdf->SetTextColor(0, 0, 0);
+    $pdf->SetFont('helvetica', '', 7);
+    $pdf->Cell(92, 15, '', 1, 0, 'C');
+    $pdf->Cell(92, 15, '', 1, 0, 'C');
+    $pdf->Cell(93, 15, '', 1, 1, 'C');
 
-    // Name lines with consistent borders
-    $pdf->Cell($signWidth, 6, $request['requestor_name'] ?? 'N/A', 1, 0, 'C');
-    $pdf->Cell($signWidth, 6, $request['admin_username'] ?? 'N/A', 1, 0, 'C');
-    $pdf->Cell($signWidth, 6, 'IT Manager', 1, 1, 'C');
+    // Labels and names
+    $pdf->Cell(92, 5, 'Name/Signature/Date', 1, 0, 'C');
+    $pdf->Cell(92, 5, 'Name/Signature/Date', 1, 0, 'C');
+    $pdf->Cell(93, 5, 'Name/Signature/Date', 1, 1, 'C');
+
+    $pdf->SetFont('helvetica', 'I', 6);
+    $pdf->Cell(92, 4, '(Requestor)', 1, 0, 'C');
+    $pdf->Cell(92, 4, '(IT Security Officer)', 1, 0, 'C');
+    $pdf->Cell(93, 4, '(IT Leader/Authorized Representative)', 1, 1, 'C');
+
+    // Note at bottom
+    $pdf->Ln(2);
+    $pdf->SetFont('helvetica', 'I', 7);
+    $pdf->Cell(277, 4, 'Note: Data Privacy Disclaimer - All information provided is subject to data privacy regulations and confidentiality agreements.', 0, 1, 'L');
 
     // Clear any output buffered content
     ob_clean();
 
     // Output the PDF
     $pdf->Output('UAR_' . $requestNumber . '.pdf', 'I');
-    
 } catch (Exception $e) {
     // Log error
     error_log("PDF Generation Error: " . $e->getMessage());
-    
+
     // Clear buffer
     ob_clean();
-    
+
     // Display user-friendly error
     echo "<div style='text-align:center; margin-top:50px; font-family:Arial, sans-serif;'>";
     echo "<h2>Error Generating PDF</h2>";
@@ -324,4 +420,3 @@ try {
     echo "<p><a href='request_history.php' style='color:#0284c7; text-decoration:none;'>Return to Request History</a></p>";
     echo "</div>";
 }
-?> 
