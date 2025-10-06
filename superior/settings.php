@@ -142,9 +142,6 @@ try {
             <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
                     <h2 class="text-4xl font-bold text-white">Settings</h2>
-                    <p class="text-white text-sm mt-1">
-                        Manage your account settings and preferences
-                    </p>
                 </div>
             </div>
 

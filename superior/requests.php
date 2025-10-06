@@ -92,7 +92,6 @@ try {
             <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
                     <h1 class="text-4xl font-bold text-white">Pending Requests</h1>
-                    <p class="text-white mt-1">Review and manage access requests</p>
                 </div>
             </div>
 
