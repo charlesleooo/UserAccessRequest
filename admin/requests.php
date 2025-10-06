@@ -660,17 +660,16 @@ try {
                 extend: {
                     colors: {
                         primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                            950: '#082f49',
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
                         },
                         danger: {
                             DEFAULT: '#dc3545',
@@ -698,13 +697,10 @@ try {
         <!-- Main Content -->
         <div class="flex-1 ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200">
+            <div class="bg-primary-900 border-b border-gray-200">
                 <div class="flex justify-between items-center px-8 py-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Access Requests</h2>
-                        <p class="text-gray-600 text-sm mt-1">
-                            Manage and review user access requests
-                        </p>
+                        <h2 class="text-2xl font-bold text-white">Access Requests</h2>
                     </div>
                     <div class="flex items-center gap-4">
                         <div class="relative">
