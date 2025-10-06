@@ -179,27 +179,8 @@ try {
 
 <body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
 
-    <!-- Mobile menu toggle -->
-    <div class="fixed bottom-4 right-4 z-50 md:hidden">
-        <button @click="sidebarOpen = !sidebarOpen"
-            class="flex items-center justify-center w-14 h-14 rounded-full bg-primary-600 text-white shadow-lg hover:bg-primary-700 focus:outline-none transition-all duration-300 transform hover:scale-105">
-            <i class='bx bx-menu text-2xl' x-show="!sidebarOpen"></i>
-            <i class='bx bx-x text-2xl' x-show="sidebarOpen"></i>
-        </button>
-    </div>
-
     <!-- Sidebar -->
     <?php include 'sidebar.php'; ?>
-
-    <!-- Mobile header with menu toggle -->
-    <div class="bg-white sticky top-0 z-20 shadow-sm md:hidden">
-        <div class="flex justify-between items-center px-4 py-2">
-            <img src="../logo.png" alt="Logo" class="h-10">
-            <button @click="sidebarOpen = !sidebarOpen" class="p-2 rounded-lg hover:bg-gray-100">
-                <i class='bx bx-menu text-2xl'></i>
-            </button>
-        </div>
-    </div>
 
     <!-- Sidebar Overlay for mobile/tablet -->
     <div
