@@ -358,7 +358,6 @@ try {
                     </button>
                     <div>
                         <h2 class="text-4xl font-bold text-white">Request History</h2>
-                        <p class="text-white text-lg mt-1">View all your previously processed requests</p>
                     </div>
                 </div>
                 <!-- Data Privacy Notice -->

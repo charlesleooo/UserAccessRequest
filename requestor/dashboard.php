@@ -373,7 +373,6 @@ try {
                     </button>
                     <div>
                         <h2 class="text-4xl font-bold text-white">ABU IT - Electronic User Access Request (UAR)</h2>
-                        <p class="text-white text-xl mt-1"> <?php echo htmlspecialchars($firstName); ?></p>
                     </div>
                 </div>
 

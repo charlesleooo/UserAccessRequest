@@ -230,7 +230,6 @@ try {
                     </button>
                     <div>
                         <h2 class="text-4xl font-bold text-white">Create New User Access Request (UAR)</h2>
-                        <p class="text-white text-xl mt-1">Fill out the form below to submit a new access request</p>
                     </div>
                 </div>
                 <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
