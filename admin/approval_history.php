@@ -129,14 +129,13 @@ try {
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Testing</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reviewed By</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php foreach ($history as $entry): ?>
-                                    <tr class="hover:bg-gray-50">
+                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location.href='view_history.php?id=<?php echo $entry['history_id']; ?>'">
                                         <td class="px-4 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($entry['access_request_number']); ?></div>
                                         </td>
@@ -171,23 +170,16 @@ try {
                                             <?php endif; ?>
                                         </td>
                                         <td class="px-4 py-4 whitespace-nowrap">
-                                            <div class="text-sm text-gray-900"><?php echo htmlspecialchars($entry['admin_name']); ?></div>
-                                        </td>
-                                        <td class="px-4 py-4 whitespace-nowrap">
                                             <div class="text-sm text-gray-500">
-                                                <?php echo date('M d, Y H:i', strtotime($entry['created_at'])); ?>
+                                                <?php echo date('M d, Y', strtotime($entry['created_at'])); ?>
                                             </div>
                                         </td>
                                         <td class="px-4 py-4 whitespace-nowrap">
                                             <div class="flex space-x-2">
-                                                <a href="view_history.php?id=<?php echo $entry['history_id']; ?>"
-                                                    class="flex items-center px-3 py-1.5 bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
-                                                    <i class='bx bx-info-circle text-lg'></i>
-                                                    <span class="ml-1 text-sm">View</span>
-                                                </a>
                                                 <a href="tcpdf_print_record.php?id=<?php echo $entry['history_id']; ?>"
                                                     class="flex items-center px-3 py-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors"
-                                                    target="_blank">
+                                                    target="_blank"
+                                                    onclick="event.stopPropagation();">
                                                     <i class='bx bx-printer text-lg'></i>
                                                     <span class="ml-1 text-sm">Print</span>
                                                 </a>
