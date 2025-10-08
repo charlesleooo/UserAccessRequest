@@ -185,35 +185,22 @@ try {
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request No.</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>                               
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Date</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($reviewed_requests)): ?>
                                     <?php foreach ($reviewed_requests as $index => $request): ?>
-                                        <tr class="hover:bg-gray-50 cursor-pointer view-btn"
-                                            data-request='<?php echo json_encode($request); ?>'
-                                            data-index="<?php echo $index; ?>">
+                                        <tr class="hover:bg-gray-50 cursor-pointer" 
+                                            onclick="window.location.href='view_request.php?id=<?php echo $request['access_request_number']; ?>&from=history'">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php echo htmlspecialchars($request['requestor_name']); ?>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['department']); ?>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['access_type']); ?>
-                                                <?php if (!empty($request['system_type'])): ?>
-                                                    <span class="text-xs text-gray-400">(<?php echo htmlspecialchars($request['system_type']); ?>)</span>
-                                                <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php echo date('M d, Y', strtotime($request['review_date'])); ?>
@@ -223,9 +210,6 @@ try {
                                                     <?php echo ($request['action'] === 'Rejected') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'; ?>">
                                                     <?php echo htmlspecialchars($request['action']); ?>
                                                 </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
-                                                <?php echo htmlspecialchars($request['review_notes']); ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
@@ -244,195 +228,7 @@ try {
         </div>
     </div>
 
-    <!-- View Request Modal -->
-    <div id="viewRequestModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
-        <div class="flex items-center justify-center min-h-screen p-4">
-            <div class="bg-white rounded-xl w-[96%] max-w-7xl mx-auto shadow-xl flex flex-col max-h-[90vh]">
-                <div class="flex items-center px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                    <div class="w-1/4">
-                        <p class="text-sm font-medium text-gray-500">Request Number</p>
-                        <p id="modal-request-number" class="text-lg font-semibold text-gray-900"></p>
-                    </div>
-                    <div class="flex-1 text-center">
-                        <h3 class="text-xl font-semibold text-gray-800">Access Request Details</h3>
-                    </div>
-                    <div class="w-1/4 flex justify-end">
-                        <button id="closeModal" class="text-gray-500 hover:text-gray-700">
-                            <i class='bx bx-x text-2xl'></i>
-                        </button>
-                    </div>
-                </div>
-                <div id="modalContent" class="p-6 overflow-y-auto">
-                    <!-- Content populated by JavaScript -->
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get all view buttons
-            const viewButtons = document.querySelectorAll('.view-btn');
-            const modal = document.getElementById('viewRequestModal');
-            const closeModalBtn = document.getElementById('closeModal');
-
-            // Add click event to view buttons
-            viewButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    const requestData = JSON.parse(this.getAttribute('data-request'));
-
-                    // Populate modal header with request number
-                    document.getElementById('modal-request-number').textContent = requestData.access_request_number;
-
-                    // Format duration details
-                    let durationText = requestData.duration_type || 'N/A';
-                    if (requestData.duration_type === 'temporary' && requestData.start_date && requestData.end_date) {
-                        durationText = `${new Date(requestData.start_date).toLocaleDateString()} - ${new Date(requestData.end_date).toLocaleDateString()}`;
-                    } else if (requestData.duration_type === 'permanent') {
-                        durationText = 'Permanent';
-                    }
-
-                    // Set appropriate status color
-                    const statusColor = requestData.action === 'Rejected' ? 'text-red-600' : 'text-green-600';
-
-                    // Build the modal content with the same grid layout as admin side
-                    document.getElementById('modalContent').innerHTML = `
-                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <!-- Request Overview -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-info-circle text-primary-600 text-xl mr-2'></i>
-                                    Request Overview
-                                </h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Request Number:</span>
-                                        <span class="font-medium text-gray-900">${requestData.access_request_number}</span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-gray-600">Status:</span>
-                                        <span class="font-medium ${statusColor}">${requestData.action}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Review Date:</span>
-                                        <span class="font-medium text-gray-900">${new Date(requestData.review_date).toLocaleString()}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Duration:</span>
-                                        <span class="font-medium text-gray-900">${durationText}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Requestor Info -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-user text-primary-600 text-xl mr-2'></i>
-                                    Requestor Information
-                                </h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Name:</span>
-                                        <span class="font-medium text-gray-900">${requestData.requestor_name}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Business Unit:</span>
-                                        <span class="font-medium text-gray-900">${requestData.business_unit}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Department:</span>
-                                        <span class="font-medium text-gray-900">${requestData.department}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Email:</span>
-                                        <span class="font-medium text-gray-900">${requestData.email || 'N/A'}</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Employee ID:</span>
-                                        <span class="font-medium text-gray-900">${requestData.employee_id || 'N/A'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Access Details -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-lock-open text-primary-600 text-xl mr-2'></i>
-                                    Access Details
-                                </h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Access Type:</span>
-                                        <span class="font-medium text-gray-900">${requestData.access_type}</span>
-                                    </div>
-                                    ${requestData.system_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">System Type:</span>
-                                        <span class="font-medium text-gray-900">${requestData.system_type}</span>
-                                    </div>
-                                    ` : ''}
-                                    ${requestData.role_access_type ? `
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Role Access Type:</span>
-                                        <span class="font-medium text-gray-900">${requestData.role_access_type}</span>
-                                    </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                            <!-- Justification -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-comment-detail text-primary-600 text-xl mr-2'></i>
-                                    Justification
-                                </h3>
-                                <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                    ${requestData.justification || 'No justification provided.'}
-                                </div>
-                            </div>
-                            
-                            <!-- Your Review -->
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                                <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                                    <i class='bx bx-check-shield text-primary-600 text-xl mr-2'></i>
-                                    Your Review
-                                </h3>
-                                <div class="space-y-3">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-gray-600">Action:</span>
-                                        <span class="font-medium ${statusColor}">${requestData.action}</span>
-                                    </div>
-                                    <div>
-                                        <span class="text-gray-600 block mb-2">Review Notes:</span>
-                                        <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                                            ${requestData.review_notes || 'No notes provided.'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    // Show modal
-                    modal.classList.remove('hidden');
-                });
-            });
-
-            // Close modal when clicking the close button
-            closeModalBtn.addEventListener('click', function() {
-                modal.classList.add('hidden');
-            });
-
-            // Close modal when clicking outside the content
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    modal.classList.add('hidden');
-                }
-            });
-        });
-    </script>
 </body>
 
 </html>

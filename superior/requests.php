@@ -105,8 +105,8 @@ try {
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
 
                                 </tr>
@@ -130,6 +130,15 @@ try {
                                                 }
                                                 ?>
                                             </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
+                                                <?php
+                                                try {
+                                                    echo !empty($request['request_date']) ? date('M d, Y', strtotime($request['request_date'])) : 'N/A';
+                                                } catch (Exception $e) {
+                                                    echo 'N/A';
+                                                }
+                                                ?>
+                                            </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php
                                                 try {
@@ -141,15 +150,6 @@ try {
                                                     } else {
                                                         echo 'N/A';
                                                     }
-                                                } catch (Exception $e) {
-                                                    echo 'N/A';
-                                                }
-                                                ?>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                <?php
-                                                try {
-                                                    echo !empty($request['request_date']) ? date('M d, Y', strtotime($request['request_date'])) : 'N/A';
                                                 } catch (Exception $e) {
                                                     echo 'N/A';
                                                 }

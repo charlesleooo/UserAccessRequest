@@ -23,35 +23,65 @@ if (!isset($_GET['id']) || empty($_GET['id'])) {
     exit();
 }
 
-$requestId = intval($_GET['id']);
+$requestId = $_GET['id'];
+$fromHistory = isset($_GET['from']) && $_GET['from'] === 'history';
 
 // Fetch the request details
 try {
-    // First check if it's an individual or group request
-    $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
-                    SELECT access_request_number FROM access_requests WHERE id = :request_id
-                  )";
-    $stmt = $pdo->prepare($checkQuery);
-    $stmt->execute([':request_id' => $requestId]);
-    $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
+    if ($fromHistory) {
+        // When coming from history, we have access_request_number
+        $accessRequestNumber = $requestId;
+        
+        // First check if it's an individual or group request
+        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = :access_request_number";
+        $stmt = $pdo->prepare($checkQuery);
+        $stmt->execute([':access_request_number' => $accessRequestNumber]);
+        $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-    $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
 
-    // First get the main request details
-    $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
-                 FROM access_requests ar
-                 LEFT JOIN employees e ON ar.employee_id = e.employee_id
-                 WHERE ar.id = :request_id";
+        // Get the main request details by access_request_number
+        $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
+                     FROM access_requests ar
+                     LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                     WHERE ar.access_request_number = :access_request_number";
 
-    $stmt = $pdo->prepare($mainQuery);
-    $stmt->execute([
-        ':request_id' => $requestId
-    ]);
+        $stmt = $pdo->prepare($mainQuery);
+        $stmt->execute([
+            ':access_request_number' => $accessRequestNumber
+        ]);
 
-    $request = $stmt->fetch(PDO::FETCH_ASSOC);
+        $request = $stmt->fetch(PDO::FETCH_ASSOC);
+    } else {
+        // When coming from pending requests, we have ID
+        $requestIdInt = intval($requestId);
+        
+        // First check if it's an individual or group request
+        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
+                        SELECT access_request_number FROM access_requests WHERE id = :request_id
+                      )";
+        $stmt = $pdo->prepare($checkQuery);
+        $stmt->execute([':request_id' => $requestIdInt]);
+        $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
+
+        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+
+        // Get the main request details by ID
+        $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
+                     FROM access_requests ar
+                     LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                     WHERE ar.id = :request_id";
+
+        $stmt = $pdo->prepare($mainQuery);
+        $stmt->execute([
+            ':request_id' => $requestIdInt
+        ]);
+
+        $request = $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
     if (!$request) {
-        header("Location: requests.php");
+        header("Location: " . ($fromHistory ? "review_history.php" : "requests.php"));
         exit();
     }
 
@@ -69,12 +99,6 @@ try {
     ]);
 
     $requestDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    if (!$request) {
-        // Request not found
-        header("Location: requests.php");
-        exit();
-    }
 } catch (PDOException $e) {
     error_log("Error fetching request details: " . $e->getMessage());
     header("Location: requests.php?error=db");
@@ -97,9 +121,6 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- Alpine.js for interactions -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Animate on Scroll -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -220,8 +241,8 @@ try {
                     <p class="text-white text-lg mt-1">Request #<?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></p>
                 </div>
                 <div data-aos="fade-left" data-aos-duration="800" class="flex space-x-2">
-                    <a href="requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        <i class='bx bx-arrow-back mr-2'></i> Back to Requests
+                    <a href="<?php echo $fromHistory ? 'review_history.php' : 'requests.php'; ?>" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        <i class='bx bx-arrow-back mr-2'></i> Back to <?php echo $fromHistory ? 'Review History' : 'Requests'; ?>
                     </a>
                     <?php if ($request['status'] === 'pending_superior'): ?>
                         <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
@@ -238,9 +259,53 @@ try {
             </div>
         </div>
 
+        <!-- Your Review Section (for approved/rejected requests from history) -->
+        <?php if ($fromHistory && !empty($request['superior_notes'])): ?>
+            <div class="p-6">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-check-shield text-primary-500 text-xl mr-2'></i>
+                        Your Review
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="space-y-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-600">Action:</span>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        <?php echo ($request['status'] === 'rejected') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'; ?>">
+                                        <?php echo ($request['status'] === 'rejected') ? 'Rejected' : 'Approved/Forwarded'; ?>
+                                    </span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Review Date:</span>
+                                    <span class="font-medium text-gray-900">
+                                        <?php
+                                        if (!empty($request['superior_review_date'])) {
+                                            $reviewDate = new DateTime($request['superior_review_date']);
+                                            echo $reviewDate->format('M d, Y H:i');
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="text-sm font-medium text-gray-600 mb-2">Review Notes:</h4>
+                            <div class="text-gray-700">
+                                <?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
         <!-- Requestor Information -->
         <div class="p-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-1 border-b border-gray-100 flex items-center">
                     <i class='bx bx-user text-primary-500 text-xl mr-2'></i>
                     Requestor Information
@@ -293,7 +358,7 @@ try {
 
         <div class="p-6">
             <!-- Access Details -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                     <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
                     Access Details
@@ -400,7 +465,8 @@ try {
             </div>
 
             <?php if (!empty($request['review_notes'])): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                <!-- Administrator Feedback (for pending requests) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
                         Administrator Feedback
@@ -413,7 +479,7 @@ try {
 
             <!-- Actions -->
             <?php if ($request['status'] === 'pending_superior'): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
                         Superior Review
@@ -446,8 +512,7 @@ try {
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize AOS animation library
-            AOS.init();
+            // Page loaded
         });
 
         function scrollToReviewSection() {
@@ -464,7 +529,12 @@ try {
 
         function handleRequest(action) {
             const notes = document.getElementById('review_notes').value;
-            const requestId = <?php echo $requestId; ?>;
+            const requestId = <?php echo $fromHistory ? 'null' : intval($requestId); ?>;
+
+            <?php if ($fromHistory): ?>
+                // This function should not be called when viewing from history
+                return;
+            <?php endif; ?>
 
             if (!notes) {
                 Swal.fire({
