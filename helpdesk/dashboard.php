@@ -36,7 +36,7 @@ try {
     $stmt->execute([$_SESSION['admin_id']]);
     $reviewsToday = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 
-    // Get recent requests
+    // Get recent requests with date_needed from individual_requests and group_requests
     $stmt = $pdo->prepare("
         SELECT ar.*, 
         CASE 
@@ -46,8 +46,11 @@ try {
             WHEN ar.status = 'approved' THEN 'Approved'
             WHEN ar.status = 'rejected' THEN 'Rejected'
             ELSE ar.status
-        END as status_display
+        END as status_display,
+        COALESCE(ir.date_needed, gr.date_needed) as date_needed
         FROM access_requests ar 
+        LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
+        LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
         WHERE ar.status = 'pending_help_desk'
         ORDER BY ar.submission_date DESC 
         LIMIT 10

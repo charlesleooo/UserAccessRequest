@@ -31,7 +31,7 @@ try {
     $stmt->execute([':today' => $todayDate]);
     $rejectedToday = $stmt->fetchColumn();
 
-    // Get recent requests
+    // Get recent requests with date_needed from individual_requests and group_requests
     $stmt = $pdo->query("SELECT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
@@ -42,8 +42,11 @@ try {
                 WHEN ar.status = 'approved' THEN 'Approved'
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
-            END as status_display
+            END as status_display,
+            COALESCE(ir.date_needed, gr.date_needed) as date_needed
             FROM access_requests ar 
+            LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
+            LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
             WHERE ar.status IN ('pending_technical', 'pending_testing_setup')
             ORDER BY ar.submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
