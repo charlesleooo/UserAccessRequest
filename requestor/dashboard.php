@@ -89,6 +89,9 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- Alpine.js for interactions -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
+    <!-- Animate on Scroll -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
     <script>
         tailwind.config = {
@@ -343,7 +346,7 @@ try {
         <!-- Header -->
         <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
             <div class="flex justify-between items-center px-8 py-4">
-                <div class="flex items-center">
+                <div class="flex items-center" data-aos="fade-right" data-aos-duration="800">
                     <!-- Hamburger button for toggling sidebar -->
                     <button
                         @click="sidebarOpen = !sidebarOpen"
@@ -376,7 +379,7 @@ try {
             </div>
         </div>
 
-        <div class="p-8">
+        <div class="p-8" data-aos="fade-up" data-aos-duration="800">
             <!-- Stats Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
                 <div onclick="filterRequests('all')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300 cursor-pointer hover:shadow-lg transition-all duration-300">
@@ -671,7 +674,12 @@ try {
     <script>
         // Initialize AOS animation library
         document.addEventListener('DOMContentLoaded', function() {
-            AOS.init();
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true,
+                offset: 100
+            });
 
             // Progress bar functionality
             window.onscroll = function() {

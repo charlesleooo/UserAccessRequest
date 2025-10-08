@@ -132,6 +132,9 @@ try {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Animate on Scroll -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
     <style>
         body {
@@ -201,7 +204,7 @@ try {
         <!-- Header -->
         <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
             <div class="flex justify-between items-center px-8 py-4">
-                <div class="flex items-center">
+                <div class="flex items-center" data-aos="fade-right" data-aos-duration="800">
                     <!-- Hamburger button for toggling sidebar -->
                     <button
                         @click="sidebarOpen = !sidebarOpen"
@@ -233,7 +236,7 @@ try {
         </div>
 
 
-        <div class="p-5">
+        <div class="p-5" data-aos="fade-up" data-aos-duration="800">
             <form id="uarForm" class="w-full">
                 <!-- Requestor Information -->
                 <div class="bg-primary text-white py-3 px-5 rounded mb-5 text-center text-base font-bold">Requestor Information</div>
@@ -1358,6 +1361,14 @@ try {
         window.addEventListener('resize', checkScreenSize);
         document.addEventListener('DOMContentLoaded', function() {
             setTimeout(checkScreenSize, 50);
+            
+            // Initialize AOS
+            AOS.init({
+                duration: 800,
+                easing: 'ease-in-out',
+                once: true,
+                offset: 100
+            });
         });
 
         // Initialize Alpine store for sidebar state if Alpine.js is loaded
