@@ -460,7 +460,7 @@ try {
 
             // Recipients
             $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
-            $mail->addAddress($request['email'], $request['requestor_name']);
+            $mail->addAddress($request['employee_email'], $request['requestor_name']);
 
             // Content
             $mail->isHTML(true);
@@ -532,15 +532,10 @@ try {
                 access_request_number, 
                 requestor_name, 
                 employee_id, 
-                email, 
+                employee_email AS email, 
                 department, 
                 business_unit, 
-                access_type, 
                 system_type, 
-                justification, 
-                duration_type,
-                start_date, 
-                end_date, 
                 superior_id, 
                 superior_notes,
                 help_desk_id,
@@ -560,6 +555,29 @@ try {
         $requestData = $requestDataQuery->fetch(PDO::FETCH_ASSOC);
 
         if ($requestData) {
+            // Derive access_type and justification from child tables
+            $childAccessType = '';
+            $childJustification = '';
+            try {
+                $cj1 = $pdo->prepare("SELECT justification, access_type FROM individual_requests WHERE access_request_number = :arn LIMIT 1");
+                $cj1->execute(['arn' => $requestData['access_request_number']]);
+                $cjr = $cj1->fetch(PDO::FETCH_ASSOC);
+                if ($cjr) {
+                    $childJustification = $cjr['justification'] ?? '';
+                    $childAccessType = $cjr['access_type'] ?? '';
+                } else {
+                    $cj2 = $pdo->prepare("SELECT justification, access_type FROM group_requests WHERE access_request_number = :arn LIMIT 1");
+                    $cj2->execute(['arn' => $requestData['access_request_number']]);
+                    $cjr = $cj2->fetch(PDO::FETCH_ASSOC);
+                    if ($cjr) {
+                        $childJustification = $cjr['justification'] ?? '';
+                        $childAccessType = $cjr['access_type'] ?? '';
+                    }
+                }
+            } catch (Exception $e) {
+                $childAccessType = '';
+                $childJustification = '';
+            }
             // Insert into approval_history table
             $historyInsert = $pdo->prepare("
                 INSERT INTO approval_history (
@@ -633,6 +651,35 @@ try {
             // This ensures that the review shows up in the correct review history
             $currentRoleId = $_SESSION['admin_id'];
 
+            // Fallbacks for duration-related fields come from child tables as well
+            $derivedDurationType = null;
+            $derivedStart = null;
+            $derivedEnd = null;
+            try {
+                if (!empty($childAccessType) || !empty($childJustification)) {
+                    // reuse last child lookup result if available; if not, query for date fields
+                    if (!isset($cjr) || !$cjr) {
+                        $dj1 = $pdo->prepare("SELECT access_duration AS duration_type, start_date, end_date FROM individual_requests WHERE access_request_number = :arn LIMIT 1");
+                        $dj1->execute(['arn' => $requestData['access_request_number']]);
+                        $cjr = $dj1->fetch(PDO::FETCH_ASSOC);
+                    }
+                    if (!$cjr) {
+                        $dj2 = $pdo->prepare("SELECT access_duration AS duration_type, start_date, end_date FROM group_requests WHERE access_request_number = :arn LIMIT 1");
+                        $dj2->execute(['arn' => $requestData['access_request_number']]);
+                        $cjr = $dj2->fetch(PDO::FETCH_ASSOC);
+                    }
+                    if ($cjr) {
+                        $derivedDurationType = $cjr['duration_type'] ?? null;
+                        $derivedStart = $cjr['start_date'] ?? null;
+                        $derivedEnd = $cjr['end_date'] ?? null;
+                    }
+                }
+            } catch (Exception $e) {
+                $derivedDurationType = null;
+                $derivedStart = null;
+                $derivedEnd = null;
+            }
+
             $historyParams = [
                 'access_request_number' => $requestData['access_request_number'],
                 'requestor_name' => $requestData['requestor_name'],
@@ -640,12 +687,12 @@ try {
                 'email' => $requestData['email'],
                 'department' => $requestData['department'],
                 'business_unit' => $requestData['business_unit'],
-                'access_type' => $requestData['access_type'],
+                'access_type' => $childAccessType,
                 'system_type' => $requestData['system_type'],
-                'justification' => $requestData['justification'],
-                'duration_type' => $requestData['duration_type'],
-                'start_date' => $requestData['start_date'],
-                'end_date' => $requestData['end_date'],
+                'justification' => $childJustification,
+                'duration_type' => $derivedDurationType,
+                'start_date' => $derivedStart,
+                'end_date' => $derivedEnd,
                 'superior_id' => $role === 'superior' ? $currentRoleId : $requestData['superior_id'],
                 'superior_notes' => $requestData['superior_notes'],
                 'help_desk_id' => $role === 'help_desk' ? $currentRoleId : $requestData['help_desk_id'],

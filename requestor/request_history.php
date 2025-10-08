@@ -20,43 +20,64 @@ $dateFilter = $_GET['date'] ?? 'all';
 $searchQuery = $_GET['search'] ?? '';
 
 // Prepare base query for all requests (both pending and processed)
+// Use a subquery to get the most recent status for each access_request_number
 $query = "SELECT 
-            'pending' as source,
-            id as request_id,
+            source,
+            request_id,
             access_request_number,
             status,
-            submission_date as created_at,
-            NULL as admin_username,
+            created_at,
+            admin_username,
             business_unit,
             department,
-            'System Application' as access_type,
+            access_type,
             system_type,
-            NULL as justification,
-            employee_email as email,
+            justification,
+            email,
             employee_id,
             requestor_name
-          FROM access_requests 
-          WHERE employee_id = :employee_id
-          
-          UNION ALL
-          
-          SELECT 
-            'history' as source,
-            ah.history_id as request_id,
-            ah.access_request_number,
-            ah.action as status,
-            ah.created_at,
-            (SELECT username FROM admin_users WHERE id = ah.admin_id) as admin_username,
-            ah.business_unit,
-            ah.department,
-            ah.access_type,
-            ah.system_type,
-            ah.justification,
-            ah.email,
-            ah.employee_id,
-            ah.requestor_name
-          FROM approval_history ah
-          WHERE ah.employee_id = :employee_id";
+          FROM (
+            SELECT 
+              'pending' as source,
+              id as request_id,
+              access_request_number,
+              status,
+              submission_date as created_at,
+              NULL as admin_username,
+              business_unit,
+              department,
+              'System Application' as access_type,
+              system_type,
+              NULL as justification,
+              employee_email as email,
+              employee_id,
+              requestor_name,
+              ROW_NUMBER() OVER (PARTITION BY access_request_number ORDER BY submission_date DESC) as rn
+            FROM access_requests 
+            WHERE employee_id = :employee_id
+            
+            UNION ALL
+            
+            SELECT 
+              'history' as source,
+              ah.history_id as request_id,
+              ah.access_request_number,
+              ah.action as status,
+              ah.created_at,
+              (SELECT username FROM admin_users WHERE id = ah.admin_id) as admin_username,
+              ah.business_unit,
+              ah.department,
+              ah.access_type,
+              ah.system_type,
+              ah.justification,
+              ah.email,
+              ah.employee_id,
+              ah.requestor_name,
+              ROW_NUMBER() OVER (PARTITION BY ah.access_request_number ORDER BY ah.created_at DESC) as rn
+            FROM approval_history ah
+            WHERE ah.employee_id = :employee_id
+          ) combined
+          WHERE rn = 1";
 
 // Add filters - Fixed to use WHERE instead of HAVING
 $params = [':employee_id' => $requestorId];
