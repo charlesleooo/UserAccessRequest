@@ -161,7 +161,7 @@ try {
                         </div>
                         <div>
                             <p class="text-sm text-gray-500">Review Date</p>
-                            <p class="font-medium text-gray-900"><?php echo date('M d, Y H:i', strtotime($record['created_at'])); ?></p>
+                            <p class="font-medium text-gray-900"><?php echo date('M d, Y', strtotime($record['created_at'])); ?></p>
                         </div>
                         <div>
                             <p class="text-sm text-gray-500">Reviewed By</p>
