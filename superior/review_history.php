@@ -216,7 +216,7 @@ try {
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo date('M d, Y H:i', strtotime($request['review_date'])); ?>
+                                                <?php echo date('M d, Y', strtotime($request['review_date'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
