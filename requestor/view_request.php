@@ -273,7 +273,7 @@ try {
                             </div>
                             <div class="flex justify-between">
                                 <span class="text-gray-600">Email:</span>
-                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['employee_email'] ?? 'N/A'); ?></span>
+                                <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['employee_email'] ?? $request['email'] ?? 'N/A'); ?></span>
                             </div>
                         </div>
                     </div>
@@ -291,8 +291,9 @@ try {
                                 <span class="text-gray-600">Request Date:</span>
                                 <span class="font-medium text-gray-900">
                                     <?php
-                                    if (!empty($request['request_date'])) {
-                                        $requestDate = new DateTime($request['request_date']);
+                                    $dateField = $request['request_date'] ?? $request['created_at'] ?? $request['submission_date'];
+                                    if (!empty($dateField)) {
+                                        $requestDate = new DateTime($dateField);
                                         echo $requestDate->format('M d, Y');
                                     } else {
                                         echo 'N/A';
