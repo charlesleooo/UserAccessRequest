@@ -32,7 +32,6 @@ try {
             END as status_display
             FROM access_requests ar 
             WHERE ar.status = 'pending_superior'
-            GROUP BY ar.access_request_number
             ORDER BY ar.submission_date DESC";
 
     $stmt = $pdo->prepare($sql);

@@ -19,7 +19,7 @@ if (
 
 // Get all requests pending technical review
 try {
-    $sql = "SELECT DISTINCT ar.*, 
+    $sql = "SELECT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
                 WHEN ar.status = 'pending_help_desk' THEN 'Pending Your Review'
@@ -32,10 +32,11 @@ try {
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display,
-            COALESCE(ir.date_needed, gr.date_needed) as date_needed
+            (SELECT COALESCE(
+                (SELECT date_needed FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
+                (SELECT date_needed FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+            )) as date_needed
             FROM access_requests ar
-            LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
-            LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
             WHERE ar.status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
 

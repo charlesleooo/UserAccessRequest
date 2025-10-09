@@ -27,10 +27,15 @@ try {
                 WHEN ar.status = 'pending_process_owner' THEN 'Pending Process Owner Review'
                 WHEN ar.status = 'pending_admin' THEN 'Pending Admin Review'
                 WHEN ar.status = 'pending_testing_review' THEN 'Pending Testing Review'
+                WHEN ar.status = 'pending_testing_setup' THEN 'Pending Testing Setup'
                 WHEN ar.status = 'approved' THEN 'Approved'
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
-            END as status_display
+            END as status_display,
+            (SELECT COALESCE(
+                (SELECT date_needed FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
+                (SELECT date_needed FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+            )) as date_needed
             FROM access_requests ar 
             WHERE ar.status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
@@ -163,7 +168,7 @@ try {
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
+                                                <?php echo !empty($request['date_needed']) ? date('M d, Y', strtotime($request['date_needed'])) : 'N/A'; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">

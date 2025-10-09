@@ -316,7 +316,7 @@ try {
         <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
             <div class="flex justify-between items-center px-6 py-4">
                 <div>
-                    <h2 class="text-4xl font-bold text-white"><?php echo $fromHistory ? 'Review History Details' : 'View Request Details'; ?></h2>
+                    <h2 class="text-4xl font-bold text-white">View Request Details</h2>
                     <p class="text-white text-lg mt-1">Request #<?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></p>
                 </div>
                 <div class="flex space-x-2">
@@ -360,8 +360,8 @@ try {
             </div>
         </div>
 
-        <!-- Review Information (for history requests) -->
-        <?php if ($fromHistory): ?>
+        <!-- Your Review (for history requests) -->
+        <?php if ($fromHistory && !empty($request['technical_notes'])): ?>
             <div class="p-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
@@ -372,25 +372,31 @@ try {
                         <div class="bg-gray-50 p-4 rounded-lg">
                             <div class="space-y-3">
                                 <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">Status:</span>
-                                    <span class="font-medium <?php echo ($request['action'] === 'rejected') ? 'text-red-600' : 'text-green-600'; ?>">
-                                        <?php echo htmlspecialchars($request['action'] ?? 'N/A'); ?>
+                                    <span class="text-gray-600">Action:</span>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        <?php echo ($request['status'] === 'rejected') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'; ?>">
+                                        <?php echo ($request['status'] === 'rejected') ? 'Rejected' : 'Approved/Forwarded'; ?>
                                     </span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-600">Review Date:</span>
                                     <span class="font-medium text-gray-900">
-                                        <?php echo $request['created_at'] ? date('M d, Y H:i', strtotime($request['created_at'])) : 'N/A'; ?>
+                                        <?php
+                                        if (!empty($request['technical_review_date'])) {
+                                            $reviewDate = new DateTime($request['technical_review_date']);
+                                            echo $reviewDate->format('M d, Y');
+                                        } else {
+                                            echo 'N/A';
+                                        }
+                                        ?>
                                     </span>
                                 </div>
                             </div>
                         </div>
                         <div class="bg-gray-50 p-4 rounded-lg">
-                            <div>
-                                <span class="text-gray-600 block mb-2">Review Notes:</span>
-                                <div class="text-gray-700">
-                                    <?php echo nl2br(htmlspecialchars($request['technical_notes'] ?? 'No notes provided.')); ?>
-                                </div>
+                            <h4 class="text-sm font-medium text-gray-600 mb-2">Review Notes:</h4>
+                            <div class="text-gray-700">
+                                <?php echo nl2br(htmlspecialchars($request['technical_notes'])); ?>
                             </div>
                         </div>
                     </div>
@@ -400,7 +406,7 @@ try {
 
         <!-- Requestor Information -->
         <div class="p-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-1 border-b border-gray-100 flex items-center">
                     <i class='bx bx-user text-primary-500 text-xl mr-2'></i>
                     Requestor Information
@@ -449,9 +455,11 @@ try {
                     </div>
                 </div>
             </div>
+        </div>
 
+        <div class="p-6">
             <!-- Access Details -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                     <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
                     Access Details
@@ -556,6 +564,20 @@ try {
                     <?php endforeach; ?>
                 </div>
             </div>
+
+            <?php if (!empty($request['review_notes'])): ?>
+                <!-- Administrator Feedback (for pending requests) -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                        Administrator Feedback
+                    </h3>
+                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                        <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
+                    </div>
+                </div>
+            <?php endif; ?>
+
 
             <!-- Superior's Comments -->
             <?php if (!empty($request['superior_notes'])): ?>

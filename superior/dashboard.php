@@ -41,10 +41,11 @@ try {
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display,
-            COALESCE(ir.date_needed, gr.date_needed) as date_needed
+            (SELECT COALESCE(
+                (SELECT date_needed FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
+                (SELECT date_needed FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+            )) as date_needed
             FROM access_requests ar 
-            LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
-            LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
             WHERE ar.status = 'pending_superior' 
             ORDER BY ar.submission_date DESC LIMIT 5");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
