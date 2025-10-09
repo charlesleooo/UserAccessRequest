@@ -23,7 +23,7 @@ try {
     $superior_id = $adminRecord ? $adminRecord['id'] : $admin_id; // Fallback to session ID if not found
 
     // Get requests reviewed by this superior
-    // Use ROW_NUMBER() to get only the most recent entry per access_request_number
+    // Use ROW_NUMBER() to get only the most recent entry per access_request_number across both tables
     $stmt = $pdo->prepare("
         SELECT 
             access_request_number,
@@ -45,59 +45,78 @@ try {
             action
         FROM (
             SELECT 
-                ar.access_request_number,
-                ar.requestor_name,
-                ar.department,
-                ar.business_unit,
-                ar.access_level as access_type,
-                ar.system_type,
-                ar.superior_review_date as review_date,
-                ar.superior_notes as review_notes,
-                ar.status,
-                '' as justification,
-                ar.employee_id,
-                ar.employee_email as email,
-                '' as role_access_type,
-                '' as duration_type,
-                '' as start_date,
-                '' as end_date,
-                CASE 
-                    WHEN ar.status = 'rejected' AND ar.superior_id = :superior_id THEN 'Rejected'
-                    ELSE 'Approved/Forwarded'
-                END as action,
-                ROW_NUMBER() OVER (PARTITION BY ar.access_request_number ORDER BY ar.superior_review_date DESC) as rn
-            FROM 
-                access_requests ar
-            WHERE 
-                ar.superior_id = :superior_id AND ar.superior_review_date IS NOT NULL
-            UNION
-            SELECT 
-                ah.access_request_number,
-                ah.requestor_name,
-                ah.department,
-                ah.business_unit,
-                ah.access_type,
-                ah.system_type,
-                ah.created_at as review_date,
-                ah.superior_notes as review_notes,
-                ah.action as status,
-                ah.justification,
-                ah.employee_id,
-                ah.email,
-                '',
-                ah.duration_type,
-                ah.start_date,
-                ah.end_date,
-                CASE 
-                    WHEN ah.action = 'rejected' AND ah.superior_id = :superior_id THEN 'Rejected'
-                    ELSE 'Approved/Forwarded'
-                END as action,
-                ROW_NUMBER() OVER (PARTITION BY ah.access_request_number ORDER BY ah.created_at DESC) as rn
-            FROM 
-                approval_history ah
-            WHERE 
-                ah.superior_id = :superior_id
-        ) combined
+                access_request_number,
+                requestor_name,
+                department,
+                business_unit,
+                access_type,
+                system_type,
+                review_date,
+                review_notes,
+                status,
+                justification,
+                employee_id,
+                email,
+                role_access_type,
+                duration_type,
+                start_date,
+                end_date,
+                action,
+                ROW_NUMBER() OVER (PARTITION BY access_request_number ORDER BY review_date DESC) as rn
+            FROM (
+                SELECT 
+                    ar.access_request_number,
+                    ar.requestor_name,
+                    ar.department,
+                    ar.business_unit,
+                    ar.access_level as access_type,
+                    ar.system_type,
+                    ar.superior_review_date as review_date,
+                    ar.superior_notes as review_notes,
+                    ar.status,
+                    '' as justification,
+                    ar.employee_id,
+                    ar.employee_email as email,
+                    '' as role_access_type,
+                    '' as duration_type,
+                    '' as start_date,
+                    '' as end_date,
+                    CASE 
+                        WHEN ar.status = 'rejected' AND ar.superior_id = :superior_id THEN 'Rejected'
+                        ELSE 'Approved/Forwarded'
+                    END as action
+                FROM 
+                    access_requests ar
+                WHERE 
+                    ar.superior_id = :superior_id AND ar.superior_review_date IS NOT NULL
+                UNION ALL
+                SELECT 
+                    ah.access_request_number,
+                    ah.requestor_name,
+                    ah.department,
+                    ah.business_unit,
+                    ah.access_type,
+                    ah.system_type,
+                    ah.created_at as review_date,
+                    ah.superior_notes as review_notes,
+                    ah.action as status,
+                    ah.justification,
+                    ah.employee_id,
+                    ah.email,
+                    '',
+                    ah.duration_type,
+                    ah.start_date,
+                    ah.end_date,
+                    CASE 
+                        WHEN ah.action = 'rejected' AND ah.superior_id = :superior_id THEN 'Rejected'
+                        ELSE 'Approved/Forwarded'
+                    END as action
+                FROM 
+                    approval_history ah
+                WHERE 
+                    ah.superior_id = :superior_id
+            ) combined_data
+        ) final_data
         WHERE rn = 1
         ORDER BY 
             review_date DESC

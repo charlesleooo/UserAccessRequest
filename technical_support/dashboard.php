@@ -32,7 +32,7 @@ try {
     $rejectedToday = $stmt->fetchColumn();
 
     // Get recent requests with date_needed from individual_requests and group_requests
-    $stmt = $pdo->query("SELECT ar.*, 
+    $stmt = $pdo->query("SELECT DISTINCT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
                 WHEN ar.status = 'pending_help_desk' THEN 'Pending Your Review'

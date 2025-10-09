@@ -172,14 +172,28 @@ try {
         $requestDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Get technical users
-    $techQuery = "SELECT id, username FROM admin_users WHERE role = 'technical_support' ORDER BY username";
+    // Get technical users with employee_name (fallback to username)
+    $techQuery = "
+        SELECT a.id,
+               COALESCE(e.employee_name, a.username) AS employee_name
+        FROM admin_users a
+        LEFT JOIN employees e ON a.employee_id = e.employee_id
+        WHERE a.role = 'technical_support'
+        ORDER BY employee_name
+    ";
     $techStmt = $pdo->prepare($techQuery);
     $techStmt->execute();
     $techUsers = $techStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get process owner users
-    $poQuery = "SELECT id, username FROM admin_users WHERE role = 'process_owner' ORDER BY username";
+    // Get process owner users with employee_name (fallback to username)
+    $poQuery = "
+        SELECT a.id,
+               COALESCE(e.employee_name, a.username) AS employee_name
+        FROM admin_users a
+        LEFT JOIN employees e ON a.employee_id = e.employee_id
+        WHERE a.role = 'process_owner'
+        ORDER BY employee_name
+    ";
     $poStmt = $pdo->prepare($poQuery);
     $poStmt->execute();
     $processOwnerUsers = $poStmt->fetchAll(PDO::FETCH_ASSOC);
@@ -663,7 +677,7 @@ try {
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
-                option.textContent = user.username;
+                option.textContent = user.employee_name || user.username;
                 userSelect.appendChild(option);
             });
         }

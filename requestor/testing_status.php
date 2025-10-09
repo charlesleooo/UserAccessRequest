@@ -492,7 +492,7 @@ try {
         <footer class="bg-white shadow-sm-up mt-8">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <p class="text-center text-gray-500 text-sm">
-                    &copy; 2025 Alsons/AWS. All rights reserved.
+                &copy; <?= date('Y'); ?> Alsons Agribusiness Unit. All rights reserved.
                 </p>
             </div>
         </footer>

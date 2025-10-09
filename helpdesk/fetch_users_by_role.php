@@ -32,13 +32,8 @@ if (!in_array($role, ['process_owner', 'technical_support'])) {
 }
 
 try {
-    // Query to fetch users from admin_users table instead of employees
-    $stmt = $pdo->prepare("
-        SELECT a.id as employee_id, a.username as employee_name 
-        FROM admin_users a 
-        WHERE a.role = :role 
-        ORDER BY a.username
-    ");
+    // Query to fetch users joined with employees to get employee_name
+    $stmt = $pdo->prepare("\n        SELECT a.id AS employee_id,\n               COALESCE(e.employee_name, a.username) AS employee_name\n        FROM admin_users a\n        LEFT JOIN employees e ON a.employee_id = e.employee_id\n        WHERE a.role = :role\n        ORDER BY employee_name\n    ");
     $stmt->execute(['role' => $role]);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     

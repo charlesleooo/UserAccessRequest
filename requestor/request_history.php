@@ -38,45 +38,61 @@ $query = "SELECT
             requestor_name
           FROM (
             SELECT 
-              'pending' as source,
-              id as request_id,
+              source,
+              request_id,
               access_request_number,
               status,
-              submission_date as created_at,
-              NULL as admin_username,
+              created_at,
+              admin_username,
               business_unit,
               department,
-              'System Application' as access_type,
+              access_type,
               system_type,
-              NULL as justification,
-              employee_email as email,
+              justification,
+              email,
               employee_id,
               requestor_name,
-              ROW_NUMBER() OVER (PARTITION BY access_request_number ORDER BY submission_date DESC) as rn
-            FROM access_requests 
-            WHERE employee_id = :employee_id
-            
-            UNION ALL
-            
-            SELECT 
-              'history' as source,
-              ah.history_id as request_id,
-              ah.access_request_number,
-              ah.action as status,
-              ah.created_at,
-              (SELECT username FROM admin_users WHERE id = ah.admin_id) as admin_username,
-              ah.business_unit,
-              ah.department,
-              ah.access_type,
-              ah.system_type,
-              ah.justification,
-              ah.email,
-              ah.employee_id,
-              ah.requestor_name,
-              ROW_NUMBER() OVER (PARTITION BY ah.access_request_number ORDER BY ah.created_at DESC) as rn
-            FROM approval_history ah
-            WHERE ah.employee_id = :employee_id
-          ) combined
+              ROW_NUMBER() OVER (PARTITION BY access_request_number ORDER BY created_at DESC) as rn
+            FROM (
+              SELECT 
+                'pending' as source,
+                id as request_id,
+                access_request_number,
+                status,
+                submission_date as created_at,
+                NULL as admin_username,
+                business_unit,
+                department,
+                'System Application' as access_type,
+                system_type,
+                NULL as justification,
+                employee_email as email,
+                employee_id,
+                requestor_name
+              FROM access_requests 
+              WHERE employee_id = :employee_id
+              
+              UNION ALL
+              
+              SELECT 
+                'history' as source,
+                ah.history_id as request_id,
+                ah.access_request_number,
+                ah.action as status,
+                ah.created_at,
+                (SELECT username FROM admin_users WHERE id = ah.admin_id) as admin_username,
+                ah.business_unit,
+                ah.department,
+                ah.access_type,
+                ah.system_type,
+                ah.justification,
+                ah.email,
+                ah.employee_id,
+                ah.requestor_name
+              FROM approval_history ah
+              WHERE ah.employee_id = :employee_id
+            ) all_requests
+          ) ranked_requests
           WHERE rn = 1";
 
 // Add filters - Fixed to use WHERE instead of HAVING
@@ -122,8 +138,15 @@ if (!empty($whereConditions)) {
     $query = "SELECT * FROM ($query) as combined_results WHERE " . implode(' AND ', $whereConditions);
 }
 
-// Sort by created date in descending order (newest first)
-$query .= " ORDER BY created_at DESC";
+// Sort by status priority: pending, approved, rejected, then by created date in descending order (newest first)
+$query .= " ORDER BY 
+    CASE 
+        WHEN source = 'pending' THEN 0
+        WHEN status = 'approved' THEN 1
+        WHEN status = 'rejected' THEN 2
+        ELSE 3
+    END, 
+    created_at DESC";
 
 try {
     // Prepare and execute the query
