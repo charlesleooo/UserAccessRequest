@@ -320,17 +320,22 @@ if ($current_status && $current_status !== 'pending') {
 
 // Get the request details
 try {
-    $sql = "SELECT * FROM access_requests 
-            WHERE id = :request_id 
-            AND employee_id = :employee_id
-            AND status = 'pending_testing'
-            AND testing_status = 'pending'";
+    $sql = "SELECT ar.*, 
+            (SELECT COALESCE(
+                (SELECT access_type FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
+                (SELECT access_type FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+            )) as access_type
+            FROM access_requests ar
+            WHERE ar.id = :request_id 
+            AND ar.employee_id = :employee_id
+            AND ar.status = 'pending_testing'
+            AND ar.testing_status = 'pending'";
     
     // Debug SQL
     // echo "SQL: $sql<br>";
     // echo "request_id: $request_id<br>";
     // echo "employee_id: $requestor_id<br>";
-    
+
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         'request_id' => $request_id,
@@ -429,46 +434,17 @@ try {
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- Request Details -->
-                        <div class="mb-6 border border-gray-200 rounded-lg overflow-hidden">
-                            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                                <h3 class="font-medium text-gray-700">Request Details</h3>
-                            </div>
-                            <div class="p-4">
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <p class="text-sm text-gray-500">Request Number:</p>
-                                        <p class="font-medium"><?php echo htmlspecialchars($request['access_request_number']); ?></p>
+                                    
+                                    <?php if (!empty($request['review_notes'])): ?>
+                                    <div class="mt-4 border-t border-gray-100 pt-4">
+                                        <p class="text-sm text-gray-500">Admin Notes / Credentials:</p>
+                                        <div class="mt-1 bg-yellow-50 p-3 rounded-md border border-yellow-100 text-sm whitespace-pre-line">
+                                            <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p class="text-sm text-gray-500">Status:</p>
-                                        <p>
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                Pending Testing
-                                            </span>
-                                        </p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-500">Access Type:</p>
-                                        <p class="font-medium"><?php echo htmlspecialchars($request['access_type']); ?></p>
-                                    </div>
-                                    <div>
-                                        <p class="text-sm text-gray-500">System Type:</p>
-                                        <p class="font-medium"><?php echo htmlspecialchars($request['system_type'] ?? 'N/A'); ?></p>
-                                    </div>
+                                    <?php endif; ?>
                                 </div>
-                                
-                                <?php if (!empty($request['review_notes'])): ?>
-                                <div class="mt-4 border-t border-gray-100 pt-4">
-                                    <p class="text-sm text-gray-500">Admin Notes / Credentials:</p>
-                                    <div class="mt-1 bg-yellow-50 p-3 rounded-md border border-yellow-100 text-sm whitespace-pre-line">
-                                        <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
-                                    </div>
-                                </div>
-                                <?php endif; ?>
                             </div>
-                        </div>
                         
                         <!-- Testing Status Form -->
                         <form id="testingForm" method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']) . '?id=' . $request_id; ?>">

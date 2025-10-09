@@ -491,15 +491,6 @@ try {
                                                 UAR REF NO.
                                             </th>
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Requestor
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Business Unit
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Department
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Date Requested
                                             </th>
                                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -516,19 +507,6 @@ try {
                                                 <tr class="cursor-pointer hover:bg-gray-50" onclick="window.location.href='view_request.php?id=<?php echo $request['request_id']; ?>'">
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                         <?php echo htmlspecialchars($request['access_request_number']); ?>
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <?php
-                                                        // Get requestor name from the request data or use email as fallback
-                                                        $requestorName = $request['requestor_name'] ?? 'Unknown User';
-                                                        echo htmlspecialchars($requestorName);
-                                                        ?>
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <?php echo htmlspecialchars($request['business_unit']); ?>
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <?php echo htmlspecialchars($request['department']); ?>
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                         <?php

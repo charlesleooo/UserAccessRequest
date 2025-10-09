@@ -565,6 +565,10 @@ try {
                                                             $statusClass = 'bg-yellow-100 text-yellow-800';
                                                             $displayStatus = 'Pending Superior Review';
                                                             break;
+                                                        case 'pending_help_desk':
+                                                            $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                            $displayStatus = 'Pending Help Desk Review';
+                                                            break;
                                                         case 'pending_technical':
                                                             $statusClass = 'bg-blue-100 text-blue-800';
                                                             $displayStatus = 'Pending Technical Review';
