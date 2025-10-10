@@ -2,6 +2,7 @@
 session_start();
 require_once '../config.php';
 require_once '../vendor/autoload.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception as PHPMailerException;
 
@@ -36,39 +37,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
     error_log("Processing form submission");
     error_log("Request ID: " . $_POST['request_id']);
     error_log("Testing Status: " . $_POST['testing_status']);
-    
+
     $request_id = (int)$_POST['request_id'];
     $testing_status = $_POST['testing_status'];
     $testing_notes = $_POST['testing_notes'] ?? '';
-    
+
     try {
         // Start a transaction
         $pdo->beginTransaction();
         $transaction_active = true;
         error_log("Started transaction");
-        
+
         // Verify this request belongs to the current user and is in pending_testing status
         $sql = "SELECT * FROM access_requests 
                 WHERE id = :request_id 
                 AND employee_id = :employee_id
-                AND testing_status = 'pending'
-                AND status = 'pending_testing'";
-        
+                AND (status = 'pending_testing' OR status = 'pending_testing_setup')";
+
         $stmt = $pdo->prepare($sql);
         $stmt->execute([
             'request_id' => $request_id,
             'employee_id' => $requestor_id
         ]);
-        
-        error_log("Checking request: ID=$request_id");
-        
+
+        error_log("Checking request: ID=$request_id, Employee=$requestor_id");
+
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
         error_log("Request data: " . print_r($request, true));
-        
+
         if (!$request) {
-            throw new Exception('Invalid request or you do not have permission to update this request.');
+            throw new Exception('Request not found or you do not have permission to update it. Please verify the request is still pending testing.');
         }
-        
+
+        // Additional check for testing status
+        if (!in_array($request['testing_status'], ['pending', 'not_required'])) {
+            throw new Exception('This request has already been tested. Testing status: ' . $request['testing_status']);
+        }
+
         // Determine next status based on testing result
         if ($testing_status === 'success') {
             // If testing is successful, automatically approve the request
@@ -79,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
             $next_status = 'pending_testing_review';
             $success_message = 'Testing status updated. Technical support will review your results.';
         }
-        
+
         // Update the request status and testing status
         $sql = "UPDATE access_requests SET 
                 testing_status = :testing_status,
@@ -87,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                 status = :next_status
                 WHERE id = :request_id 
                 AND employee_id = :employee_id";
-        
+
         $stmt = $pdo->prepare($sql);
         $result = $stmt->execute([
             'testing_status' => $testing_status,
@@ -96,11 +101,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
             'request_id' => $request_id,
             'employee_id' => $requestor_id
         ]);
-        
+
         if (!$result) {
             throw new Exception('Failed to update request status.');
         }
-        
+
         // If approved, move to approval history
         if ($next_status === 'approved') {
             // Get the current request data for history
@@ -222,13 +227,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                 ];
 
                 $historyInsert->execute($historyParams);
-                
+
                 // Delete from access_requests table since it's now in history
                 $deleteStmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
                 $deleteStmt->execute([$request_id]);
             }
         }
-        
+
         // Send email notification only for failed tests
         if ($testing_status === 'failed') {
             try {
@@ -240,15 +245,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                 $mail->Password = SMTP_PASSWORD;
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                 $mail->Port = SMTP_PORT;
-                
+
                 $mail->setFrom(SMTP_USERNAME, 'Access Request System');
-                
+
                 // Get technical support email
                 $techSql = "SELECT email FROM admin_users WHERE id = :tech_id";
                 $techStmt = $pdo->prepare($techSql);
                 $techStmt->execute(['tech_id' => $request['technical_id']]);
                 $techEmail = $techStmt->fetchColumn();
-                
+
                 if ($techEmail) {
                     $mail->addAddress($techEmail);
                     $mail->isHTML(true);
@@ -270,11 +275,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                 // Continue processing even if email fails
             }
         }
-        
+
         $pdo->commit();
         $transaction_active = false;
         error_log("Transaction committed");
-        
+
         // Return JSON response for AJAX calls
         header('Content-Type: application/json');
         echo json_encode([
@@ -282,7 +287,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
             'message' => $success_message
         ]);
         exit();
-        
     } catch (Exception $e) {
         // Rollback the transaction on error
         if ($transaction_active) {
@@ -291,7 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         }
         error_log("Error occurred: " . $e->getMessage());
         error_log("Stack trace: " . $e->getTraceAsString());
-        
+
         // Return JSON error response for AJAX calls
         header('Content-Type: application/json');
         echo json_encode([
@@ -328,32 +332,30 @@ try {
             FROM access_requests ar
             WHERE ar.id = :request_id 
             AND ar.employee_id = :employee_id
-            AND ar.status = 'pending_testing'
-            AND ar.testing_status = 'pending'";
-    
+            AND (ar.status = 'pending_testing' OR ar.status = 'pending_testing_setup')";
+
     // Debug SQL
-    // echo "SQL: $sql<br>";
-    // echo "request_id: $request_id<br>";
-    // echo "employee_id: $requestor_id<br>";
+    error_log("SQL: $sql");
+    error_log("request_id: $request_id");
+    error_log("employee_id: $requestor_id");
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         'request_id' => $request_id,
         'employee_id' => $requestor_id
     ]);
-    
+
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
-    
+
     if (!$request) {
         // Debug message for troubleshooting
         // echo "Request not found. Please check your query parameters.";
         // exit;
-        
+
         $_SESSION['error_message'] = "Request not found or you do not have permission to update it.";
         header('Location: dashboard.php');
         exit();
     }
-    
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Database error: " . $e->getMessage();
     header('Location: dashboard.php');
@@ -363,6 +365,7 @@ try {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -371,6 +374,7 @@ try {
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
+
 <body class="bg-gray-50">
     <div class="min-h-screen flex flex-col">
         <!-- Header -->
@@ -397,23 +401,23 @@ try {
                         </div>
                         <h1 class="text-xl font-semibold text-gray-800">Update Testing Status</h1>
                     </div>
-                    
+
                     <div class="p-6">
                         <!-- Technical Support Instructions -->
                         <?php if (!empty($request['testing_instructions'])): ?>
-                        <div class="mb-6 bg-green-50 rounded-lg p-4 border border-green-100">
-                            <div class="flex items-start">
-                                <div class="flex-shrink-0 pt-0.5">
-                                    <i class='bx bx-test-tube text-green-600 text-xl'></i>
-                                </div>
-                                <div class="ml-3">
-                                    <h3 class="text-sm font-medium text-green-800">Testing Instructions from Technical Support</h3>
-                                    <div class="mt-2 text-sm text-green-700 bg-white p-3 rounded border">
-                                        <?php echo nl2br(htmlspecialchars($request['testing_instructions'])); ?>
+                            <div class="mb-6 bg-green-50 rounded-lg p-4 border border-green-100">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0 pt-0.5">
+                                        <i class='bx bx-test-tube text-green-600 text-xl'></i>
+                                    </div>
+                                    <div class="ml-3">
+                                        <h3 class="text-sm font-medium text-green-800">Testing Instructions from Technical Support</h3>
+                                        <div class="mt-2 text-sm text-green-700 bg-white p-3 rounded border">
+                                            <?php echo nl2br(htmlspecialchars($request['testing_instructions'])); ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
                         <?php endif; ?>
 
                         <div class="mb-6 bg-blue-50 rounded-lg p-4 border border-blue-100">
@@ -434,106 +438,110 @@ try {
                                 </div>
                             </div>
                         </div>
-                                    
-                                    <?php if (!empty($request['review_notes'])): ?>
-                                    <div class="mt-4 border-t border-gray-100 pt-4">
-                                        <p class="text-sm text-gray-500">Admin Notes / Credentials:</p>
-                                        <div class="mt-1 bg-yellow-50 p-3 rounded-md border border-yellow-100 text-sm whitespace-pre-line">
-                                            <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
-                                        </div>
-                                    </div>
-                                    <?php endif; ?>
+
+                        <?php if (!empty($request['review_notes'])): ?>
+                            <div class="mt-4 border-t border-gray-100 pt-4">
+                                <p class="text-sm text-gray-500">Admin Notes / Credentials:</p>
+                                <div class="mt-1 bg-yellow-50 p-3 rounded-md border border-yellow-100 text-sm whitespace-pre-line">
+                                    <?php echo nl2br(htmlspecialchars($request['review_notes'])); ?>
                                 </div>
                             </div>
-                        
-                        <!-- Testing Status Form -->
-                        <form id="testingForm" method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']) . '?id=' . $request_id; ?>">
-                            <input type="hidden" name="request_id" value="<?php echo htmlspecialchars($request['id']); ?>">
-                            
-                            <div class="mb-6">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">Testing Status</label>
-                                <div class="space-y-3">
-                                    <label class="flex items-center border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-green-50 hover:border-green-200 transition-colors">
-                                        <input type="radio" name="testing_status" value="success" class="h-4 w-4 text-green-600 focus:ring-green-500" required>
-                                        <div class="ml-3">
-                                            <span class="block font-medium text-gray-900">Testing Successful</span>
-                                            <span class="block text-sm text-gray-500">I was able to access the system successfully.</span>
-                                        </div>
-                                    </label>
-                                    
-                                    <label class="flex items-center border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-red-50 hover:border-red-200 transition-colors">
-                                        <input type="radio" name="testing_status" value="failed" class="h-4 w-4 text-red-600 focus:ring-red-500" required>
-                                        <div class="ml-3">
-                                            <span class="block font-medium text-gray-900">Testing Failed</span>
-                                            <span class="block text-sm text-gray-500">I was unable to access the system or encountered issues.</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="mb-6">
-                                <label for="testing_notes" class="block text-sm font-medium text-gray-700 mb-2">Testing Notes</label>
-                                <textarea id="testing_notes" name="testing_notes" rows="4" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Please provide details about your testing experience. If you encountered issues, describe them here."></textarea>
-                            </div>
-                            
-                            <div class="flex justify-end">
-                                <a href="dashboard.php" class="mr-3 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</a>
-                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                    Submit Testing Result
-                                </button>
-                            </div>
-                        </form>
+                        <?php endif; ?>
                     </div>
                 </div>
+
+                <!-- Testing Status Form -->
+                <form id="testingForm" method="POST" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF']) . '?id=' . $request_id; ?>">
+                    <input type="hidden" name="request_id" value="<?php echo htmlspecialchars($request['id']); ?>">
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Testing Status</label>
+                        <div class="space-y-3">
+                            <label class="flex items-center border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-green-50 hover:border-green-200 transition-colors">
+                                <input type="radio" name="testing_status" value="success" class="h-4 w-4 text-green-600 focus:ring-green-500" required>
+                                <div class="ml-3">
+                                    <span class="block font-medium text-gray-900">Testing Successful</span>
+                                    <span class="block text-sm text-gray-500">I was able to access the system successfully.</span>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center border border-gray-200 rounded-lg p-4 cursor-pointer hover:bg-red-50 hover:border-red-200 transition-colors">
+                                <input type="radio" name="testing_status" value="failed" class="h-4 w-4 text-red-600 focus:ring-red-500" required>
+                                <div class="ml-3">
+                                    <span class="block font-medium text-gray-900">Testing Failed</span>
+                                    <span class="block text-sm text-gray-500">I was unable to access the system or encountered issues.</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label for="testing_notes" class="block text-sm font-medium text-gray-700 mb-2">Testing Notes</label>
+                        <textarea id="testing_notes" name="testing_notes" rows="4" class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Please provide details about your testing experience. If you encountered issues, describe them here."></textarea>
+                    </div>
+
+                    <div class="flex justify-end">
+                        <a href="dashboard.php" class="mr-3 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</a>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            Submit Testing Result
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
-        
-        <!-- Footer -->
-        <footer class="bg-white shadow-sm-up mt-8">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <p class="text-center text-gray-500 text-sm">
-                &copy; <?= date('Y'); ?> Alsons Agribusiness Unit. All rights reserved.
-                </p>
-            </div>
-        </footer>
     </div>
-    
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white shadow-sm-up mt-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <p class="text-center text-gray-500 text-sm">
+                &copy; <?= date('Y'); ?> Alsons Agribusiness Unit. All rights reserved.
+            </p>
+        </div>
+    </footer>
+    </div>
+
     <script>
         // Show any success or error messages from session
         <?php if (isset($_SESSION['success_message'])): ?>
-        Swal.fire({
-            title: 'Success!',
-            text: '<?php echo addslashes($_SESSION['success_message']); ?>',
-            icon: 'success',
-            confirmButtonColor: '#3085d6'
-        });
-        <?php unset($_SESSION['success_message']); endif; ?>
-        
+            Swal.fire({
+                title: 'Success!',
+                text: '<?php echo addslashes($_SESSION['success_message']); ?>',
+                icon: 'success',
+                confirmButtonColor: '#3085d6'
+            });
+        <?php unset($_SESSION['success_message']);
+        endif; ?>
+
         <?php if (isset($_SESSION['error_message'])): ?>
-        Swal.fire({
-            title: 'Error!',
-            text: '<?php echo addslashes($_SESSION['error_message']); ?>',
-            icon: 'error',
-            confirmButtonColor: '#3085d6'
-        });
-        <?php unset($_SESSION['error_message']); endif; ?>
+            Swal.fire({
+                title: 'Error!',
+                text: '<?php echo addslashes($_SESSION['error_message']); ?>',
+                icon: 'error',
+                confirmButtonColor: '#3085d6'
+            });
+        <?php unset($_SESSION['error_message']);
+        endif; ?>
 
         <?php if (isset($_SESSION['info_message'])): ?>
-        Swal.fire({
-            title: 'Information',
-            text: '<?php echo addslashes($_SESSION['info_message']); ?>',
-            icon: 'info',
-            confirmButtonColor: '#3085d6'
-        });
-        <?php unset($_SESSION['info_message']); endif; ?>
-        
-        // Form validation
+            Swal.fire({
+                title: 'Information',
+                text: '<?php echo addslashes($_SESSION['info_message']); ?>',
+                icon: 'info',
+                confirmButtonColor: '#3085d6'
+            });
+        <?php unset($_SESSION['info_message']);
+        endif; ?>
+
+        // Form validation and submission
         document.getElementById('testingForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // Prevent default form submission
+
             const testingStatus = document.querySelector('input[name="testing_status"]:checked');
             const testingNotes = document.getElementById('testing_notes').value.trim();
-            
+
             if (!testingStatus) {
-                e.preventDefault();
                 Swal.fire({
                     title: 'Validation Error',
                     text: 'Please select a testing status.',
@@ -542,9 +550,8 @@ try {
                 });
                 return;
             }
-            
+
             if (testingStatus.value === 'failed' && testingNotes === '') {
-                e.preventDefault();
                 Swal.fire({
                     title: 'Validation Error',
                     text: 'Please provide testing notes describing the issues you encountered.',
@@ -553,7 +560,103 @@ try {
                 });
                 return;
             }
+
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Submitting your testing results...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Prepare form data
+            const formData = new FormData(this);
+
+            // Submit via AJAX
+            fetch(this.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    // Check if the response is ok
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    // Check content type
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        // If it's not JSON, get the text and show it
+                        return response.text().then(text => {
+                            throw new Error('Server returned non-JSON response: ' + text.substring(0, 200));
+                        });
+                    }
+
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Determine the icon and message based on testing status
+                        const testingStatus = document.querySelector('input[name="testing_status"]:checked').value;
+                        const icon = testingStatus === 'success' ? 'success' : 'info';
+                        const title = testingStatus === 'success' ? 'Testing Successful!' : 'Testing Status Updated';
+
+                        Swal.fire({
+                            title: title,
+                            text: data.message,
+                            icon: icon,
+                            confirmButtonColor: testingStatus === 'success' ? '#10B981' : '#3B82F6',
+                            confirmButtonText: 'Continue to Dashboard'
+                        }).then(() => {
+                            // Redirect to dashboard
+                            window.location.href = 'dashboard.php';
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Unable to Process Request',
+                            text: data.message || 'An error occurred while processing your request.',
+                            icon: 'error',
+                            confirmButtonColor: '#EF4444',
+                            confirmButtonText: 'OK',
+                            footer: 'Please contact support if this issue persists.'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error details:', error);
+
+                    let errorTitle = 'Request Failed';
+                    let errorMessage = 'An unexpected error occurred.';
+
+                    if (error.message.includes('HTTP 404')) {
+                        errorTitle = 'Page Not Found';
+                        errorMessage = 'The testing status page could not be found. Please refresh and try again.';
+                    } else if (error.message.includes('HTTP 500')) {
+                        errorTitle = 'Server Error';
+                        errorMessage = 'There was a server error processing your request. Please try again later.';
+                    } else if (error.message.includes('Failed to fetch')) {
+                        errorTitle = 'Connection Error';
+                        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+                    } else if (error.message.includes('non-JSON response')) {
+                        errorTitle = 'Invalid Response';
+                        errorMessage = 'The server returned an unexpected response. Please contact support.';
+                    } else {
+                        errorMessage = error.message || 'Please try again or contact support if the problem persists.';
+                    }
+
+                    Swal.fire({
+                        title: errorTitle,
+                        text: errorMessage,
+                        icon: 'error',
+                        confirmButtonColor: '#EF4444',
+                        confirmButtonText: 'OK',
+                        footer: 'Error details have been logged for troubleshooting.'
+                    });
+                });
         });
     </script>
 </body>
-</html> 
+
+</html>

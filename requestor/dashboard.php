@@ -471,7 +471,7 @@ try {
                                                     </span>
                                                 </div>
                                                 <div class="mt-1 text-sm text-gray-600">
-                                                    <span><?php echo htmlspecialchars($request['access_type']); ?></span>
+                                                    <span><?php echo isset($request['access_type']) ? htmlspecialchars($request['access_type']) : 'System Application'; ?></span>
                                                     <?php if ($request['system_type']): ?>
                                                         <span class="mx-1">•</span>
                                                         <span><?php echo htmlspecialchars($request['system_type']); ?></span>
@@ -481,7 +481,8 @@ try {
                                                     <div class="mt-2 text-xs text-yellow-700">
                                                         <i class='bx bx-info-circle'></i>
                                                         <?php
-                                                        $testing_reason = $request['access_type'] === 'System Application' ?
+                                                        $access_type = isset($request['access_type']) ? $request['access_type'] : 'System Application';
+                                                        $testing_reason = $access_type === 'System Application' ?
                                                             'System Application access' :
                                                             'Admin role access';
                                                         echo "Testing required for {$testing_reason}. Please test and provide feedback.";
