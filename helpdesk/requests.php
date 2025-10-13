@@ -558,8 +558,8 @@ try {
                         <div class="mb-4">
                             <label for="forward-to" class="block text-sm font-medium text-gray-700 mb-1">Forward to:</label>
                             <select id="forward-to" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent" onchange="updateUserDropdown()">
-                                <option  value="technical">Technical Support</option>
-                                <option  value="process_owner">Process Owner</option>
+                                <option value="technical_support">Technical Support</option>
+                                <option value="process_owner">Process Owner</option>
                             </select>
                         </div>
                         <div class="mb-4">
@@ -687,8 +687,8 @@ try {
             // Set loading state
             userDropdown.innerHTML = '<option value="">Loading users...</option>';
 
-            // Determine the role to fetch
-            const role = forwardTo === 'technical' ? 'technical_support' : 'process_owner';
+            // Determine the role to fetch - use the value directly as it now matches the database role names
+            const role = forwardTo;
 
             console.log('Fetching users with role:', role);
 
@@ -705,7 +705,11 @@ try {
                         // Add a default option
                         const defaultOption = document.createElement('option');
                         defaultOption.value = '';
-                        defaultOption.textContent = `Select a ${forwardTo === 'technical' ? 'Technical Support' : 'Process Owner'} user...`;
+                        const roleLabels = {
+                            'technical_support': 'Technical Support',
+                            'process_owner': 'Process Owner'
+                        };
+                        defaultOption.textContent = `Select a ${roleLabels[forwardTo] || forwardTo} user...`;
                         userDropdown.appendChild(defaultOption);
 
                         // Add user options
@@ -713,9 +717,9 @@ try {
                             console.log('Users found:', data.users.length);
                             data.users.forEach(user => {
                                 console.log('Adding user:', user);
-                                if (user && user.employee_id && user.employee_name) {
+                                if (user && user.admin_user_id && user.employee_name) {
                                     const option = document.createElement('option');
-                                    option.value = user.employee_id;
+                                    option.value = user.admin_user_id; // This is the admin_users.id needed for database
                                     option.textContent = user.employee_name;
                                     userDropdown.appendChild(option);
                                 } else {
@@ -727,7 +731,11 @@ try {
                             console.log('No users found with role:', role);
                             const noUsersOption = document.createElement('option');
                             noUsersOption.value = '';
-                            noUsersOption.textContent = `No ${forwardTo === 'technical' ? 'Technical Support' : 'Process Owner'} users found`;
+                            const roleLabels = {
+                                'technical_support': 'Technical Support',
+                                'process_owner': 'Process Owner'
+                            };
+                            noUsersOption.textContent = `No ${roleLabels[forwardTo] || forwardTo} users found`;
                             userDropdown.appendChild(noUsersOption);
                         }
                     } else {

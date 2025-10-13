@@ -17,7 +17,19 @@ if (
     exit();
 }
 
-// Get all requests pending technical review
+// Get the admin_users.id for this user to ensure correct filtering
+$adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+$adminQuery->execute([
+    'username' => $_SESSION['admin_username'] ?? '',
+    'employee_id' => $_SESSION['admin_id'] ?? ''
+]);
+$adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+$admin_users_id = $adminRecord ? $adminRecord['id'] : null;
+
+// Use admin_users.id instead of session admin_id
+$current_admin_id = $admin_users_id;
+
+// Get all requests pending technical review assigned to this specific user ONLY
 try {
     $sql = "SELECT ar.*, 
             CASE 
@@ -37,12 +49,14 @@ try {
                 (SELECT date_needed FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
             )) as date_needed
             FROM access_requests ar 
-            WHERE ar.status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')
+            WHERE (ar.status IN ('pending_technical', 'pending_testing_review') AND ar.technical_id = :current_admin_id)
+            OR (ar.status = 'pending_testing_setup')
             ORDER BY ar.submission_date DESC";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $stmt->execute(['current_admin_id' => $current_admin_id]);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
 
     // Check if any approved requests with successful testing should be removed from access_requests
     foreach ($requests as $index => $request) {
@@ -580,5 +594,4 @@ try {
         }
     </script>
 </body>
-
 </html>

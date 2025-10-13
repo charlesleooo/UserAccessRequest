@@ -17,7 +17,10 @@ if (
     exit();
 }
 
-// Get all requests pending process owner review
+// Get current user's admin ID for filtering
+$current_admin_id = $_SESSION['admin_id'];
+
+// Get all requests pending process owner review assigned to this specific user ONLY
 try {
     $sql = "SELECT ar.*, 
             CASE 
@@ -31,10 +34,11 @@ try {
             END as status_display
             FROM access_requests ar 
             WHERE ar.status = 'pending_process_owner'
+            AND ar.process_owner_id = :current_admin_id
             ORDER BY ar.submission_date DESC";
 
     $stmt = $pdo->prepare($sql);
-    $stmt->execute();
+    $stmt->execute(['current_admin_id' => $current_admin_id]);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching requests: " . $e->getMessage();

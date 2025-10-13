@@ -172,31 +172,25 @@ try {
         $requestDetails = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    // Get technical users with employee_name (fallback to username)
-    $techQuery = "
+    // Get all employees with their roles for role-based forwarding and their corresponding admin_users id
+    $usersQuery = "
         SELECT a.id,
-               COALESCE(e.employee_name, a.username) AS employee_name
-        FROM admin_users a
-        LEFT JOIN employees e ON a.employee_id = e.employee_id
-        WHERE a.role = 'technical_support'
-        ORDER BY employee_name
+               e.role,
+               e.employee_name
+        FROM employees e
+        LEFT JOIN admin_users a ON (a.username = e.employee_id OR CAST(a.employee_id AS CHAR) = e.employee_id)
+        WHERE e.role IN ('technical_support', 'process_owner') AND a.id IS NOT NULL
+        ORDER BY e.role, e.employee_name
     ";
-    $techStmt = $pdo->prepare($techQuery);
-    $techStmt->execute();
-    $techUsers = $techStmt->fetchAll(PDO::FETCH_ASSOC);
+    $usersStmt = $pdo->prepare($usersQuery);
+    $usersStmt->execute();
+    $allUsers = $usersStmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get process owner users with employee_name (fallback to username)
-    $poQuery = "
-        SELECT a.id,
-               COALESCE(e.employee_name, a.username) AS employee_name
-        FROM admin_users a
-        LEFT JOIN employees e ON a.employee_id = e.employee_id
-        WHERE a.role = 'process_owner'
-        ORDER BY employee_name
-    ";
-    $poStmt = $pdo->prepare($poQuery);
-    $poStmt->execute();
-    $processOwnerUsers = $poStmt->fetchAll(PDO::FETCH_ASSOC);
+    // Group users by role
+    $usersByRole = [];
+    foreach ($allUsers as $user) {
+        $usersByRole[$user['role']][] = $user;
+    }
 } catch (PDOException $e) {
     error_log("Error fetching request details: " . $e->getMessage());
     header("Location: requests.php?error=db");
@@ -603,7 +597,7 @@ try {
                             <div class="mb-4">
                                 <label for="forward_to" class="block text-sm font-medium text-gray-700 mb-2">Forward To:</label>
                                 <select id="forward_to" name="forward_to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" onchange="updateUserOptions()">
-                                    <option value="technical">Technical Support</option>
+                                    <option value="technical_support">Technical Support</option>
                                     <option value="process_owner">Process Owner</option>
                                 </select>
                             </div>
@@ -640,11 +634,8 @@ try {
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Technical Support Users
-        const technicalUsers = <?php echo json_encode($techUsers); ?>;
-
-        // Process Owner Users
-        const processOwnerUsers = <?php echo json_encode($processOwnerUsers); ?>;
+        // All users grouped by role
+        const usersByRole = <?php echo json_encode($usersByRole); ?>;
 
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize user dropdown
@@ -671,15 +662,23 @@ try {
             userSelect.innerHTML = '';
 
             // Get the appropriate user list based on selection
-            const users = forwardTo === 'technical' ? technicalUsers : processOwnerUsers;
+            const users = usersByRole[forwardTo] || [];
 
             // Add options to the select
             users.forEach(user => {
                 const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = user.employee_name || user.username;
+                option.value = user.id; // This is admin_users.id needed for database
+                option.textContent = user.employee_name;
                 userSelect.appendChild(option);
             });
+
+            // If no users found, add a placeholder
+            if (users.length === 0) {
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = `No ${forwardTo} users available`;
+                userSelect.appendChild(option);
+            }
         }
 
         function handleRequest(action) {

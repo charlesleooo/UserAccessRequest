@@ -34,8 +34,15 @@ try {
     $stmt->execute([':today' => $todayDate]);
     $rejectedToday = $stmt->fetchColumn();
 
-    // Get recent requests
-    $stmt = $pdo->query("SELECT * FROM access_requests ORDER BY submission_date DESC LIMIT 5");
+    // Get recent requests with access_type from child tables
+    $stmt = $pdo->query("
+        SELECT ar.*, 
+               COALESCE(ir.access_type, gr.access_type) as access_type
+        FROM access_requests ar
+        LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
+        LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
+        ORDER BY ar.submission_date DESC LIMIT 5
+    ");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get recent approval history
@@ -433,7 +440,7 @@ try {
                                                 <div class="truncate"><?php echo htmlspecialchars($request['business_unit']); ?></div>
                                             </td>
                                             <td class="px-4 lg:px-6 py-4 text-sm text-gray-500">
-                                                <div class="truncate"><?php echo htmlspecialchars($request['access_type']); ?></div>
+                                                <div class="truncate"><?php echo htmlspecialchars($request['access_type'] ?? 'N/A'); ?></div>
                                             </td>
                                             <td class="px-4 lg:px-6 py-4">
                                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 

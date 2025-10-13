@@ -100,7 +100,16 @@ try {
             $can_handle = ($current_status === 'pending_help_desk');
             // For help desk, determine next status based on forward_to parameter
             if ($action === 'approve' && $forward_to) {
-                $next_status = $forward_to === 'technical' ? 'pending_technical' : 'pending_process_owner';
+                switch ($forward_to) {
+                    case 'technical_support':
+                        $next_status = 'pending_technical';
+                        break;
+                    case 'process_owner':
+                        $next_status = 'pending_process_owner';
+                        break;
+                    default:
+                        throw new Exception('Invalid forward destination - only technical_support and process_owner are allowed');
+                }
             } else {
                 $next_status = 'rejected';
             }
@@ -209,7 +218,8 @@ try {
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
                 $came_from_process_owner = !empty($result['process_owner_id']);
 
-                $next_status = ($action === 'approve') ? ($came_from_process_owner ? 'pending_admin' : 'pending_admin') : 'rejected';
+                // Technical support should recommend to admin, not automatically approve
+                $next_status = ($action === 'approve') ? 'pending_admin' : 'rejected';
             }
 
             $id_field = 'technical_id';
@@ -219,7 +229,8 @@ try {
 
         case 'process_owner':
             $can_handle = ($current_status === 'pending_process_owner');
-            $next_status = ($action === 'approve') ? 'pending_help_desk' : 'rejected';
+            // Process owner should recommend to admin, not send back to help desk
+            $next_status = ($action === 'approve') ? 'pending_admin' : 'rejected';
             $id_field = 'process_owner_id';
             $date_field = 'process_owner_review_date';
             $notes_field = 'process_owner_notes';
@@ -234,22 +245,45 @@ try {
                 if ($current_status === 'pending_admin') {
                     $next_status = 'pending_testing_setup';
 
+                    // Get a technical support user to assign the request to
+                    $techStmt = $pdo->prepare("
+                        SELECT a.id 
+                        FROM admin_users a
+                        INNER JOIN employees e ON a.username = e.employee_id
+                        WHERE e.role = 'technical_support'
+                        LIMIT 1
+                    ");
+                    $techStmt->execute();
+                    $techUser = $techStmt->fetch(PDO::FETCH_ASSOC);
+                    $techUserId = $techUser ? $techUser['id'] : null;
+
                     // Update the request to include admin approval and move to technical support
                     $sql = "UPDATE access_requests SET 
                             status = :next_status,
                             admin_id = :admin_users_id,
                             admin_review_date = NOW(),
                             admin_notes = :review_notes,
-                            testing_status = 'not_required'
-                            WHERE id = :request_id";
+                            testing_status = 'not_required'";
+                    
+                    if ($techUserId) {
+                        $sql .= ", technical_id = :tech_user_id";
+                    }
+                    
+                    $sql .= " WHERE id = :request_id";
 
                     $stmt = $pdo->prepare($sql);
-                    $result = $stmt->execute([
+                    $params = [
                         'next_status' => $next_status,
                         'admin_users_id' => $admin_users_id,
                         'review_notes' => $review_notes,
                         'request_id' => $request_id
-                    ]);
+                    ];
+                    
+                    if ($techUserId) {
+                        $params['tech_user_id'] = $techUserId;
+                    }
+                    
+                    $result = $stmt->execute($params);
 
                     if (!$result) {
                         throw new Exception('Failed to update request status');
@@ -331,7 +365,7 @@ try {
                         'success' => true,
                         'message' => $message
                     ]);
-                    return;
+                    exit();
                 } else {
                     $next_status = 'approved';
                 }
@@ -395,9 +429,14 @@ try {
             throw new Exception('Forward destination and user must be specified');
         }
 
-        // Verify the selected user exists and has the correct role
-        $expected_role = $forward_to === 'technical' ? 'technical_support' : 'process_owner';
-        $userStmt = $pdo->prepare("SELECT id, username FROM admin_users WHERE id = :user_id AND role = :role");
+        // Verify the selected user exists and has the correct role in employees table
+        $expected_role = $forward_to; // forward_to now directly contains the role name
+        $userStmt = $pdo->prepare("
+            SELECT a.id, a.username, e.role as employee_role
+            FROM admin_users a
+            INNER JOIN employees e ON a.username = e.employee_id
+            WHERE a.id = :user_id AND e.role = :role
+        ");
         $userStmt->execute([
             'user_id' => $forward_user_id,
             'role' => $expected_role
@@ -405,7 +444,7 @@ try {
         $forwardUser = $userStmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$forwardUser) {
-            throw new Exception('Selected user is not valid for forwarding');
+            throw new Exception('Selected user is not valid for forwarding - user does not have the required role');
         }
     }
 
@@ -418,7 +457,16 @@ try {
 
     // If help desk is forwarding, set the next reviewer's ID
     if ($role === 'help_desk' && $action === 'approve') {
-        $next_id_field = $forward_to === 'technical' ? 'technical_id' : 'process_owner_id';
+        switch ($forward_to) {
+            case 'technical_support':
+                $next_id_field = 'technical_id';
+                break;
+            case 'process_owner':
+                $next_id_field = 'process_owner_id';
+                break;
+            default:
+                throw new Exception('Invalid forward destination for ID field assignment');
+        }
         $sql .= ", $next_id_field = :forward_user_id";
     }
 
@@ -517,11 +565,85 @@ try {
         $message = "Request has been " . ($action === 'approve' ? 'approved' : 'declined') . " successfully";
     }
 
+    // Send notification to specific user when help desk forwards request
+    if ($role === 'help_desk' && $action === 'approve' && in_array($next_status, ['pending_technical', 'pending_process_owner'])) {
+        // Get the forwarded user's email directly from employees table
+        // admin_users.username matches employees.employee_id
+        $notifyStmt = $pdo->prepare("
+            SELECT e.employee_email as email,
+                   e.employee_name as name,
+                   e.employee_id
+            FROM admin_users a
+            INNER JOIN employees e ON a.username = e.employee_id
+            WHERE a.id = :forward_user_id
+        ");
+        $notifyStmt->execute(['forward_user_id' => $forward_user_id]);
+        $forwardUser = $notifyStmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($forwardUser && !empty($forwardUser['email'])) {
+            $mail = new PHPMailer(true);
+
+            try {
+                // Server settings
+                $mail->isSMTP();
+                $mail->Host = SMTP_HOST;
+                $mail->SMTPAuth = true;
+                $mail->Username = SMTP_USERNAME;
+                $mail->Password = SMTP_PASSWORD;
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = SMTP_PORT;
+
+                // Recipients
+                $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, SMTP_FROM_NAME);
+                $mail->addAddress($forwardUser['email'], $forwardUser['name']);
+
+                // Content
+                $mail->isHTML(true);
+                $roleName = $forward_to === 'technical_support' ? 'Technical Support' : 'Process Owner';
+                $mail->Subject = "New Access Request Forwarded - {$request['access_request_number']}";
+                $mail->Body = "
+                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                        <h2 style='color: #1F2937;'>New Access Request Forwarded</h2>
+                        <p>Dear {$forwardUser['name']},</p>
+                        
+                        <p>A new access request has been forwarded to you for review as {$roleName}.</p>
+                        
+                        <div style='margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-left: 4px solid #007bff;'>
+                            <h3 style='margin-top: 0; color: #1F2937;'>Request Details</h3>
+                            <p><strong>Request Number:</strong> {$request['access_request_number']}</p>
+                            <p><strong>Requestor:</strong> {$request['requestor_name']}</p>
+                            <p><strong>Department:</strong> {$request['department']}</p>
+                            <p><strong>Business Unit:</strong> {$request['business_unit']}</p>
+                            <p><strong>System Type:</strong> {$request['system_type']}</p>
+                            <p><strong>Help Desk Notes:</strong> {$review_notes}</p>
+                        </div>
+
+                        <p style='margin-top: 20px;'>
+                            <a href='" . BASE_URL . "/{$forward_to}/requests.php' 
+                               style='background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;'>
+                                Review Request
+                            </a>
+                        </p>
+                        
+                        <p style='margin-top: 20px;'>Please review this request as soon as possible.</p>
+                        
+                        <p>Best regards,<br>IT Support System</p>
+                    </div>
+                ";
+
+                $mail->send();
+                $message .= " and notification sent to selected {$roleName}.";
+            } catch (Exception $e) {
+                error_log("Email sending failed: {$mail->ErrorInfo}");
+                $message .= " but email notification failed.";
+            }
+        }
+    }
+
     // If request is approved by admin, rejected by anyone, or recommended by any role, move to history
     $should_create_history = ($next_status === 'approved' || $next_status === 'rejected' ||
         ($role === 'superior' && $next_status === 'pending_help_desk') ||
-        ($role === 'help_desk' && in_array($next_status, ['pending_technical', 'pending_process_owner'])) ||
-        ($role === 'process_owner' && $next_status === 'pending_help_desk') ||
+        ($role === 'process_owner' && $next_status === 'pending_admin') ||
         ($role === 'technical_support' && $next_status === 'pending_admin'));
 
     if ($should_create_history) {
@@ -710,8 +832,7 @@ try {
 
             // Update message to indicate history was created
             if (($role === 'superior' && $next_status === 'pending_help_desk') ||
-                ($role === 'help_desk' && in_array($next_status, ['pending_technical', 'pending_process_owner'])) ||
-                ($role === 'process_owner' && $next_status === 'pending_help_desk') ||
+                ($role === 'process_owner' && $next_status === 'pending_admin') ||
                 ($role === 'technical_support' && $next_status === 'pending_admin')
             ) {
                 $message = "Request has been recommended and moved to review history.";

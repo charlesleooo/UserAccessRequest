@@ -357,8 +357,16 @@ try {
         exit();
     }
 } catch (PDOException $e) {
-    $_SESSION['error_message'] = "Database error: " . $e->getMessage();
-    header('Location: dashboard.php');
+    echo '<script>
+        Swal.fire({
+            title: "Error!",
+            text: "Database error occurred. Please try again.",
+            icon: "error",
+            confirmButtonColor: "#3085d6"
+        }).then(() => {
+            window.location.href = "dashboard.php";
+        });
+    </script>';
     exit();
 }
 ?>

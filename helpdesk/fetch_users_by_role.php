@@ -22,18 +22,26 @@ if (!isset($_GET['role']) || empty($_GET['role'])) {
 
 $role = $_GET['role'];
 
-// Validate the role parameter
+// Validate the role parameter - only allow Process Owner and Technical Support
 if (!in_array($role, ['process_owner', 'technical_support'])) {
     echo json_encode([
         'success' => false,
-        'message' => 'Invalid role parameter'
+        'message' => 'Invalid role parameter - only process_owner and technical_support are allowed'
     ]);
     exit();
 }
 
 try {
-    // Query to fetch users joined with employees to get employee_name
-    $stmt = $pdo->prepare("\n        SELECT a.id AS employee_id,\n               COALESCE(e.employee_name, a.username) AS employee_name\n        FROM admin_users a\n        LEFT JOIN employees e ON a.employee_id = e.employee_id\n        WHERE a.role = :role\n        ORDER BY employee_name\n    ");
+    // Query to fetch users from employees table and get their corresponding admin_users id
+    $stmt = $pdo->prepare("
+        SELECT a.id as admin_user_id,
+               e.employee_id,
+               e.employee_name
+        FROM employees e
+        LEFT JOIN admin_users a ON (a.username = e.employee_id OR CAST(a.employee_id AS CHAR) = e.employee_id)
+        WHERE e.role = :role AND a.id IS NOT NULL
+        ORDER BY e.employee_name
+    ");
     $stmt->execute(['role' => $role]);
     $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
@@ -41,7 +49,7 @@ try {
     $debug_info = [
         'requested_role' => $role,
         'users_count' => count($users),
-        'query' => "SELECT id, username FROM admin_users WHERE role = '{$role}'"
+        'query' => "SELECT employee_id, employee_name FROM employees WHERE role = '{$role}'"
     ];
     
     echo json_encode([

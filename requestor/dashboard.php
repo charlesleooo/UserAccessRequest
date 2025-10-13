@@ -429,10 +429,16 @@ try {
                 <!-- Pending Testing Requests Section -->
                 <?php
                 // Get pending testing requests for this user
-                $pendingTestingRequestsQuery = "SELECT * FROM access_requests 
-                                            WHERE employee_id = :employee_id 
-                                            AND status = 'pending_testing' 
-                                            ORDER BY submission_date DESC";
+                $pendingTestingRequestsQuery = "
+                    SELECT ar.*, 
+                           COALESCE(ir.access_type, gr.access_type) as access_type
+                    FROM access_requests ar
+                    LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
+                    LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
+                    WHERE ar.employee_id = :employee_id 
+                    AND ar.status = 'pending_testing' 
+                    ORDER BY ar.submission_date DESC
+                ";
                 $stmt = $pdo->prepare($pendingTestingRequestsQuery);
                 $stmt->execute(['employee_id' => $requestorId]);
                 $pendingTestingRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);

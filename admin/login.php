@@ -74,6 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         ]);
         exit;
 
+
         /*
         // Generate and store OTP
         $otp = generateOTP();
