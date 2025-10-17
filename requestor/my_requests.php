@@ -46,13 +46,13 @@ if ($statusFilter !== 'all') {
 if ($dateFilter !== 'all') {
     switch ($dateFilter) {
         case 'today':
-            $query .= " AND DATE(ar.submission_date) = CURDATE()";
+            $query .= " AND CAST(ar.submission_date AS DATE) = CAST(GETDATE() AS DATE)";
             break;
         case 'week':
-            $query .= " AND ar.submission_date >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
+            $query .= " AND ar.submission_date >= DATEADD(WEEK, -1, CAST(GETDATE() AS DATE))";
             break;
         case 'month':
-            $query .= " AND ar.submission_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
+            $query .= " AND ar.submission_date >= DATEADD(MONTH, -1, CAST(GETDATE() AS DATE))";
             break;
     }
 }
@@ -72,11 +72,6 @@ try {
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Debug - Print the query and parameters
-    echo "<!-- SQL Query: $query -->";
-    echo "<!-- Params: " . json_encode($params) . " -->";
-    echo "<!-- Result Count: " . count($requests) . " -->";
 } catch (PDOException $e) {
     error_log("Error fetching requests: " . $e->getMessage());
     $requests = [];

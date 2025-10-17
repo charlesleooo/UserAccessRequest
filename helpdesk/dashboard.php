@@ -31,7 +31,7 @@ try {
         SELECT COUNT(*) as count 
         FROM access_requests 
         WHERE help_desk_id = ? 
-        AND DATE(help_desk_review_date) = CURDATE()
+        AND CAST(help_desk_review_date AS DATE) = CAST(GETDATE() AS DATE)
     ");
     $stmt->execute([$_SESSION['admin_id']]);
     $reviewsToday = $stmt->fetch(PDO::FETCH_ASSOC)['count'];

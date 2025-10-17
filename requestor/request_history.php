@@ -90,13 +90,16 @@ $query = "SELECT
                 ah.employee_id,
                 ah.requestor_name
               FROM uar.approval_history ah
-              WHERE ah.employee_id = :employee_id
+              WHERE ah.employee_id = :employee_id2
             ) all_requests
           ) ranked_requests
           WHERE rn = 1";
 
-// Add filters - Fixed to use WHERE instead of HAVING
-$params = [':employee_id' => $requestorId];
+// Add filters
+$params = [
+    ':employee_id' => $requestorId,
+    ':employee_id2' => $requestorId
+];
 $whereConditions = [];
 
 if ($statusFilter !== 'all') {
@@ -113,13 +116,13 @@ if ($statusFilter !== 'all') {
 if ($dateFilter !== 'all') {
     switch ($dateFilter) {
         case 'today':
-            $whereConditions[] = "DATE(created_at) = CURDATE()";
+            $whereConditions[] = "CAST(created_at AS DATE) = CAST(GETDATE() AS DATE)";
             break;
         case 'week':
-            $whereConditions[] = "created_at >= DATE_SUB(CURDATE(), INTERVAL 1 WEEK)";
+            $whereConditions[] = "created_at >= DATEADD(WEEK, -1, CAST(GETDATE() AS DATE))";
             break;
         case 'month':
-            $whereConditions[] = "created_at >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)";
+            $whereConditions[] = "created_at >= DATEADD(MONTH, -1, CAST(GETDATE() AS DATE))";
             break;
     }
 }
@@ -154,27 +157,41 @@ try {
     $stmt->execute($params);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get counts for the dashboard
-    $countStmt = $pdo->prepare("
-        SELECT
-            (SELECT COUNT(*) FROM uar.access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
-            (SELECT COUNT(*) FROM uar.approval_history WHERE employee_id = ? AND action = 'approved') as approved,
-            (SELECT COUNT(*) FROM uar.approval_history WHERE employee_id = ? AND action = 'rejected') as rejected,
-            (SELECT COUNT(*) FROM uar.approval_history WHERE employee_id = ? AND action = 'cancelled') as cancelled
-    ");
-
-    $countStmt->execute([$requestorId, $requestorId, $requestorId, $requestorId]);
-    $counts = $countStmt->fetch(PDO::FETCH_ASSOC);
+    // Get counts for the dashboard - Using separate queries for SQL Server compatibility
+    $pendingStmt = $pdo->prepare("SELECT COUNT(*) as count FROM uar.access_requests WHERE employee_id = :employee_id AND status LIKE 'pending%'");
+    $pendingStmt->execute([':employee_id' => $requestorId]);
+    $pendingCount = $pendingStmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+    
+    $approvedStmt = $pdo->prepare("SELECT COUNT(*) as count FROM uar.approval_history WHERE employee_id = :employee_id AND action = 'approved'");
+    $approvedStmt->execute([':employee_id' => $requestorId]);
+    $approvedCount = $approvedStmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+    
+    $rejectedStmt = $pdo->prepare("SELECT COUNT(*) as count FROM uar.approval_history WHERE employee_id = :employee_id AND action = 'rejected'");
+    $rejectedStmt->execute([':employee_id' => $requestorId]);
+    $rejectedCount = $rejectedStmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+    
+    $cancelledStmt = $pdo->prepare("SELECT COUNT(*) as count FROM uar.approval_history WHERE employee_id = :employee_id AND action = 'cancelled'");
+    $cancelledStmt->execute([':employee_id' => $requestorId]);
+    $cancelledCount = $cancelledStmt->fetch(PDO::FETCH_ASSOC)['count'] ?? 0;
+    
+    $counts = [
+        'pending' => $pendingCount,
+        'approved' => $approvedCount,
+        'rejected' => $rejectedCount,
+        'cancelled' => $cancelledCount
+    ];
 
     $pending = $counts['pending'] ?? 0;
     $approved = $counts['approved'] ?? 0;
     $rejected = $counts['rejected'] ?? 0;
     $cancelled = $counts['cancelled'] ?? 0;
     $total = $pending + $approved + $rejected + $cancelled;
+    
 } catch (PDOException $e) {
     error_log("Error fetching request history: " . $e->getMessage());
     $requests = [];
     $total = $approved = $rejected = $cancelled = $pending = 0;
+    $errorMessage = "Database Error: " . $e->getMessage();
 }
 ?>
 
@@ -406,6 +423,20 @@ try {
         </div>
 
         <div class="p-6" data-aos="fade-up" data-aos-duration="800">
+            <?php if (isset($errorMessage)): ?>
+            <!-- Error Message -->
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl mb-6" role="alert">
+                <div class="flex items-center">
+                    <i class='bx bx-error-circle text-2xl mr-3'></i>
+                    <div>
+                        <p class="font-bold">Error Loading Request History</p>
+                        <p class="text-sm"><?php echo htmlspecialchars($errorMessage); ?></p>
+                        <p class="text-xs mt-1">Please check the error log at logs/error.log for more details.</p>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+            
             <!-- Stats Overview -->
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                 <div class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-yellow-500 via-yellow-400 to-yellow-300">
