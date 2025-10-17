@@ -33,17 +33,17 @@ try {
         $accessRequestNumber = $requestId;
         
         // First check if it's an individual or group request
-        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = :access_request_number";
+        $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = :access_request_number";
         $stmt = $pdo->prepare($checkQuery);
         $stmt->execute([':access_request_number' => $accessRequestNumber]);
         $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+        $requestTable = $isIndividual ? 'uar.individual_requests' : 'uar.group_requests';
 
         // Get the main request details by access_request_number
         $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
-                     FROM access_requests ar
-                     LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                     FROM uar.access_requests ar
+                     LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
                      WHERE ar.access_request_number = :access_request_number";
 
         $stmt = $pdo->prepare($mainQuery);
@@ -57,19 +57,19 @@ try {
         $requestIdInt = intval($requestId);
         
         // First check if it's an individual or group request
-        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
-                        SELECT access_request_number FROM access_requests WHERE id = :request_id
+        $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = (
+                        SELECT access_request_number FROM uar.access_requests WHERE id = :request_id
                       )";
         $stmt = $pdo->prepare($checkQuery);
         $stmt->execute([':request_id' => $requestIdInt]);
         $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+        $requestTable = $isIndividual ? 'uar.individual_requests' : 'uar.group_requests';
 
         // Get the main request details by ID
         $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
-                     FROM access_requests ar
-                     LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                     FROM uar.access_requests ar
+                     LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
                      WHERE ar.id = :request_id";
 
         $stmt = $pdo->prepare($mainQuery);

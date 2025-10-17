@@ -59,7 +59,7 @@ try {
     $pdo->beginTransaction();
 
     // First, get the request details and verify ownership
-    $query = "SELECT * FROM access_requests 
+    $query = "SELECT * FROM uar.access_requests 
               WHERE id = :request_id 
               AND employee_id = :employee_id 
               AND status NOT IN ('approved', 'rejected', 'cancelled')";
@@ -79,14 +79,14 @@ try {
     }
 
     // Insert into approval_history
-    $historySql = "INSERT INTO approval_history (
+    $historySql = "INSERT INTO uar.approval_history (
         access_request_number, action, requestor_name, business_unit, department,
         access_type, comments, system_type, duration_type, start_date,
         end_date, justification, email, employee_id, created_at
     ) VALUES (
         :access_request_number, 'cancelled', :requestor_name, :business_unit, :department,
         :access_type, :comments, :system_type, :duration_type, :start_date,
-        :end_date, :justification, :email, :employee_id, NOW()
+        :end_date, :justification, :email, :employee_id, GETDATE()
     )";
 
     $historyStmt = $pdo->prepare($historySql);
@@ -94,14 +94,14 @@ try {
     $childJust = '';
     $childAccessType = '';
     try {
-        $cj1 = $pdo->prepare("SELECT justification, access_type FROM individual_requests WHERE access_request_number = :arn LIMIT 1");
+        $cj1 = $pdo->prepare("SELECT TOP 1 justification, access_type FROM uar.individual_requests WHERE access_request_number = :arn");
         $cj1->execute(['arn' => $request['access_request_number']]);
         $cjr = $cj1->fetch(PDO::FETCH_ASSOC);
         if ($cjr) {
             $childJust = $cjr['justification'] ?? '';
             $childAccessType = $cjr['access_type'] ?? '';
         } else {
-            $cj2 = $pdo->prepare("SELECT justification, access_type FROM group_requests WHERE access_request_number = :arn LIMIT 1");
+            $cj2 = $pdo->prepare("SELECT TOP 1 justification, access_type FROM uar.group_requests WHERE access_request_number = :arn");
             $cj2->execute(['arn' => $request['access_request_number']]);
             $cjr = $cj2->fetch(PDO::FETCH_ASSOC);
             if ($cjr) {
@@ -135,7 +135,7 @@ try {
     }
 
     // Insert into cancelled_requests
-    $cancelSql = "INSERT INTO cancelled_requests (
+    $cancelSql = "INSERT INTO uar.cancelled_requests (
         access_request_number, requestor_name, business_unit, department,
         email, employee_id, access_type, system_type, other_system_type,
         justification, duration_type, start_date, end_date, cancellation_reason
@@ -168,7 +168,7 @@ try {
     }
 
     // Update access_requests status to cancelled
-    $updateSql = "UPDATE access_requests SET status = 'cancelled' WHERE id = :request_id";
+    $updateSql = "UPDATE uar.access_requests SET status = 'cancelled' WHERE id = :request_id";
     $updateStmt = $pdo->prepare($updateSql);
     $updateResult = $updateStmt->execute([':request_id' => $requestId]);
 
@@ -234,3 +234,5 @@ try {
     header("Location: request_history.php?error=db_error");
     exit();
 }
+
+

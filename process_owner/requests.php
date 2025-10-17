@@ -32,7 +32,7 @@ try {
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display
-            FROM access_requests ar 
+            FROM uar.access_requests ar 
             WHERE ar.status = 'pending_process_owner'
             AND ar.process_owner_id = :current_admin_id
             ORDER BY ar.submission_date DESC";

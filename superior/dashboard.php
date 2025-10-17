@@ -15,22 +15,22 @@ try {
     $statsData = getDashboardStats($pdo);
 
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status = 'pending_superior'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status = 'pending_superior'");
     $pendingRequests = $stmt->fetchColumn();
 
     // Get today's approvals count
     $todayDate = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'approved' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'approved' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $approvedToday = $stmt->fetchColumn();
 
     // Get today's rejections count
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'rejected' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'rejected' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $rejectedToday = $stmt->fetchColumn();
 
     // Get recent requests with date_needed from individual_requests and group_requests
-    $stmt = $pdo->query("SELECT ar.*, 
+    $stmt = $pdo->query("SELECT TOP 5 ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Your Review'
                 WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'
@@ -41,20 +41,20 @@ try {
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display,
-            (SELECT COALESCE(
-                (SELECT date_needed FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
-                (SELECT date_needed FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+            (SELECT ISNULL(
+                (SELECT TOP 1 date_needed FROM uar.individual_requests WHERE access_request_number = ar.access_request_number),
+                (SELECT TOP 1 date_needed FROM uar.group_requests WHERE access_request_number = ar.access_request_number)
             )) as date_needed
-            FROM access_requests ar 
+            FROM uar.access_requests ar 
             WHERE ar.status = 'pending_superior' 
-            ORDER BY ar.submission_date DESC LIMIT 5");
+            ORDER BY ar.submission_date DESC");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get recent approval history
-    $stmt = $pdo->query("SELECT h.*, a.username as admin_username 
-                        FROM approval_history h 
-                        LEFT JOIN admin_users a ON h.admin_id = a.id 
-                        ORDER BY h.created_at DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT TOP 5 h.*, a.username as admin_username 
+                        FROM uar.approval_history h 
+                        LEFT JOIN uar.admin_users a ON h.admin_id = a.id 
+                        ORDER BY h.created_at DESC");
     $recentApprovals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Handle database errors gracefully

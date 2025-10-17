@@ -14,7 +14,7 @@ $admin_username = $_SESSION['admin_username'] ?? '';
 try {
     // First, get the admin_users.id from the database
     // This is needed because the technical_id in approval_history matches admin_users.id, not the session admin_id
-    $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+    $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
     $adminQuery->execute([
         'username' => $admin_username,
         'employee_id' => $admin_id

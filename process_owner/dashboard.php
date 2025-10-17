@@ -12,12 +12,12 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'process_owner') {
 // Get quick stats for the dashboard
 try {
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status = 'pending'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status = 'pending'");
     $pendingRequests = $stmt->fetchColumn();
 
     // Get today's process reviews count
     $todayDate = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'process_review' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'process_review' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $processReviewsToday = $stmt->fetchColumn();
 
@@ -34,12 +34,12 @@ try {
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display,
-            COALESCE(ir.date_needed, gr.date_needed) as date_needed
-        FROM access_requests ar 
-        LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
-        LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
+            ISNULL(ir.date_needed, gr.date_needed) as date_needed
+        FROM uar.access_requests ar 
+        LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
+        LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
         WHERE ar.status = 'pending_process_owner' 
-        ORDER BY ar.submission_date DESC LIMIT 5
+        ORDER BY ar.submission_date DESC
     ");
     $stmt->execute();
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);

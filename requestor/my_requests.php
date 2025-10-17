@@ -17,8 +17,8 @@ $searchQuery = $_GET['search'] ?? '';
 
 // Prepare base query
 $query = "SELECT ar.*, e.employee_name as requestor_name 
-          FROM access_requests ar
-          LEFT JOIN employees e ON ar.employee_id = e.employee_id
+          FROM uar.access_requests ar
+          LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
           WHERE ar.employee_id = :employee_id
           AND ar.status IN ('pending_superior', 'pending_technical', 'pending_process_owner', 'pending_admin', 'approved', 'rejected', 'pending_testing', 'pending_testing_setup', 'pending_testing_review', 'cancelled')";
 

@@ -31,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         error_log("Admin login attempt for: " . $username);
 
         // Fetch user by email
-        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner', 'help_desk')");
+        $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner', 'help_desk')");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
@@ -41,7 +41,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         }
 
         // Check if user is in archive (inactive)
-        $archiveStmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
+        $archiveStmt = $pdo->prepare("SELECT * FROM uar.employees_archive WHERE employee_id = ?");
         $archiveStmt->execute([$user['employee_id']]);
         $archivedUser = $archiveStmt->fetch();
 
@@ -55,6 +55,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             exit;
         }
 
+        /*
         // Generate and store OTP (only used for development mode)
         $otp = generateOTP();
         $_SESSION['otp'] = $otp;
@@ -73,49 +74,110 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             'message' => 'OTP generated (DEV MODE). Check server logs for OTP.'
         ]);
         exit;
+        */
 
 
-        /*
         // Generate and store OTP
         $otp = generateOTP();
         $_SESSION['otp'] = $otp;
         $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
         $_SESSION['temp_admin'] = $user;
-        
+
         error_log("OTP generated for admin " . $username . ": " . $otp);
+
+        // If in debug mode, log OTP to file and allow login without email
+        if (APP_DEBUG) {
+            error_log("DEBUG MODE: OTP for admin {$username}: {$otp}");
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'OTP generated (DEBUG MODE). Check server logs for OTP.'
+            ]);
+            exit;
+        }
 
         // Send OTP via PHPMailer
         $mail = new PHPMailer\PHPMailer\PHPMailer(true); // Enable exceptions
         try {
             $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
+            $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
-            $mail->Username = 'charlesondota@gmail.com';
-            $mail->Password = 'crpf bbcb vodv xbjk';
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
             $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
-            $mail->SMTPDebug = 0; // 0 = off, 1 = client messages, 2 = client and server messages
+            $mail->Port = SMTP_PORT;
+            $mail->SMTPKeepAlive = true;
+            $mail->Mailer = "smtp";
+            
+            // Enable verbose SMTP debug output when APP_DEBUG is true
+            if (APP_DEBUG) {
+                $mail->SMTPDebug = 2; // Enable verbose debug output
+            } else {
+                $mail->SMTPDebug = 0; // Disable debug output
+            }
 
-            $mail->setFrom('charlesondota@gmail.com', 'Alsons Agribusiness');
+            // Enhanced SSL/TLS options for Gmail
+            $mail->SMTPOptions = array(
+                'ssl' => array(
+                    'verify_peer' => false,
+                    'verify_peer_name' => false,
+                    'allow_self_signed' => true
+                )
+            );
+
+            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
+            $mail->addReplyTo(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
             $mail->addAddress($user['employee_email'], $user['employee_name']);
             $mail->isHTML(true);
             $mail->Subject = 'Your Admin Portal One Time Password';
-            $mail->Body = "Hello {$user['employee_name']}, your OTP for admin login is <b>$otp</b>. It expires in 5 minutes.";
+            $mail->Body = "
+                <html>
+                <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+                    <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>
+                        <h2 style='color: #2563eb; text-align: center;'>Admin Portal Access</h2>
+                        <p>Hello <strong>{$user['employee_name']}</strong>,</p>
+                        <p>Your One Time Password (OTP) for admin login is:</p>
+                        <div style='text-align: center; margin: 30px 0;'>
+                            <span style='font-size: 32px; font-weight: bold; color: #2563eb; background: #f3f4f6; padding: 15px 30px; border-radius: 8px; letter-spacing: 5px;'>{$otp}</span>
+                        </div>
+                        <p><strong>This OTP will expire in 5 minutes.</strong></p>
+                        <p>If you did not request this OTP, please ignore this email.</p>
+                        <hr style='margin: 20px 0; border: none; border-top: 1px solid #eee;'>
+                        <p style='font-size: 12px; color: #666; text-align: center;'>
+                            This is an automated message from the User Access Request System
+                        </p>
+                    </div>
+                </body>
+                </html>
+            ";
 
             $mail->send();
-            
+
             // Ensure session is written to storage
             session_write_close();
             session_start();
-            
+
             error_log("OTP email sent successfully to " . $user['employee_email']);
             echo json_encode(['status' => 'success', 'message' => 'OTP sent successfully']);
-        } catch (Exception $e) {
-            error_log("Failed to send OTP email: " . $mail->ErrorInfo);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP: ' . $mail->ErrorInfo]);
+        } catch (\Throwable $e) {
+            error_log('send_otp exception: ' . $e->getMessage());
+            error_log('send_otp stack trace: ' . $e->getTraceAsString());
+
+            // Check for specific Gmail errors
+            $errorMessage = $e->getMessage();
+            if (strpos($errorMessage, 'Daily user sending limit exceeded') !== false) {
+                echo json_encode(['status' => 'error', 'message' => 'Gmail daily sending limit exceeded. Please try again later or contact administrator.']);
+            } elseif (strpos($errorMessage, 'Could not authenticate') !== false) {
+                echo json_encode(['status' => 'error', 'message' => 'SMTP authentication failed. Please contact administrator.']);
+            } else {
+                // Provide more detailed error message in debug mode
+                if (APP_DEBUG) {
+                    echo json_encode(['status' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+                } else {
+                    echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP. Please try again.']);
+                }
+            }
         }
         exit;
-        */
     }
 
 
@@ -143,7 +205,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                 // Ensure this user exists in admin_users table for foreign key relationships
                 try {
                     // Check if user already exists in admin_users
-                    $adminStmt = $pdo->prepare("SELECT id FROM admin_users WHERE username = ?");
+                    $adminStmt = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = ?");
                     $adminStmt->execute([$user['employee_id']]);
                     $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -152,7 +214,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                         $role = $user['role'];
                         $password = $user['password'] ?? password_hash('default123', PASSWORD_DEFAULT);
 
-                        $insertStmt = $pdo->prepare("INSERT INTO admin_users (role, username, password) 
+                        $insertStmt = $pdo->prepare("INSERT INTO uar.admin_users (role, username, password) 
                                                  VALUES (?, ?, ?)");
                         $insertStmt->execute([$role, $user['employee_id'], $password]);
 
@@ -272,7 +334,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         error_log("Login attempt for username: " . $username);
         try {
             // Check employees table for users with admin roles
-            $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner', 'help_desk')");
+            $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner', 'help_desk')");
             $stmt->execute([$username]);
             $user = $stmt->fetch();
 
@@ -283,7 +345,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
 
             // Check if user is archived (inactive)
             if ($user) {
-                $archiveStmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
+                $archiveStmt = $pdo->prepare("SELECT * FROM uar.employees_archive WHERE employee_id = ?");
                 $archiveStmt->execute([$user['employee_id']]);
                 $archivedUser = $archiveStmt->fetch();
 
@@ -302,7 +364,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                 // Ensure this user exists in admin_users table for foreign key relationships
                 try {
                     // Check if user already exists in admin_users
-                    $adminStmt = $pdo->prepare("SELECT id FROM admin_users WHERE username = ?");
+                    $adminStmt = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = ?");
                     $adminStmt->execute([$user['employee_id']]);
                     $adminUser = $adminStmt->fetch(PDO::FETCH_ASSOC);
 
@@ -311,7 +373,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                         $role = $user['role'];
                         $password = $user['password'] ?? password_hash('default123', PASSWORD_DEFAULT);
 
-                        $insertStmt = $pdo->prepare("INSERT INTO admin_users (role, username, password) 
+                        $insertStmt = $pdo->prepare("INSERT INTO uar.admin_users (role, username, password) 
                                                  VALUES (?, ?, ?)");
                         $insertStmt->execute([$role, $user['employee_id'], $password]);
 

@@ -18,7 +18,7 @@ if (
 }
 
 // Get the admin_users.id for this user to ensure correct filtering
-$adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+    $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
 $adminQuery->execute([
     'username' => $_SESSION['admin_username'] ?? '',
     'employee_id' => $_SESSION['admin_id'] ?? ''
@@ -44,11 +44,11 @@ try {
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display,
-            (SELECT COALESCE(
-                (SELECT date_needed FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
-                (SELECT date_needed FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+            (SELECT ISNULL(
+                (SELECT TOP 1 date_needed FROM uar.individual_requests WHERE access_request_number = ar.access_request_number),
+                (SELECT TOP 1 date_needed FROM uar.group_requests WHERE access_request_number = ar.access_request_number)
             )) as date_needed
-            FROM access_requests ar 
+            FROM uar.access_requests ar 
             WHERE (ar.status IN ('pending_technical', 'pending_testing_review') AND ar.technical_id = :current_admin_id)
             OR (ar.status = 'pending_testing_setup')
             ORDER BY ar.submission_date DESC";
@@ -62,7 +62,7 @@ try {
     foreach ($requests as $index => $request) {
         if ($request['status'] === 'approved' && $request['testing_status'] === 'success') {
             // Check if this request has already been moved to approval history
-            $checkSql = "SELECT COUNT(*) FROM approval_history WHERE access_request_number = ?";
+            $checkSql = "SELECT COUNT(*) FROM uar.approval_history WHERE access_request_number = ?";
             $checkStmt = $pdo->prepare($checkSql);
             $checkStmt->execute([$request['access_request_number']]);
             $exists = $checkStmt->fetchColumn();
@@ -72,7 +72,7 @@ try {
                 unset($requests[$index]);
 
                 // Also remove from access_requests table to ensure consistency
-                $deleteSql = "DELETE FROM access_requests WHERE id = ?";
+                $deleteSql = "DELETE FROM uar.access_requests WHERE id = ?";
                 $deleteStmt = $pdo->prepare($deleteSql);
                 $deleteStmt->execute([$request['id']]);
             }

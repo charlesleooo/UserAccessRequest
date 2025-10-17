@@ -28,14 +28,14 @@ $requestId = intval($_GET['id']);
 // Fetch the request details
 try {
     // First check if it's an individual or group request
-    $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
-                    SELECT access_request_number FROM access_requests WHERE id = :request_id
+    $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = (
+                    SELECT access_request_number FROM uar.access_requests WHERE id = :request_id
                   )";
     $stmt = $pdo->prepare($checkQuery);
     $stmt->execute([':request_id' => $requestId]);
     $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-    $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+    $requestTable = $isIndividual ? 'uar.individual_requests' : 'uar.group_requests';
 
     // First get the main request details
     $mainQuery = "SELECT 
@@ -44,41 +44,41 @@ try {
                     -- Superior Review Info
                     s.username as superior_username,
                     es.employee_name as superior_name,
-                    (SELECT emp.employee_name FROM employees emp 
-                     JOIN admin_users au ON emp.employee_id = au.username 
+                    (SELECT emp.employee_name FROM uar.employees emp 
+                     JOIN uar.admin_users au ON emp.employee_id = au.username 
                      WHERE au.id = ar.superior_id) as superior_reviewer_name,
                     -- Technical Review Info
                     t.username as technical_username,
                     et.employee_name as technical_name,
-                    (SELECT emp.employee_name FROM employees emp 
-                     JOIN admin_users au ON emp.employee_id = au.username 
+                    (SELECT emp.employee_name FROM uar.employees emp 
+                     JOIN uar.admin_users au ON emp.employee_id = au.username 
                      WHERE au.id = ar.technical_id) as technical_reviewer_name,
                     -- Process Owner Review Info
                     p.username as process_owner_username,
                     ep.employee_name as process_owner_name,
-                    (SELECT emp.employee_name FROM employees emp 
-                     JOIN admin_users au ON emp.employee_id = au.username 
+                    (SELECT emp.employee_name FROM uar.employees emp 
+                     JOIN uar.admin_users au ON emp.employee_id = au.username 
                      WHERE au.id = ar.process_owner_id) as process_owner_reviewer_name,
                     -- Admin Review Info
                     a.username as admin_username,
                     ea.employee_name as admin_name,
-                    (SELECT emp.employee_name FROM employees emp 
-                     JOIN admin_users au ON emp.employee_id = au.username 
+                    (SELECT emp.employee_name FROM uar.employees emp 
+                     JOIN uar.admin_users au ON emp.employee_id = au.username 
                      WHERE au.id = ar.admin_id) as admin_reviewer_name
-                FROM access_requests ar
-                LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                FROM uar.access_requests ar
+                LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
                 -- Superior Info
-                LEFT JOIN admin_users s ON ar.superior_id = s.id
-                LEFT JOIN employees es ON s.username = es.employee_id
+                LEFT JOIN uar.admin_users s ON ar.superior_id = s.id
+                LEFT JOIN uar.employees es ON s.username = es.employee_id
                 -- Technical Support Info
-                LEFT JOIN admin_users t ON ar.technical_id = t.id
-                LEFT JOIN employees et ON t.username = et.employee_id
+                LEFT JOIN uar.admin_users t ON ar.technical_id = t.id
+                LEFT JOIN uar.employees et ON t.username = et.employee_id
                 -- Process Owner Info
-                LEFT JOIN admin_users p ON ar.process_owner_id = p.id
-                LEFT JOIN employees ep ON p.username = ep.employee_id
+                LEFT JOIN uar.admin_users p ON ar.process_owner_id = p.id
+                LEFT JOIN uar.employees ep ON p.username = ep.employee_id
                 -- Admin Info
-                LEFT JOIN admin_users a ON ar.admin_id = a.id
-                LEFT JOIN employees ea ON a.username = ea.employee_id
+                LEFT JOIN uar.admin_users a ON ar.admin_id = a.id
+                LEFT JOIN uar.employees ea ON a.username = ea.employee_id
                 WHERE ar.id = :request_id";
 
     $stmt = $pdo->prepare($mainQuery);
@@ -120,32 +120,32 @@ try {
                         CASE
                             WHEN ah.admin_id IS NOT NULL THEN (
                                 SELECT CONCAT(e.employee_name, ' (Admin)')
-                                FROM admin_users au 
-                                JOIN employees e ON au.username = e.employee_id 
+                                FROM uar.admin_users au 
+                                JOIN uar.employees e ON au.username = e.employee_id 
                                 WHERE au.id = ah.admin_id
                             )
                             WHEN ah.superior_id IS NOT NULL THEN (
                                 SELECT CONCAT(e.employee_name, ' (Superior)')
-                                FROM admin_users au 
-                                JOIN employees e ON au.username = e.employee_id 
+                                FROM uar.admin_users au 
+                                JOIN uar.employees e ON au.username = e.employee_id 
                                 WHERE au.id = ah.superior_id
                             )
                             WHEN ah.help_desk_id IS NOT NULL THEN (
                                 SELECT CONCAT(e.employee_name, ' (Help Desk)')
-                                FROM admin_users au 
-                                JOIN employees e ON au.username = e.employee_id 
+                                FROM uar.admin_users au 
+                                JOIN uar.employees e ON au.username = e.employee_id 
                                 WHERE au.id = ah.help_desk_id
                             )
                             WHEN ah.technical_id IS NOT NULL THEN (
                                 SELECT CONCAT(e.employee_name, ' (Technical Support)')
-                                FROM admin_users au 
-                                JOIN employees e ON au.username = e.employee_id 
+                                FROM uar.admin_users au 
+                                JOIN uar.employees e ON au.username = e.employee_id 
                                 WHERE au.id = ah.technical_id
                             )
                             WHEN ah.process_owner_id IS NOT NULL THEN (
                                 SELECT CONCAT(e.employee_name, ' (Process Owner)')
-                                FROM admin_users au 
-                                JOIN employees e ON au.username = e.employee_id 
+                                FROM uar.admin_users au 
+                                JOIN uar.employees e ON au.username = e.employee_id 
                                 WHERE au.id = ah.process_owner_id
                             )
                             ELSE 'Unknown User'
@@ -158,7 +158,7 @@ try {
                             WHEN ah.process_owner_id IS NOT NULL THEN ah.process_owner_notes
                             ELSE NULL
                         END as notes
-                     FROM approval_history ah
+                     FROM uar.approval_history ah
                      WHERE ah.request_id = :request_id
                      ORDER BY ah.created_at ASC";
 

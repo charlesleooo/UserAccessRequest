@@ -42,20 +42,20 @@ try {
               superior_emp.employee_name as superior_employee_name,
               helpdesk_emp.employee_name as helpdesk_employee_name,
               process_emp.employee_name as process_owner_employee_name,
-              COALESCE(ir.justification, gr.justification, ah.justification) as original_justification
-              FROM approval_history ah
-              LEFT JOIN admin_users admin ON ah.admin_id = admin.id
-              LEFT JOIN employees admin_emp ON admin.username = admin_emp.employee_id
-              LEFT JOIN admin_users tech_admin ON ah.technical_id = tech_admin.id
-              LEFT JOIN employees tech_emp ON tech_admin.username = tech_emp.employee_id
-              LEFT JOIN admin_users superior_admin ON ah.superior_id = superior_admin.id
-              LEFT JOIN employees superior_emp ON superior_admin.username = superior_emp.employee_id
-              LEFT JOIN admin_users helpdesk_admin ON ah.help_desk_id = helpdesk_admin.id
-              LEFT JOIN employees helpdesk_emp ON helpdesk_admin.username = helpdesk_emp.employee_id
-              LEFT JOIN admin_users process_admin ON ah.process_owner_id = process_admin.id
-              LEFT JOIN employees process_emp ON process_admin.username = process_emp.employee_id
-              LEFT JOIN individual_requests ir ON ah.access_request_number = ir.access_request_number
-              LEFT JOIN group_requests gr ON ah.access_request_number = gr.access_request_number
+              ISNULL(ir.justification, ISNULL(gr.justification, ah.justification)) as original_justification
+              FROM uar.approval_history ah
+              LEFT JOIN uar.admin_users admin ON ah.admin_id = admin.id
+              LEFT JOIN uar.employees admin_emp ON admin.username = admin_emp.employee_id
+              LEFT JOIN uar.admin_users tech_admin ON ah.technical_id = tech_admin.id
+              LEFT JOIN uar.employees tech_emp ON tech_admin.username = tech_emp.employee_id
+              LEFT JOIN uar.admin_users superior_admin ON ah.superior_id = superior_admin.id
+              LEFT JOIN uar.employees superior_emp ON superior_admin.username = superior_emp.employee_id
+              LEFT JOIN uar.admin_users helpdesk_admin ON ah.help_desk_id = helpdesk_admin.id
+              LEFT JOIN uar.employees helpdesk_emp ON helpdesk_admin.username = helpdesk_emp.employee_id
+              LEFT JOIN uar.admin_users process_admin ON ah.process_owner_id = process_admin.id
+              LEFT JOIN uar.employees process_emp ON process_admin.username = process_emp.employee_id
+              LEFT JOIN uar.individual_requests ir ON ah.access_request_number = ir.access_request_number
+              LEFT JOIN uar.group_requests gr ON ah.access_request_number = gr.access_request_number
               WHERE ah.history_id = :history_id AND ah.requestor_name = :requestor_name";
 
     $stmt = $pdo->prepare($query);

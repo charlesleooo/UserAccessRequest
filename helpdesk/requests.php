@@ -33,10 +33,10 @@ try {
                 ELSE ar.status
             END as status_display,
             (SELECT COALESCE(
-                (SELECT date_needed FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
-                (SELECT date_needed FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+                (SELECT TOP 1 date_needed FROM uar.individual_requests WHERE access_request_number = ar.access_request_number),
+                (SELECT TOP 1 date_needed FROM uar.group_requests WHERE access_request_number = ar.access_request_number)
             )) as date_needed
-            FROM access_requests ar
+            FROM uar.access_requests ar
             WHERE ar.status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review')
             ORDER BY ar.submission_date DESC";
 
@@ -48,7 +48,7 @@ try {
     foreach ($requests as $index => $request) {
         if ($request['status'] === 'approved' && $request['testing_status'] === 'success') {
             // Check if this request has already been moved to approval history
-            $checkSql = "SELECT COUNT(*) FROM approval_history WHERE access_request_number = ?";
+            $checkSql = "SELECT COUNT(*) FROM uar.approval_history WHERE access_request_number = ?";
             $checkStmt = $pdo->prepare($checkSql);
             $checkStmt->execute([$request['access_request_number']]);
             $exists = $checkStmt->fetchColumn();
@@ -58,7 +58,7 @@ try {
                 unset($requests[$index]);
 
                 // Also remove from access_requests table to ensure consistency
-                $deleteSql = "DELETE FROM access_requests WHERE id = ?";
+                $deleteSql = "DELETE FROM uar.access_requests WHERE id = ?";
                 $deleteStmt = $pdo->prepare($deleteSql);
                 $deleteStmt->execute([$request['id']]);
             }

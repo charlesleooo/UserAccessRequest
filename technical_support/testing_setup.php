@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id'])) {
         $additional_notes = $_POST['additional_notes'];
         
         // Get request details
-        $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE id = ?");
+        $stmt = $pdo->prepare("SELECT * FROM uar.access_requests WHERE id = ?");
         $stmt->execute([$request_id]);
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
         
@@ -31,14 +31,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id'])) {
         }
         
         // Update request with testing details and change status
-        $sql = "UPDATE access_requests SET 
+        $sql = "UPDATE uar.access_requests SET 
                 status = 'pending_testing',
                 testing_status = 'pending',
                 testing_instructions = :testing_instructions,
                 testing_credentials = :testing_credentials,
                 tech_support_notes = :additional_notes,
                 tech_support_id = :tech_support_id,
-                tech_support_setup_date = NOW()
+                tech_support_setup_date = GETDATE()
                 WHERE id = :request_id";
                 
         $stmt = $pdo->prepare($sql);
@@ -130,7 +130,7 @@ $request = null;
 
 if ($request_id) {
     $stmt = $pdo->prepare("
-        SELECT * FROM access_requests 
+        SELECT * FROM uar.access_requests 
         WHERE id = ? AND status = 'pending_testing_setup'
     ");
     $stmt->execute([$request_id]);

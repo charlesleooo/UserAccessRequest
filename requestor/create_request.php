@@ -21,7 +21,7 @@ error_log("Username: " . $username);
 
 // Fetch requestor's complete information
 try {
-    $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_id = ?");
+    $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_id = ?");
     $stmt->execute([$requestorId]);
     $requestorInfo = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -91,10 +91,10 @@ $systemApplications = [
 try {
     $stmt = $pdo->prepare("SELECT 
         COUNT(*) as total,
-        SUM(status = 'approved') as approved,
-        SUM(status = 'rejected') as rejected,
-        SUM(status = 'pending') as pending
-        FROM access_requests
+        SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
+        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending
+        FROM uar.access_requests
         WHERE requestor_id = ?");
     $stmt->execute([$requestorId]);
     $data = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -107,7 +107,7 @@ try {
     $approvalRate = $total > 0 ? round(($approved / $total) * 100, 1) : 0;
     $declineRate = $total > 0 ? round(($rejected / $total) * 100, 1) : 0;
 
-    $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE requestor_id = ? ORDER BY submission_date DESC LIMIT 5");
+    $stmt = $pdo->prepare("SELECT TOP 5 * FROM uar.access_requests WHERE requestor_id = ? ORDER BY submission_date DESC");
     $stmt->execute([$requestorId]);
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

@@ -19,17 +19,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_encryption_cod
 
         try {
             // Check if an encryption code already exists for this user
-            $checkStmt = $pdo->prepare("SELECT id FROM user_encryption_codes WHERE user_id = ?");
+            $checkStmt = $pdo->prepare("SELECT id FROM uar.user_encryption_codes WHERE user_id = ?");
             $checkStmt->execute([$userId]);
             $existingCode = $checkStmt->fetch(PDO::FETCH_ASSOC);
 
             if ($existingCode) {
                 // Update existing code
-                $updateStmt = $pdo->prepare("UPDATE user_encryption_codes SET encryption_code = ?, updated_at = NOW() WHERE user_id = ?");
+                $updateStmt = $pdo->prepare("UPDATE uar.user_encryption_codes SET encryption_code = ?, updated_at = GETDATE() WHERE user_id = ?");
                 $result = $updateStmt->execute([$newCode, $userId]);
             } else {
                 // Insert new code
-                $insertStmt = $pdo->prepare("INSERT INTO user_encryption_codes (user_id, encryption_code, created_at, updated_at) VALUES (?, ?, NOW(), NOW())");
+                $insertStmt = $pdo->prepare("INSERT INTO uar.user_encryption_codes (user_id, encryption_code, created_at, updated_at) VALUES (?, ?, GETDATE(), GETDATE())");
                 $result = $insertStmt->execute([$userId, $newCode]);
             }
 
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_encryption_cod
 // Check if user has an existing encryption code
 try {
     $userId = $_SESSION['admin_id'];
-    $stmt = $pdo->prepare("SELECT encryption_code FROM user_encryption_codes WHERE user_id = ?");
+    $stmt = $pdo->prepare("SELECT encryption_code FROM uar.user_encryption_codes WHERE user_id = ?");
     $stmt->execute([$userId]);
     $userCode = $stmt->fetch(PDO::FETCH_ASSOC);
     $hasExistingCode = !empty($userCode);

@@ -18,7 +18,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
     error_log("Password reset attempt for: " . $employee_email);
     
     // Check if email exists
-    $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ?");
+    $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_email = ?");
     $stmt->execute([$employee_email]);
     $user = $stmt->fetch();
     
@@ -38,11 +38,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
     
     try {
         // Delete any existing tokens for this email
-        $stmt = $pdo->prepare("DELETE FROM password_resets WHERE employee_email = ?");
+        $stmt = $pdo->prepare("DELETE FROM uar.password_resets WHERE employee_email = ?");
         $stmt->execute([$employee_email]);
         
         // Insert new token
-        $stmt = $pdo->prepare("INSERT INTO password_resets (employee_email, token, expires_at) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO uar.password_resets (employee_email, token, expires_at) VALUES (?, ?, ?)");
         $stmt->execute([$employee_email, $token, $expires]);
         
         // Create reset URL with proper encoding and path construction

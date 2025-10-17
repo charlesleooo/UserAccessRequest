@@ -37,20 +37,28 @@ if (!isset($_POST['request_id']) || !isset($_POST['action']) || !isset($_POST['r
 }
 
 try {
+    // Use a fresh PDO connection to avoid transaction conflicts
+    $cleanPdo = getCleanPDOConnection();
+    if (!$cleanPdo) {
+        throw new Exception('Unable to establish database connection');
+    }
+    
     // Get the admin_users id for the current admin
-    $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+    $adminQuery = $cleanPdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
     $adminQuery->execute([
         'username' => $_SESSION['admin_username'] ?? '',
         'employee_id' => $_SESSION['admin_id'] ?? ''
     ]);
     $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+    $adminQuery->closeCursor();
     $admin_users_id = $adminRecord ? $adminRecord['id'] : null;
 
     if (!$admin_users_id) {
         // Try to find by role as a fallback
-        $roleQuery = $pdo->prepare("SELECT id FROM admin_users WHERE role = :role LIMIT 1");
+        $roleQuery = $cleanPdo->prepare("SELECT TOP 1 id FROM uar.admin_users WHERE role = :role");
         $roleQuery->execute(['role' => $_SESSION['role']]);
         $roleRecord = $roleQuery->fetch(PDO::FETCH_ASSOC);
+        $roleQuery->closeCursor();
         $admin_users_id = $roleRecord ? $roleRecord['id'] : null;
 
         if (!$admin_users_id) {
@@ -58,8 +66,7 @@ try {
         }
     }
 
-    $pdo->beginTransaction();
-    $transaction_active = true;
+    // Defer starting a transaction until just before the first write
 
     $request_id = $_POST['request_id'];
     $action = $_POST['action'];
@@ -72,9 +79,10 @@ try {
     $forward_user_id = $_POST['user_id'] ?? null;
 
     // Get current request status
-    $stmt = $pdo->prepare("SELECT * FROM access_requests WHERE id = ?");
+    $stmt = $cleanPdo->prepare("SELECT * FROM uar.access_requests WHERE id = ?");
     $stmt->execute([$request_id]);
     $request = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt->closeCursor();
 
     if (!$request) {
         throw new Exception('Request not found');
@@ -127,18 +135,21 @@ try {
                     $next_status = 'pending_testing';
 
                     // Update request with testing instructions and move to testing phase
-                    $sql = "UPDATE access_requests SET 
+                    $sql = "UPDATE uar.access_requests SET 
                             status = 'pending_testing',
                             testing_status = 'pending',
                             testing_instructions = :review_notes,
                             technical_id = :admin_users_id,
-                            technical_review_date = NOW(),
-                            technical_notes = CONCAT(COALESCE(technical_notes, ''), '\n\nTesting Setup: ', :review_notes)
+                            technical_review_date = GETDATE(),
+                            technical_notes = COALESCE(technical_notes, '') + '\n\nTesting Setup: ' + :review_notes_2
                             WHERE id = :request_id";
 
-                    $stmt = $pdo->prepare($sql);
+                    // Start transaction for write
+                    if (!$transaction_active) { $cleanPdo->beginTransaction(); $transaction_active = true; }
+                    $stmt = $cleanPdo->prepare($sql);
                     $result = $stmt->execute([
                         'review_notes' => $review_notes,
+                        'review_notes_2' => $review_notes,
                         'admin_users_id' => $admin_users_id,
                         'request_id' => $request_id
                     ]);
@@ -153,15 +164,15 @@ try {
                     try {
                         // Server settings
                         $mail->isSMTP();
-                        $mail->Host = 'smtp.gmail.com';
+                        $mail->Host = SMTP_HOST;
                         $mail->SMTPAuth = true;
-                        $mail->Username = 'charlesondota@gmail.com';
-                        $mail->Password = 'crpf bbcb vodv xbjk';
+                        $mail->Username = SMTP_USERNAME;
+                        $mail->Password = SMTP_PASSWORD;
                         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                        $mail->Port = 587;
+                        $mail->Port = SMTP_PORT;
 
                         // Recipients
-                        $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                        $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, 'Access Request System');
                         $mail->addAddress($request['employee_email'], $request['requestor_name']);
 
                         // Content
@@ -199,23 +210,26 @@ try {
                         $message = "Testing instructions processed, but email notification failed.";
                     }
 
-                    $pdo->commit();
-                    $transaction_active = false;
+                    if ($transaction_active) {
+                        $cleanPdo->commit();
+                        $transaction_active = false;
+                    }
 
                     echo json_encode([
                         'success' => true,
                         'message' => $message
                     ]);
-                    return;
+                    exit();
                 } else {
                     $next_status = 'rejected';
                 }
             } else {
                 // Handle regular technical review
                 // Check if this request came from process owner by checking if process_owner_id is set
-                $stmt = $pdo->prepare("SELECT process_owner_id FROM access_requests WHERE id = ?");
+                $stmt = $cleanPdo->prepare("SELECT process_owner_id FROM uar.access_requests WHERE id = ?");
                 $stmt->execute([$request_id]);
                 $result = $stmt->fetch(PDO::FETCH_ASSOC);
+                $stmt->closeCursor();
                 $came_from_process_owner = !empty($result['process_owner_id']);
 
                 // Technical support should recommend to admin, not automatically approve
@@ -246,22 +260,22 @@ try {
                     $next_status = 'pending_testing_setup';
 
                     // Get a technical support user to assign the request to
-                    $techStmt = $pdo->prepare("
-                        SELECT a.id 
-                        FROM admin_users a
-                        INNER JOIN employees e ON a.username = e.employee_id
+                    $techStmt = $cleanPdo->prepare("
+                        SELECT TOP 1 a.id 
+                        FROM uar.admin_users a
+                        INNER JOIN uar.employees e ON a.username = e.employee_id
                         WHERE e.role = 'technical_support'
-                        LIMIT 1
                     ");
                     $techStmt->execute();
                     $techUser = $techStmt->fetch(PDO::FETCH_ASSOC);
+                    $techStmt->closeCursor();
                     $techUserId = $techUser ? $techUser['id'] : null;
 
                     // Update the request to include admin approval and move to technical support
-                    $sql = "UPDATE access_requests SET 
+                    $sql = "UPDATE uar.access_requests SET 
                             status = :next_status,
                             admin_id = :admin_users_id,
-                            admin_review_date = NOW(),
+                            admin_review_date = GETDATE(),
                             admin_notes = :review_notes,
                             testing_status = 'not_required'";
                     
@@ -271,7 +285,8 @@ try {
                     
                     $sql .= " WHERE id = :request_id";
 
-                    $stmt = $pdo->prepare($sql);
+                    if (!$transaction_active) { $cleanPdo->beginTransaction(); $transaction_active = true; }
+                    $stmt = $cleanPdo->prepare($sql);
                     $params = [
                         'next_status' => $next_status,
                         'admin_users_id' => $admin_users_id,
@@ -296,15 +311,15 @@ try {
                     try {
                         // Server settings
                         $mail->isSMTP();
-                        $mail->Host = 'smtp.gmail.com';
+                        $mail->Host = SMTP_HOST;
                         $mail->SMTPAuth = true;
-                        $mail->Username = 'charlesondota@gmail.com';
-                        $mail->Password = 'crpf bbcb vodv xbjk';
+                        $mail->Username = SMTP_USERNAME;
+                        $mail->Password = SMTP_PASSWORD;
                         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-                        $mail->Port = 587;
+                        $mail->Port = SMTP_PORT;
 
                         // Recipients
-                        $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+                        $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, 'Access Request System');
                         // Add technical support team email here
                         $mail->addAddress('charlesondota@gmail.com', 'Technical Support Team');
 
@@ -358,8 +373,10 @@ try {
                     }
 
                     // Return early since we've handled everything for testing setup phase
-                    $pdo->commit();
-                    $transaction_active = false;
+                    if ($transaction_active) {
+                        $cleanPdo->commit();
+                        $transaction_active = false;
+                    }
 
                     echo json_encode([
                         'success' => true,
@@ -380,13 +397,13 @@ try {
             } else if ($action === 'retry_testing' && $current_status === 'pending_testing' && $request['testing_status'] === 'failed') {
                 // Reset testing status for retry
                 $next_status = 'pending_testing_setup';
-                $sql = "UPDATE access_requests SET 
+                $sql = "UPDATE uar.access_requests SET 
                         status = :next_status,
                         testing_status = 'not_required',
-                        testing_notes = CONCAT('Previous testing failed. Retrying testing. ', :review_notes)
+                        testing_notes = COALESCE(testing_notes, '') + 'Previous testing failed. Retrying testing. ' + :review_notes
                         WHERE id = :request_id";
 
-                $stmt = $pdo->prepare($sql);
+                $stmt = $cleanPdo->prepare($sql);
                 $result = $stmt->execute([
                     'next_status' => $next_status,
                     'review_notes' => $review_notes,
@@ -398,14 +415,16 @@ try {
                 }
 
                 $message = "Request has been sent back for testing retry.";
-                $pdo->commit();
-                $transaction_active = false;
+                if ($transaction_active) {
+                    $cleanPdo->commit();
+                    $transaction_active = false;
+                }
 
                 echo json_encode([
                     'success' => true,
                     'message' => $message
                 ]);
-                return;
+                exit();
             } else {
                 $next_status = 'rejected';
             }
@@ -431,10 +450,10 @@ try {
 
         // Verify the selected user exists and has the correct role in employees table
         $expected_role = $forward_to; // forward_to now directly contains the role name
-        $userStmt = $pdo->prepare("
+        $userStmt = $cleanPdo->prepare("
             SELECT a.id, a.username, e.role as employee_role
-            FROM admin_users a
-            INNER JOIN employees e ON a.username = e.employee_id
+            FROM uar.admin_users a
+            INNER JOIN uar.employees e ON a.username = e.employee_id
             WHERE a.id = :user_id AND e.role = :role
         ");
         $userStmt->execute([
@@ -442,6 +461,7 @@ try {
             'role' => $expected_role
         ]);
         $forwardUser = $userStmt->fetch(PDO::FETCH_ASSOC);
+        $userStmt->closeCursor();
 
         if (!$forwardUser) {
             throw new Exception('Selected user is not valid for forwarding - user does not have the required role');
@@ -449,10 +469,10 @@ try {
     }
 
     // Update request status and add review details
-    $sql = "UPDATE access_requests SET 
+    $sql = "UPDATE uar.access_requests SET 
             status = :next_status,
             $id_field = :admin_users_id,
-            $date_field = NOW(),
+            $date_field = GETDATE(),
             $notes_field = :review_notes";
 
     // If help desk is forwarding, set the next reviewer's ID
@@ -472,7 +492,8 @@ try {
 
     $sql .= " WHERE id = :request_id";
 
-    $stmt = $pdo->prepare($sql);
+    if (!$transaction_active) { $cleanPdo->beginTransaction(); $transaction_active = true; }
+    $stmt = $cleanPdo->prepare($sql);
     $params = [
         'next_status' => $next_status,
         'admin_users_id' => $admin_users_id,
@@ -499,15 +520,15 @@ try {
         try {
             // Server settings
             $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
+            $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
-            $mail->Username = 'charlesondota@gmail.com';
-            $mail->Password = 'crpf bbcb vodv xbjk';
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
+            $mail->Port = SMTP_PORT;
 
             // Recipients
-            $mail->setFrom('charlesondota@gmail.com', 'Access Request System');
+            $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, 'Access Request System');
             $mail->addAddress($request['employee_email'], $request['requestor_name']);
 
             // Content
@@ -569,12 +590,12 @@ try {
     if ($role === 'help_desk' && $action === 'approve' && in_array($next_status, ['pending_technical', 'pending_process_owner'])) {
         // Get the forwarded user's email directly from employees table
         // admin_users.username matches employees.employee_id
-        $notifyStmt = $pdo->prepare("
+        $notifyStmt = $cleanPdo->prepare("
             SELECT e.employee_email as email,
                    e.employee_name as name,
                    e.employee_id
-            FROM admin_users a
-            INNER JOIN employees e ON a.username = e.employee_id
+            FROM uar.admin_users a
+            INNER JOIN uar.employees e ON a.username = e.employee_id
             WHERE a.id = :forward_user_id
         ");
         $notifyStmt->execute(['forward_user_id' => $forward_user_id]);
@@ -594,7 +615,7 @@ try {
                 $mail->Port = SMTP_PORT;
 
                 // Recipients
-                $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, SMTP_FROM_NAME);
+                $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, 'Access Request System');
                 $mail->addAddress($forwardUser['email'], $forwardUser['name']);
 
                 // Content
@@ -648,7 +669,7 @@ try {
 
     if ($should_create_history) {
         // Get the current request data for history
-        $requestDataQuery = $pdo->prepare("
+        $requestDataQuery = $cleanPdo->prepare("
             SELECT 
                 id, 
                 access_request_number, 
@@ -668,7 +689,7 @@ try {
                 technical_notes, 
                 admin_id
             FROM 
-                access_requests 
+                uar.access_requests 
             WHERE 
                 id = :request_id
         ");
@@ -681,14 +702,14 @@ try {
             $childAccessType = '';
             $childJustification = '';
             try {
-                $cj1 = $pdo->prepare("SELECT justification, access_type FROM individual_requests WHERE access_request_number = :arn LIMIT 1");
+                $cj1 = $cleanPdo->prepare("SELECT TOP 1 justification, access_type FROM uar.individual_requests WHERE access_request_number = :arn");
                 $cj1->execute(['arn' => $requestData['access_request_number']]);
                 $cjr = $cj1->fetch(PDO::FETCH_ASSOC);
                 if ($cjr) {
                     $childJustification = $cjr['justification'] ?? '';
                     $childAccessType = $cjr['access_type'] ?? '';
                 } else {
-                    $cj2 = $pdo->prepare("SELECT justification, access_type FROM group_requests WHERE access_request_number = :arn LIMIT 1");
+                    $cj2 = $cleanPdo->prepare("SELECT TOP 1 justification, access_type FROM uar.group_requests WHERE access_request_number = :arn");
                     $cj2->execute(['arn' => $requestData['access_request_number']]);
                     $cjr = $cj2->fetch(PDO::FETCH_ASSOC);
                     if ($cjr) {
@@ -700,9 +721,9 @@ try {
                 $childAccessType = '';
                 $childJustification = '';
             }
-            // Insert into approval_history table
-            $historyInsert = $pdo->prepare("
-                INSERT INTO approval_history (
+            // Insert into approval history with explicit schema and required columns
+            $historyInsert = $cleanPdo->prepare("
+                INSERT INTO uar.approval_history (
                     access_request_number,
                     requestor_name, 
                     employee_id, 
@@ -715,6 +736,7 @@ try {
                     duration_type, 
                     start_date, 
                     end_date,
+                    contact_number,
                     superior_id, 
                     superior_notes,
                     help_desk_id, 
@@ -740,6 +762,7 @@ try {
                     :duration_type, 
                     :start_date, 
                     :end_date,
+                    :contact_number,
                     :superior_id, 
                     :superior_notes,
                     :help_desk_id, 
@@ -751,7 +774,7 @@ try {
                     :admin_id, 
                     :action, 
                     :comments,
-                    NOW()
+                    GETDATE()
                 )
             ");
 
@@ -769,9 +792,9 @@ try {
                 $decision_maker_notes = $requestData['process_owner_notes'];
             }
 
-            // We need to use the specific ID of the role who is making the action
-            // This ensures that the review shows up in the correct review history
-            $currentRoleId = $_SESSION['admin_id'];
+            // Use admin_users.id for the acting reviewer, not employees.employee_id
+            // This matches the integer FK columns in approval_history
+            $currentRoleId = $admin_users_id;
 
             // Fallbacks for duration-related fields come from child tables as well
             $derivedDurationType = null;
@@ -781,12 +804,12 @@ try {
                 if (!empty($childAccessType) || !empty($childJustification)) {
                     // reuse last child lookup result if available; if not, query for date fields
                     if (!isset($cjr) || !$cjr) {
-                        $dj1 = $pdo->prepare("SELECT access_duration AS duration_type, start_date, end_date FROM individual_requests WHERE access_request_number = :arn LIMIT 1");
+                        $dj1 = $cleanPdo->prepare("SELECT TOP 1 access_duration AS duration_type, start_date, end_date FROM uar.individual_requests WHERE access_request_number = :arn");
                         $dj1->execute(['arn' => $requestData['access_request_number']]);
                         $cjr = $dj1->fetch(PDO::FETCH_ASSOC);
                     }
                     if (!$cjr) {
-                        $dj2 = $pdo->prepare("SELECT access_duration AS duration_type, start_date, end_date FROM group_requests WHERE access_request_number = :arn LIMIT 1");
+                        $dj2 = $cleanPdo->prepare("SELECT TOP 1 access_duration AS duration_type, start_date, end_date FROM uar.group_requests WHERE access_request_number = :arn");
                         $dj2->execute(['arn' => $requestData['access_request_number']]);
                         $cjr = $dj2->fetch(PDO::FETCH_ASSOC);
                     }
@@ -815,6 +838,7 @@ try {
                 'duration_type' => $derivedDurationType,
                 'start_date' => $derivedStart,
                 'end_date' => $derivedEnd,
+                'contact_number' => '',
                 'superior_id' => $role === 'superior' ? $currentRoleId : $requestData['superior_id'],
                 'superior_notes' => $requestData['superior_notes'],
                 'help_desk_id' => $role === 'help_desk' ? $currentRoleId : $requestData['help_desk_id'],
@@ -845,8 +869,10 @@ try {
         }
     }
 
-    $pdo->commit();
-    $transaction_active = false;
+    if ($transaction_active) {
+        $cleanPdo->commit();
+        $transaction_active = false;
+    }
 
     echo json_encode([
         'success' => true,
@@ -854,11 +880,16 @@ try {
     ]);
 } catch (Exception $e) {
     if ($transaction_active) {
-        $pdo->rollBack();
+        $cleanPdo->rollBack();
         $transaction_active = false;
     }
+    // Ensure clean state for next request
+    ensureCleanTransaction($cleanPdo);
     echo json_encode([
         'success' => false,
         'message' => $e->getMessage()
     ]);
+} finally {
+    // Clean up the connection
+    $cleanPdo = null;
 }

@@ -37,14 +37,13 @@ if (isset($_GET['id'])) {
 try {
     if ($fromHistory && $accessRequestNumber) {
         // For requests from history, try to get data from approval_history first
-        $mainQuery = "SELECT ah.*, 
-                            COALESCE(e.employee_name, ah.requestor_name) as requestor_name,
-                            COALESCE(e.employee_email, ah.email) as employee_email
-                     FROM approval_history ah
-                     LEFT JOIN employees e ON ah.employee_id = e.employee_id
-                     WHERE ah.access_request_number = :access_request_number
-                     ORDER BY ah.created_at DESC
-                     LIMIT 1";
+        $mainQuery = "SELECT TOP 1 ah.*, 
+                            ISNULL(e.employee_name, ah.requestor_name) as requestor_name,
+                            ISNULL(e.employee_email, ah.email) as employee_email
+                     FROM uar.approval_history ah
+                     LEFT JOIN uar.employees e ON ah.employee_id = e.employee_id
+                     WHERE ah.access_request_number = :access_request_number 
+                     ORDER BY ah.created_at DESC";
 
         $stmt = $pdo->prepare($mainQuery);
         $stmt->execute([':access_request_number' => $accessRequestNumber]);
@@ -52,12 +51,11 @@ try {
 
         // If not found in approval_history, try access_requests table
         if (!$historyRequest) {
-            $fallbackQuery = "SELECT ar.*, e.employee_name as requestor_name
-                             FROM access_requests ar
-                             LEFT JOIN employees e ON ar.employee_id = e.employee_id
-                             WHERE ar.access_request_number = :access_request_number
-                             AND ar.process_owner_id IS NOT NULL
-                             LIMIT 1";
+            $fallbackQuery = "SELECT TOP 1 ar.*, e.employee_name as requestor_name
+                             FROM uar.access_requests ar
+                             LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
+                             WHERE ar.access_request_number = :access_request_number 
+                             AND ar.process_owner_id IS NOT NULL";
             
             $stmt = $pdo->prepare($fallbackQuery);
             $stmt->execute([':access_request_number' => $accessRequestNumber]);
@@ -70,9 +68,9 @@ try {
         }
 
         // Get all usernames, date_needed, and justification from individual_requests or group_requests
-        $detailsQuery = "SELECT username, date_needed, justification, application_system, access_type, access_duration, start_date, end_date FROM individual_requests WHERE access_request_number = :access_request_number 
+        $detailsQuery = "SELECT username, date_needed, justification, application_system, access_type, access_duration, start_date, end_date FROM uar.individual_requests WHERE access_request_number = :access_request_number 
                          UNION 
-                         SELECT username, date_needed, justification, application_system, access_type, access_duration, start_date, end_date FROM group_requests WHERE access_request_number = :access_request_number 
+                         SELECT username, date_needed, justification, application_system, access_type, access_duration, start_date, end_date FROM uar.group_requests WHERE access_request_number = :access_request_number 
                          ORDER BY username";
         $stmt = $pdo->prepare($detailsQuery);
         $stmt->execute([':access_request_number' => $accessRequestNumber]);
@@ -129,19 +127,19 @@ try {
     } else {
         // Original logic for pending requests
         // First check if it's an individual or group request
-        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
-                        SELECT access_request_number FROM access_requests WHERE id = :request_id
+        $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = (
+                        SELECT access_request_number FROM uar.access_requests WHERE id = :request_id
                       )";
         $stmt = $pdo->prepare($checkQuery);
         $stmt->execute([':request_id' => $requestId]);
         $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+        $requestTable = $isIndividual ? 'uar.individual_requests' : 'uar.group_requests';
 
         // First get the main request details
         $mainQuery = "SELECT ar.*, e.employee_name as requestor_name
-                     FROM access_requests ar
-                     LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                     FROM uar.access_requests ar
+                     LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
                      WHERE ar.id = :request_id";
 
         $stmt = $pdo->prepare($mainQuery);

@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         error_log("Sign up email check for: " . $employee_email);
         
         // Fetch employee by email
-        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ?");
+        $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_email = ?");
         $stmt->execute([$employee_email]);
         $user = $stmt->fetch();
 
@@ -122,7 +122,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
         // Update password in database
-        $stmt = $pdo->prepare("UPDATE employees SET password = ?, is_temp_password = 0 WHERE employee_id = ?");
+        $stmt = $pdo->prepare("UPDATE uar.employees SET password = ?, is_temp_password = 0 WHERE employee_id = ?");
         $result = $stmt->execute([$hashed_password, $user['employee_id']]);
         
         if ($result) {

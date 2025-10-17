@@ -35,9 +35,9 @@ try {
         // Get history details
         $stmt = $pdo->prepare("
             SELECT h.*, a.username as admin_username, e.employee_name as admin_name
-            FROM approval_history h 
-            LEFT JOIN admin_users a ON h.admin_id = a.id 
-            LEFT JOIN employees e ON a.username = e.employee_id
+            FROM uar.approval_history h 
+            LEFT JOIN uar.admin_users a ON h.admin_id = a.id 
+            LEFT JOIN uar.employees e ON a.username = e.employee_id
             WHERE h.history_id = ?
         ");
 
@@ -68,18 +68,18 @@ try {
         }
     } else {
         // First check if it's an individual or group request
-        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = (
-                        SELECT access_request_number FROM access_requests WHERE id = ?
+        $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = (
+                        SELECT access_request_number FROM uar.access_requests WHERE id = ?
                       )";
         $checkStmt = $pdo->prepare($checkQuery);
         $checkStmt->execute([$_GET['id']]);
         $isIndividual = $checkStmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+        $requestTable = $isIndividual ? 'uar.individual_requests' : 'uar.group_requests';
 
         // Get regular request details with details from individual/group requests tables
         $stmt = $pdo->prepare("
-            SELECT ar.*,
+            SELECT TOP 1 ar.*,
                    CASE 
                        WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
                        WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'
@@ -103,10 +103,9 @@ try {
                    r.access_duration as duration_type,
                    r.date_needed,
                    r.justification
-            FROM access_requests ar
+            FROM uar.access_requests ar
             LEFT JOIN {$requestTable} r ON ar.access_request_number = r.access_request_number
             WHERE ar.id = ?
-            LIMIT 1
         ");
 
         $stmt->execute([$_GET['id']]);

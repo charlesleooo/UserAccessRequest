@@ -28,8 +28,8 @@ try {
 
     // First try to find it in pending requests
     $pendingQuery = "SELECT ar.*, e.employee_name as requestor_name
-                     FROM access_requests ar
-                     LEFT JOIN employees e ON ar.employee_id = e.employee_id
+                     FROM uar.access_requests ar
+                     LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
                      WHERE ar.id = :request_id AND ar.employee_id = :employee_id";
 
     $stmt = $pdo->prepare($pendingQuery);
@@ -45,12 +45,12 @@ try {
         $isPending = true;
 
         // Check if it's an individual or group request
-        $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = :access_request_number";
+        $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = :access_request_number";
         $stmt = $pdo->prepare($checkQuery);
         $stmt->execute([':access_request_number' => $request['access_request_number']]);
         $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-        $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+        $requestTable = $isIndividual ? 'uar.individual_requests' : 'uar.group_requests';
 
         // Get request details
         $detailsQuery = "SELECT r.username, r.application_system, r.access_type as role_access_type,
@@ -66,8 +66,8 @@ try {
     } else {
         // Try to find it in approval history
         $historyQuery = "SELECT ah.*, au.username as admin_username
-                         FROM approval_history ah
-                         LEFT JOIN admin_users au ON ah.admin_id = au.id
+                         FROM uar.approval_history ah
+                         LEFT JOIN uar.admin_users au ON ah.admin_id = au.id
                          WHERE ah.history_id = :request_id";
 
         $stmt = $pdo->prepare($historyQuery);
@@ -87,12 +87,12 @@ try {
 
             // For completed requests, the approval_history already contains most of the data we need
             // We just need to get the request details from individual or group requests
-            $checkQuery = "SELECT COUNT(*) as count FROM individual_requests WHERE access_request_number = :access_request_number";
+            $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = :access_request_number";
             $stmt = $pdo->prepare($checkQuery);
             $stmt->execute([':access_request_number' => $approvalDetails['access_request_number']]);
             $isIndividual = $stmt->fetch(PDO::FETCH_ASSOC)['count'] > 0;
 
-            $requestTable = $isIndividual ? 'individual_requests' : 'group_requests';
+            $requestTable = $isIndividual ? 'uar.individual_requests' : 'uar.group_requests';
 
             // Get request details
             $detailsQuery = "SELECT r.username, r.application_system, r.access_type as role_access_type,

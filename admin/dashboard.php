@@ -20,46 +20,45 @@ try {
     $statsData = getDashboardStats($pdo);
 
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status = 'pending'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status = 'pending'");
     $pendingRequests = $stmt->fetchColumn();
 
     // Get today's approvals count
     $todayDate = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'approved' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'approved' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $approvedToday = $stmt->fetchColumn();
 
     // Get today's rejections count
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'rejected' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'rejected' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $rejectedToday = $stmt->fetchColumn();
 
     // Get recent requests with access_type from child tables
     $stmt = $pdo->query("
-        SELECT ar.*, 
-               COALESCE(ir.access_type, gr.access_type) as access_type
-        FROM access_requests ar
-        LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
-        LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
-        ORDER BY ar.submission_date DESC LIMIT 5
+        SELECT TOP 5 ar.*, 
+               ISNULL(ir.access_type, gr.access_type) as access_type
+        FROM uar.access_requests ar
+        LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
+        LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
+        ORDER BY ar.submission_date DESC
     ");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get recent approval history
-    $stmt = $pdo->query("SELECT h.*, a.username as admin_username 
-                        FROM approval_history h 
-                        LEFT JOIN admin_users a ON h.admin_id = a.id 
-                        ORDER BY h.created_at DESC LIMIT 5");
+    $stmt = $pdo->query("SELECT TOP 5 h.*, a.username as admin_username 
+                        FROM uar.approval_history h 
+                        LEFT JOIN uar.admin_users a ON h.admin_id = a.id 
+                        ORDER BY h.created_at DESC");
     $recentApprovals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Get access type distribution for mini chart
     $stmt = $pdo->query("SELECT 
                          access_type,
                          COUNT(*) as count
-                         FROM approval_history
+                         FROM uar.approval_history
                          GROUP BY access_type
-                         ORDER BY count DESC
-                         LIMIT 4");
+                         ORDER BY count DESC");
     $accessTypeDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Handle database errors gracefully

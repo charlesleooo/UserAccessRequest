@@ -17,11 +17,11 @@ try {
     // Get counts from both access_requests and approval_history
     $stmt = $pdo->prepare("
         SELECT 
-            (SELECT COUNT(*) FROM access_requests WHERE employee_id = ?) as total_pending,
-            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'approved') as approved,
-            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'rejected') as rejected,
-            (SELECT COUNT(*) FROM access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
-            (SELECT COUNT(*) FROM approval_history WHERE requestor_name = ? AND action = 'cancelled') as cancelled
+            (SELECT COUNT(*) FROM uar.access_requests WHERE employee_id = ?) as total_pending,
+            (SELECT COUNT(*) FROM uar.approval_history WHERE requestor_name = ? AND action = 'approved') as approved,
+            (SELECT COUNT(*) FROM uar.approval_history WHERE requestor_name = ? AND action = 'rejected') as rejected,
+            (SELECT COUNT(*) FROM uar.access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
+            (SELECT COUNT(*) FROM uar.approval_history WHERE requestor_name = ? AND action = 'cancelled') as cancelled
     ");
 
     $stmt->execute([$requestorId, $username, $username, $requestorId, $username]);
@@ -38,7 +38,7 @@ try {
 
     // Get recent requests from both tables
     $recentRequestsQuery = "
-        (SELECT 
+        (SELECT TOP 5
             id,
             access_request_number,
             'pending' as source,
@@ -47,10 +47,10 @@ try {
             system_type,
             'System Application' as access_type,
             testing_status
-         FROM access_requests 
+         FROM uar.access_requests 
          WHERE employee_id = :employee_id)
         UNION ALL
-        (SELECT 
+        (SELECT TOP 5
             history_id as id,
             access_request_number,
             'history' as source,
@@ -58,11 +58,10 @@ try {
             created_at as request_date,
             system_type,
             access_type,
-            COALESCE(testing_status, 'not_required') as testing_status
-         FROM approval_history 
+            ISNULL(testing_status, 'not_required') as testing_status
+         FROM uar.approval_history 
          WHERE requestor_name = :username)
-        ORDER BY request_date DESC 
-        LIMIT 5";
+        ORDER BY request_date DESC";
 
     $stmt = $pdo->prepare($recentRequestsQuery);
     $stmt->execute([
@@ -431,10 +430,10 @@ try {
                 // Get pending testing requests for this user
                 $pendingTestingRequestsQuery = "
                     SELECT ar.*, 
-                           COALESCE(ir.access_type, gr.access_type) as access_type
-                    FROM access_requests ar
-                    LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
-                    LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
+                           ISNULL(ir.access_type, gr.access_type) as access_type
+                    FROM uar.access_requests ar
+                    LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
+                    LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
                     WHERE ar.employee_id = :employee_id 
                     AND ar.status = 'pending_testing' 
                     ORDER BY ar.submission_date DESC
@@ -444,7 +443,7 @@ try {
                 $pendingTestingRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
                 // Get regular requests
-                $requestsQuery = "SELECT * FROM access_requests 
+                $requestsQuery = "SELECT * FROM uar.access_requests 
                             WHERE employee_id = :employee_id 
                             AND status != 'pending_testing'
                             AND status != 'cancelled'

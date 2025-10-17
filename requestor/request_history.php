@@ -69,7 +69,7 @@ $query = "SELECT
                 employee_email as email,
                 employee_id,
                 requestor_name
-              FROM access_requests 
+              FROM uar.access_requests 
               WHERE employee_id = :employee_id
               
               UNION ALL
@@ -80,7 +80,7 @@ $query = "SELECT
                 ah.access_request_number,
                 ah.action as status,
                 ah.created_at,
-                (SELECT username FROM admin_users WHERE id = ah.admin_id) as admin_username,
+                (SELECT username FROM uar.admin_users WHERE id = ah.admin_id) as admin_username,
                 ah.business_unit,
                 ah.department,
                 ah.access_type,
@@ -89,7 +89,7 @@ $query = "SELECT
                 ah.email,
                 ah.employee_id,
                 ah.requestor_name
-              FROM approval_history ah
+              FROM uar.approval_history ah
               WHERE ah.employee_id = :employee_id
             ) all_requests
           ) ranked_requests
@@ -157,10 +157,10 @@ try {
     // Get counts for the dashboard
     $countStmt = $pdo->prepare("
         SELECT
-            (SELECT COUNT(*) FROM access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
-            (SELECT COUNT(*) FROM approval_history WHERE employee_id = ? AND action = 'approved') as approved,
-            (SELECT COUNT(*) FROM approval_history WHERE employee_id = ? AND action = 'rejected') as rejected,
-            (SELECT COUNT(*) FROM approval_history WHERE employee_id = ? AND action = 'cancelled') as cancelled
+            (SELECT COUNT(*) FROM uar.access_requests WHERE employee_id = ? AND status LIKE 'pending%') as pending,
+            (SELECT COUNT(*) FROM uar.approval_history WHERE employee_id = ? AND action = 'approved') as approved,
+            (SELECT COUNT(*) FROM uar.approval_history WHERE employee_id = ? AND action = 'rejected') as rejected,
+            (SELECT COUNT(*) FROM uar.approval_history WHERE employee_id = ? AND action = 'cancelled') as cancelled
     ");
 
     $countStmt->execute([$requestorId, $requestorId, $requestorId, $requestorId]);

@@ -21,8 +21,8 @@ $historyId = intval($_GET['id']);
 // Fetch the request history details
 try {
     $query = "SELECT ah.*, admin.username as admin_username 
-              FROM approval_history ah
-              LEFT JOIN admin_users admin ON ah.admin_id = admin.id
+              FROM uar.approval_history ah
+              LEFT JOIN uar.admin_users admin ON ah.admin_id = admin.id
               WHERE ah.history_id = :history_id AND ah.requestor_name = :requestor_name";
     
     $stmt = $pdo->prepare($query);

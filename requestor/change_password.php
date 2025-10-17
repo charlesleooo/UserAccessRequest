@@ -12,7 +12,7 @@ $force_password_change = isset($_SESSION['force_password_change']) && $_SESSION[
 
 // If normal password change, check if user has a temp password
 if (!$force_password_change) {
-    $stmt = $pdo->prepare("SELECT is_temp_password FROM employees WHERE employee_id = ?");
+    $stmt = $pdo->prepare("SELECT is_temp_password FROM uar.employees WHERE employee_id = ?");
     $stmt->execute([$_SESSION['requestor_id']]);
     $user = $stmt->fetch();
     if ($user && $user['is_temp_password']) {
@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Verify current password
-        $stmt = $pdo->prepare("SELECT password, is_temp_password FROM employees WHERE employee_id = ?");
+        $stmt = $pdo->prepare("SELECT password, is_temp_password FROM uar.employees WHERE employee_id = ?");
         $stmt->execute([$_SESSION['requestor_id']]);
         $user = $stmt->fetch();
 
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Current password is incorrect");
         }        // Hash and update new password
         $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-        $stmt = $pdo->prepare("UPDATE employees SET password = ?, is_temp_password = 0 WHERE employee_id = ?");
+        $stmt = $pdo->prepare("UPDATE uar.employees SET password = ?, is_temp_password = 0 WHERE employee_id = ?");
         if ($stmt->execute([$hashed_password, $_SESSION['requestor_id']])) {
             if (isset($_SESSION['force_password_change'])) {
                 unset($_SESSION['force_password_change']);

@@ -74,7 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 
     try {
         // Get the admin_users.id that matches the employee's employee_id or username
-        $adminStmt = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+        $adminStmt = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
         $adminStmt->execute([
             'username' => $_SESSION['admin_username'] ?? '',
             'employee_id' => $_SESSION['admin_id'] ?? ''
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $transaction_active = true;
 
         // 1. First get the request details before updating
-        $sql = "SELECT * FROM access_requests WHERE id = :request_id";
+        $sql = "SELECT * FROM uar.access_requests WHERE id = :request_id";
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['request_id' => $request_id]);
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -150,11 +150,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         // Special handling for System Application access type
         if ($action === 'approve' && $request['access_type'] === 'System Application' && $admin_role === 'admin') {
             // For System Application, set status to pending_testing instead of approved
-            $sql = "UPDATE access_requests SET 
+            $sql = "UPDATE uar.access_requests SET 
                 status = 'pending_testing_setup', 
                 testing_status = 'pending',
                 $id_field = :admin_id, 
-                $date_field = NOW(), 
+                $date_field = GETDATE(), 
                 $notes_field = :review_notes 
                 WHERE id = :request_id";
 
@@ -273,7 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         if ($action === 'approve' || $action === 'decline') {
             if ($next_status === 'approved' || $next_status === 'rejected') {
                 // Final approval/rejection - move to history
-                $sql = "INSERT INTO approval_history (
+                $sql = "INSERT INTO uar.approval_history (
                     access_request_number,
                     action,
                     requestor_name,
@@ -351,15 +351,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
                 }
 
                 // Delete from access_requests table
-                $sql = "DELETE FROM access_requests WHERE id = :request_id";
+                $sql = "DELETE FROM uar.access_requests WHERE id = :request_id";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute(['request_id' => $request_id]);
             } else {
                 // Update status for next stage
-                $sql = "UPDATE access_requests SET 
+                $sql = "UPDATE uar.access_requests SET 
                     status = :next_status,
                     $id_field = :admin_id,
-                    $date_field = NOW(),
+                    $date_field = GETDATE(),
                     $notes_field = :review_notes
                     WHERE id = :request_id";
 
@@ -497,8 +497,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 // Get all pending requests (excluding those that have been moved to approval history)
 try {
     $sql = "SELECT r.*, a.username as reviewed_by_name 
-            FROM access_requests r 
-            LEFT JOIN admin_users a ON r.reviewed_by = a.id 
+            FROM uar.access_requests r 
+            LEFT JOIN uar.admin_users a ON r.reviewed_by = a.id 
             WHERE r.status != 'approved' 
             ORDER BY r.submission_date DESC";
     $stmt = $pdo->prepare($sql);
@@ -507,8 +507,8 @@ try {
 
     // Also check for any approved requests with testing_status 'success' that should be in approval_history
     $checkSql = "SELECT r.*, a.username as reviewed_by_name 
-                FROM access_requests r 
-                LEFT JOIN admin_users a ON r.reviewed_by = a.id 
+                FROM uar.access_requests r 
+                LEFT JOIN uar.admin_users a ON r.reviewed_by = a.id 
                 WHERE r.status = 'approved' AND r.testing_status = 'success'";
     $checkStmt = $pdo->prepare($checkSql);
     $checkStmt->execute();
@@ -517,7 +517,7 @@ try {
     // Process any found requests to ensure they are moved to approval_history
     foreach ($approvedRequests as $request) {
         // Check if this request already exists in approval_history
-        $historySql = "SELECT COUNT(*) FROM approval_history 
+        $historySql = "SELECT COUNT(*) FROM uar.approval_history 
                       WHERE access_request_number = :access_request_number";
         $historyStmt = $pdo->prepare($historySql);
         $historyStmt->execute(['access_request_number' => $request['access_request_number']]);
@@ -525,7 +525,7 @@ try {
 
         if ($exists > 0) {
             // This request is already in approval_history, remove it from access_requests
-            $deleteSql = "DELETE FROM access_requests WHERE id = :request_id";
+            $deleteSql = "DELETE FROM uar.access_requests WHERE id = :request_id";
             $deleteStmt = $pdo->prepare($deleteSql);
             $deleteStmt->execute(['request_id' => $request['id']]);
         } else {
@@ -535,7 +535,7 @@ try {
                 $transaction_active = true;
 
                 // Insert into approval history
-                $sql = "INSERT INTO approval_history (
+                $sql = "INSERT INTO uar.approval_history (
                         access_request_number, action, requestor_name, business_unit, department,
                         access_type, admin_id, comments, system_type, duration_type,
                         start_date, end_date, justification, email, contact_number,
@@ -548,7 +548,7 @@ try {
                     )";
 
                 // Get the admin_users id for the current admin
-                $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+                $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
                 $adminQuery->execute([
                     'username' => $_SESSION['admin_username'] ?? '',
                     'employee_id' => $_SESSION['admin_id'] ?? ''
@@ -581,7 +581,7 @@ try {
 
                 if ($result) {
                     // Delete from access_requests
-                    $deleteSql = "DELETE FROM access_requests WHERE id = :request_id";
+                    $deleteSql = "DELETE FROM uar.access_requests WHERE id = :request_id";
                     $deleteStmt = $pdo->prepare($deleteSql);
                     $deleteStmt->execute(['request_id' => $request['id']]);
 

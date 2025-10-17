@@ -12,22 +12,22 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') 
 // Get quick stats for the dashboard
 try {
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM access_requests WHERE status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status IN ('pending_technical', 'pending_testing_setup', 'pending_testing_review')");
     $pendingRequests = $stmt->fetchColumn();
 
     // Get today's technical reviews count
     $todayDate = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'technical_review' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'technical_review' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $technicalReviewsToday = $stmt->fetchColumn();
 
     // Get today's approved requests count
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'approved' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'approved' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $approvedToday = $stmt->fetchColumn();
 
     // Get today's rejected requests count
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM approval_history WHERE action = 'rejected' AND DATE(created_at) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'rejected' AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $rejectedToday = $stmt->fetchColumn();
 
@@ -43,12 +43,12 @@ try {
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
             END as status_display,
-            COALESCE(ir.date_needed, gr.date_needed) as date_needed
-            FROM access_requests ar 
-            LEFT JOIN individual_requests ir ON ar.access_request_number = ir.access_request_number
-            LEFT JOIN group_requests gr ON ar.access_request_number = gr.access_request_number
+            ISNULL(ir.date_needed, gr.date_needed) as date_needed
+            FROM uar.access_requests ar 
+            LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
+            LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
             WHERE ar.status IN ('pending_technical', 'pending_testing_setup')
-            ORDER BY ar.submission_date DESC LIMIT 5");
+            ORDER BY ar.submission_date DESC");
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     error_log("Dashboard data fetch error: " . $e->getMessage());

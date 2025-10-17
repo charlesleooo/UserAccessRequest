@@ -4,164 +4,224 @@ require_once '../config.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
 
-// Enable error reporting for development
+// Load PHPMailer if present; allow dev fallback
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($autoload)) {
+    require_once $autoload;
+}
+
+// Enable error reporting (dev)
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-// Handle AJAX requests
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+// AJAX handler
+if (
+    $_SERVER["REQUEST_METHOD"] === "POST" &&
+    isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+    $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest'
+) {
+
     header('Content-Type: application/json');
 
+    // Send OTP
     if (isset($_POST['send_otp'])) {
-        $employee_email = $_POST['employee_email'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $employee_email = trim($_POST['employee_email'] ?? '');
+        $password       = $_POST['password'] ?? '';
 
-        // Log the credentials attempt (without the actual password)
-        error_log("Login attempt for: " . $employee_email);
-        error_log("Session ID: " . session_id());
-
-        // Fetch employee by email
-        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ?");
-        $stmt->execute([$employee_email]);
-        $user = $stmt->fetch();
-
-        if (!$user) {
-            echo json_encode(['status' => 'error', 'message' => 'Email not found']);
-            exit;
-        }
-
-        // Check if user is archived (inactive)
-        $archiveStmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
-        $archiveStmt->execute([$user['employee_id']]);
-        $archivedUser = $archiveStmt->fetch();
-
-        if ($archivedUser) {
-            echo json_encode(['status' => 'error', 'message' => 'Your account has been deactivated. Please contact the administrator.']);
-            exit;
-        }
-
-        if (!password_verify($password, $user['password'])) {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid password']);
-            exit;
-        }
-
-
-        // Generate and store OTP (only used for development mode)
-        $otp = generateOTP();
-        $_SESSION['otp'] = $otp;
-        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes
-        $_SESSION['temp_user'] = $user;
-
-        // === DEVELOPMENT MODE ===
-        // Instead of sending email, just log the OTP to error log
-        error_log("DEV OTP for {$user['employee_email']}: " . $otp);
-        error_log("Session data stored - temp_user: " . print_r($user, true));
-
-        // Respond with success
-        echo json_encode([
-            'status' => 'success',
-            'message' => 'OTP generated (DEV MODE). Check server logs for OTP.'
-        ]);
-        exit;
-
-
-        /*
-        // Generate and store OTP
-        $otp = generateOTP();
-        $_SESSION['otp'] = $otp;
-        $_SESSION['otp_expiry'] = time() + 300; // 5 minutes    
-        $_SESSION['temp_user'] = $user;
-
-        error_log("OTP generated for " . $employee_email . ": " . $otp);
-
-        // Send OTP via PHPMailer
-        $mail = new PHPMailer\PHPMailer\PHPMailer(true); // Enable exceptions
         try {
-            $mail->isSMTP();
-            $mail->Host = SMTP_HOST;
-            $mail->SMTPAuth = true;
-            $mail->Username = SMTP_USERNAME;
-            $mail->Password = SMTP_PASSWORD;
-            $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = SMTP_PORT;
-            $mail->SMTPDebug = 0; // 0 = off, 1 = client messages, 2 = client and server messages
+            // Check if database connection is available
+            if (!isset($pdo) || $pdo === null) {
+                throw new \Exception('Database connection not available');
+            }
+            // 1) Find user (schema-qualified)
+            $stmt = $pdo->prepare("SELECT TOP 1 employee_id, employee_email, employee_name, password, role, is_temp_password FROM uar.employees WHERE employee_email = ?");
+            $stmt->execute([$employee_email]);
+            $user = $stmt->fetch();
 
-            $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, SMTP_FROM_NAME);
-            $mail->addAddress($user['employee_email'], $user['employee_name']);
-            $mail->isHTML(true);
-            $mail->Subject = 'Your One Time Password for Login';
-            $mail->Body = "Hello {$user['employee_name']}, your OTP is <b>$otp</b>. It expires in 5 minutes.";
+            if (!$user) {
+                echo json_encode(['status' => 'error', 'message' => 'Email not found']);
+                exit;
+            }
 
-            $mail->send();
+            // 2) Not archived
+            $arch = $pdo->prepare("SELECT 1 FROM uar.employees_archive WHERE employee_id = ?");
+            $arch->execute([$user['employee_id']]);
+            if ($arch->fetchColumn()) {
+                echo json_encode(['status' => 'error', 'message' => 'Your account has been deactivated. Please contact the administrator.']);
+                exit;
+            }
 
-            // Log OTP details for debugging
-            error_log("OTP generated and stored in session: " . $otp);
-            error_log("Session ID before write: " . session_id());
+            // 3) Password check
+            if (empty($user['password']) || !password_verify($password, $user['password'])) {
+                echo json_encode(['status' => 'error', 'message' => 'Invalid password']);
+                exit;
+            }
 
-            // Ensure session is written to storage
-            session_write_close();
-            session_start();
+            // 4) Generate/store OTP in session
+            $otp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $_SESSION['otp']         = $otp;
+            $_SESSION['otp_expiry']  = time() + 300; // 5 min
+            $_SESSION['temp_user']   = $user;
 
-            error_log("Session ID after restart: " . session_id());
+            // 5) Try to send via PHPMailer (if available), else dev-fallback
+            $sent = false;
+            if (class_exists('\PHPMailer\PHPMailer\PHPMailer')) {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                try {
+                    // Enable verbose debug output for troubleshooting
+                    if (APP_DEBUG) {
+                        $mail->SMTPDebug = \PHPMailer\PHPMailer\SMTP::DEBUG_SERVER;
+                        $mail->Debugoutput = 'error_log';
+                    }
+                    
+                    $mail->CharSet = 'UTF-8';
+                    $mail->isSMTP();
+                    $mail->Host       = SMTP_HOST;
+                    $mail->Port       = (int)SMTP_PORT;
+                    $mail->SMTPAuth   = true;
+                    $mail->Username   = SMTP_USERNAME;
+                    $mail->Password   = SMTP_PASSWORD;
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                    
+                    // Additional SMTP settings for Gmail
+                    $mail->SMTPKeepAlive = true;
+                    $mail->Mailer = "smtp";
+                    
+                    // SSL/TLS options for Gmail
+                        $mail->SMTPOptions = [
+                            'ssl' => [
+                            'verify_peer'       => false,
+                            'verify_peer_name'  => false,
+                            'allow_self_signed' => true,
+                        ],
+                        'tls' => [
+                                'verify_peer'       => false,
+                                'verify_peer_name'  => false,
+                                'allow_self_signed' => true,
+                            ]
+                        ];
 
-            error_log("OTP email sent successfully to " . $user['employee_email']);
-            echo json_encode(['status' => 'success', 'message' => 'OTP sent successfully']);
-        } catch (Exception $e) {
-            error_log("Failed to send OTP email: " . $mail->ErrorInfo);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to send OTP: ' . $mail->ErrorInfo]);
+                    // Set sender (must match authenticated user for Gmail)
+                    $fromEmail = SMTP_FROM_EMAIL ?: SMTP_USERNAME;
+                    $fromName = SMTP_FROM_NAME ?: 'UAR System';
+                    $mail->setFrom($fromEmail, $fromName);
+                    $mail->addAddress($user['employee_email'], $user['employee_name']);
+                    $mail->addReplyTo($fromEmail, $fromName);
+
+                    $mail->isHTML(true);
+                    $mail->Subject = 'Your One-Time Password - UAR System';
+                    $mail->Body    = "
+                        <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                            <h2 style='color: #0084FF;'>UAR System - OTP Verification</h2>
+                            <p>Hello <strong>{$user['employee_name']}</strong>,</p>
+                            <p>Your one-time password is:</p>
+                            <div style='background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;'>
+                                <h1 style='color: #0084FF; font-size: 32px; letter-spacing: 5px; margin: 0;'>{$otp}</h1>
+                            </div>
+                            <p>This code will expire in <strong>5 minutes</strong>.</p>
+                            <p>If you did not request this code, please ignore this email.</p>
+                            <hr style='border: none; border-top: 1px solid #eee; margin: 20px 0;'>
+                            <p style='color: #666; font-size: 12px;'>This is an automated message from the UAR System.</p>
+                        </div>
+                    ";
+                    $mail->AltBody = "Hello {$user['employee_name']}, your OTP is {$otp}. It expires in 5 minutes.";
+
+                    $mail->send();
+                    $sent = true;
+                    error_log("OTP email sent successfully to: " . $user['employee_email']);
+                } catch (\PHPMailer\PHPMailer\Exception $e) {
+                    $errorMessage = $e->getMessage();
+                    error_log('PHPMailer Error: ' . $errorMessage);
+                    
+                    // Check for specific Gmail errors
+                    if (strpos($errorMessage, 'Daily user sending limit exceeded') !== false) {
+                        error_log('Gmail daily sending limit exceeded');
+                    } else if (strpos($errorMessage, 'Could not authenticate') !== false) {
+                        error_log('SMTP authentication failed');
+                    }
+                } catch (\Throwable $t) {
+                    error_log('OTP email error: ' . $t->getMessage());
+                    error_log('Stack trace: ' . $t->getTraceAsString());
+                }
+            } else {
+                error_log('PHPMailer class not found. Make sure Composer dependencies are installed.');
+            }
+
+            // Dev fallback: proceed even if email failed (OTP logged)
+            if (!$sent && APP_DEBUG) {
+                error_log("DEV OTP for {$user['employee_email']}: {$otp}");
+                $sent = true;
+            }
+
+            if ($sent) {
+                echo json_encode(['status' => 'success', 'message' => 'OTP sent']);
+                exit;
+            }
+
+            // Check if it's a Gmail daily limit issue
+            $errorMsg = 'Failed to send OTP. Check SMTP settings.';
+            if (isset($errorMessage) && strpos($errorMessage, 'Daily user sending limit exceeded') !== false) {
+                $errorMsg = 'Gmail daily sending limit exceeded. Please try again tomorrow or contact administrator.';
+            } else if (isset($errorMessage) && strpos($errorMessage, 'Could not authenticate') !== false) {
+                $errorMsg = 'Email authentication failed. Please check SMTP credentials.';
+            }
+
+            echo json_encode(['status' => 'error', 'message' => $errorMsg]);
+            exit;
+        } catch (\Throwable $e) {
+            error_log('send_otp exception: ' . $e->getMessage());
+            error_log('send_otp stack trace: ' . $e->getTraceAsString());
+            
+            // Provide more detailed error message in debug mode
+            if (APP_DEBUG) {
+                echo json_encode(['status' => 'error', 'message' => 'Error: ' . $e->getMessage()]);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'An error occurred. Please try again.']);
+            }
+            exit;
         }
-        exit;
-        */
-        
     }
 
+    // Verify OTP
     if (isset($_POST['verify_otp'])) {
-        $entered_otp = $_POST['otp'] ?? '';
-        if (!isset($_SESSION['otp'], $_SESSION['otp_expiry'])) {
+        $entered = preg_replace('/\D/', '', $_POST['otp'] ?? '');
+
+        if (!isset($_SESSION['otp'], $_SESSION['otp_expiry'], $_SESSION['temp_user'])) {
             echo json_encode(['status' => 'error', 'message' => 'OTP session expired. Please try again.']);
             exit;
         }
-
-        if ($_SESSION['otp_expiry'] < time()) {
+        if (time() >= $_SESSION['otp_expiry']) {
             echo json_encode(['status' => 'error', 'message' => 'OTP has expired. Please request a new one.']);
             exit;
         }
-
-        if ($entered_otp == $_SESSION['otp'] && time() < $_SESSION['otp_expiry']) {
-            if (isset($_SESSION['temp_user'])) {
-                $user = $_SESSION['temp_user'];
-                $_SESSION['requestor_id'] = $user['employee_id'];
-                $_SESSION['employee_email'] = $user['employee_email'];
-                $_SESSION['username'] = $user['employee_name'];
-                $_SESSION['role'] = $user['role'] ?? 'requestor';
-
-                unset($_SESSION['otp'], $_SESSION['otp_expiry'], $_SESSION['temp_user']);
-
-                if ($user['password'] === null || $user['is_temp_password']) {
-                    echo json_encode(['status' => 'success', 'redirect' => 'change_password.php']);
-                } else {
-                    echo json_encode(['status' => 'success', 'redirect' => 'dashboard.php']);
-                }
-            } else {
-                echo json_encode(['status' => 'error', 'message' => 'Session data missing. Please try again.']);
-            }
-        } else {
+        if ($entered !== $_SESSION['otp']) {
             echo json_encode(['status' => 'error', 'message' => 'Invalid OTP. Please try again.']);
+            exit;
         }
+
+        // Finalize login
+        $u = $_SESSION['temp_user'];
+        $_SESSION['requestor_id']   = $u['employee_id'];
+        $_SESSION['employee_email'] = $u['employee_email'];
+        $_SESSION['username']       = $u['employee_name'];
+        $_SESSION['role']           = $u['role'] ?? 'requestor';
+        $redirect = (!empty($u['is_temp_password'])) ? 'change_password.php' : 'dashboard.php';
+
+        unset($_SESSION['otp'], $_SESSION['otp_expiry'], $_SESSION['temp_user']);
+        echo json_encode(['status' => 'success', 'redirect' => $redirect]);
         exit;
     }
+
+    // Unknown AJAX
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request']);
+    exit;
 }
 
-// OTP Generation function
-function generateOTP($length = 6)
+// Helper
+function generateOTP($length = 6): string
 {
-    $characters = '0123456789';
-    $otp = '';
-    for ($i = 0; $i < $length; $i++) {
-        $otp .= $characters[rand(0, strlen($characters) - 1)];
-    }
-    return $otp;
+    return str_pad((string)random_int(0, 10 ** $length - 1), $length, '0', STR_PAD_LEFT);
 }
 ?>
 <!DOCTYPE html>

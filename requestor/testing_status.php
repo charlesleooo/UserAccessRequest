@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         error_log("Started transaction");
 
         // Verify this request belongs to the current user and is in pending_testing status
-        $sql = "SELECT * FROM access_requests 
+        $sql = "SELECT * FROM uar.access_requests 
                 WHERE id = :request_id 
                 AND employee_id = :employee_id
                 AND (status = 'pending_testing' OR status = 'pending_testing_setup')";
@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         }
 
         // Update the request status and testing status
-        $sql = "UPDATE access_requests SET 
+        $sql = "UPDATE uar.access_requests SET 
                 testing_status = :testing_status,
                 testing_notes = :testing_notes,
                 status = :next_status
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                     admin_id,
                     testing_status
                 FROM 
-                    access_requests 
+                    uar.access_requests 
                 WHERE 
                     id = :request_id
             ");
@@ -145,11 +145,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
             if ($requestData) {
                 // Insert into approval_history table
                 $historyInsert = $pdo->prepare("
-                    INSERT INTO approval_history (
+                    INSERT INTO uar.approval_history (
                         access_request_number,
                         requestor_name, 
                         employee_id, 
                         email, 
+                        contact_number, 
                         department, 
                         business_unit, 
                         access_type, 
@@ -176,6 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                         :requestor_name, 
                         :employee_id, 
                         :email, 
+                        :contact_number, 
                         :department, 
                         :business_unit, 
                         :access_type, 
@@ -196,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                         'approved', 
                         :comments,
                         :testing_status,
-                        NOW()
+                        GETDATE()
                     )
                 ");
 
@@ -205,6 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                     'requestor_name' => $requestData['requestor_name'],
                     'employee_id' => $requestData['employee_id'],
                     'email' => $requestData['email'],
+                    'contact_number' => $requestData['contact_number'] ?? 'Not provided',
                     'department' => $requestData['department'],
                     'business_unit' => $requestData['business_unit'],
                     'access_type' => $requestData['access_type'],
@@ -229,7 +232,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                 $historyInsert->execute($historyParams);
 
                 // Delete from access_requests table since it's now in history
-                $deleteStmt = $pdo->prepare("DELETE FROM access_requests WHERE id = ?");
+                $deleteStmt = $pdo->prepare("DELETE FROM uar.access_requests WHERE id = ?");
                 $deleteStmt->execute([$request_id]);
             }
         }
@@ -249,7 +252,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                 $mail->setFrom(SMTP_USERNAME, 'Access Request System');
 
                 // Get technical support email
-                $techSql = "SELECT email FROM admin_users WHERE id = :tech_id";
+                $techSql = "SELECT email FROM uar.admin_users WHERE id = :tech_id";
                 $techStmt = $pdo->prepare($techSql);
                 $techStmt->execute(['tech_id' => $request['technical_id']]);
                 $techEmail = $techStmt->fetchColumn();
@@ -310,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
 $request_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 // Check if testing has already been submitted
-$stmt = $pdo->prepare("SELECT testing_status FROM access_requests WHERE id = ?");
+$stmt = $pdo->prepare("SELECT testing_status FROM uar.access_requests WHERE id = ?");
 $stmt->execute([$request_id]);
 $current_status = $stmt->fetchColumn();
 
@@ -325,11 +328,11 @@ if ($current_status && $current_status !== 'pending') {
 // Get the request details
 try {
     $sql = "SELECT ar.*, 
-            (SELECT COALESCE(
-                (SELECT access_type FROM individual_requests WHERE access_request_number = ar.access_request_number LIMIT 1),
-                (SELECT access_type FROM group_requests WHERE access_request_number = ar.access_request_number LIMIT 1)
+            (SELECT ISNULL(
+                (SELECT TOP 1 access_type FROM uar.individual_requests WHERE access_request_number = ar.access_request_number),
+                (SELECT TOP 1 access_type FROM uar.group_requests WHERE access_request_number = ar.access_request_number)
             )) as access_type
-            FROM access_requests ar
+            FROM uar.access_requests ar
             WHERE ar.id = :request_id 
             AND ar.employee_id = :employee_id
             AND (ar.status = 'pending_testing' OR ar.status = 'pending_testing_setup')";

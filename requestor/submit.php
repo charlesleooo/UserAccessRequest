@@ -32,12 +32,12 @@
     require_once '../config.php';
 
     try {
-        $pdo = new PDO(
-            "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME,
-            DB_USER,
-            DB_PASS,
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
+        $dsn = "sqlsrv:Server=" . DB_HOST . ";Database=" . DB_NAME . ";TrustServerCertificate=yes";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::SQLSRV_ATTR_ENCODING => PDO::SQLSRV_ENCODING_UTF8,
+        ]);
 
         // Set response header
         header('Content-Type: application/json');
@@ -80,44 +80,49 @@
 
             // Generate one request number for all forms
             $year = date('Y');
-            $sql = "SELECT MAX(request_num) as max_num FROM (
-                SELECT CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED) as request_num 
-                FROM access_requests 
-                WHERE access_request_number LIKE :year_prefix
-                UNION
-                SELECT CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED) as request_num 
-                FROM approval_history 
-                WHERE access_request_number LIKE :year_prefix
-            ) combined";
+            
+            // First try to get max from access_requests
+            $sql1 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
+                     FROM uar.access_requests 
+                     WHERE access_request_number LIKE :year_prefix";
+            
+            $stmt = $pdo->prepare($sql1);
+            $year_prefix = "$year-%";
+            $stmt->execute(['year_prefix' => $year_prefix]);
+            $result1 = $stmt->fetch(PDO::FETCH_ASSOC);
+            $max1 = $result1['max_num'] ?? 0;
+            
+            // Then try to get max from approval_history
+            $sql2 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
+                     FROM uar.approval_history 
+                     WHERE access_request_number LIKE :year_prefix";
+            
+            $stmt = $pdo->prepare($sql2);
+            $stmt->execute(['year_prefix' => $year_prefix]);
+            $result2 = $stmt->fetch(PDO::FETCH_ASSOC);
+            $max2 = $result2['max_num'] ?? 0;
+            
+            // Get the highest number between both tables
+            $next_num = max($max1, $max2) + 1;
+            $access_request_number = sprintf("%d-%03d", $year, $next_num);
 
-            try {
-                $stmt = $pdo->prepare($sql);
-                $year_prefix = "$year-%";
-                $stmt->execute(['year_prefix' => $year_prefix]);
-                $result = $stmt->fetch(PDO::FETCH_ASSOC);
-                $next_num = ($result['max_num'] ?? 0) + 1;
-                $access_request_number = sprintf("%d-%03d", $year, $next_num);
-                $first_access_request_number = $access_request_number;
+            $first_access_request_number = $access_request_number;
 
-                // Log the generated request number for debugging
-                error_log("Generated access_request_number: " . $access_request_number);
-            } catch (PDOException $e) {
-                error_log("Error generating request number: " . $e->getMessage());
-                throw new Exception("Failed to generate request number: " . $e->getMessage());
-            }
+            // Log the generated request number for debugging
+            error_log("Generated access_request_number: " . $access_request_number);
 
             // Begin transaction for all forms
             $pdo->beginTransaction();
             
             // Insert only one record into access_requests table
-            $sql = "INSERT INTO access_requests (
+            $sql = "INSERT INTO uar.access_requests (
                 requestor_name, business_unit, access_request_number, department, 
                 employee_email, employee_id, request_date, system_type, other_system_type,
                 submission_date, status
             ) VALUES (
                 :requestor_name, :business_unit, :access_request_number, :department,
                 :employee_email, :employee_id, :request_date, :system_type, :other_system_type,
-                NOW(), 'pending_superior'
+                GETDATE(), 'pending_superior'
             )";
 
             $stmt = $pdo->prepare($sql);
@@ -185,7 +190,7 @@
                         }
 
                         // Determine which table to insert into based on access_type
-                        $requestTable = ($form['access_type'] === 'individual') ? 'individual_requests' : 'group_requests';
+                        $requestTable = ($form['access_type'] === 'individual') ? 'uar.individual_requests' : 'uar.group_requests';
                         
                         // Insert into the appropriate request table
                         $sql = "INSERT INTO {$requestTable} (
@@ -269,18 +274,16 @@
 
                 // Get the superior from the same department
                 try {
-                    $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
-                                        FROM employees 
+                    $stmt = $pdo->prepare("SELECT TOP 1 employee_id, employee_name, employee_email 
+                                        FROM uar.employees 
                                         WHERE department = ? 
-                                        AND role = 'superior' 
-                                        LIMIT 1");
+                                        AND role = 'superior'");
                     $stmt->execute([$_POST['department']]);
                     $superior = $stmt->fetch(PDO::FETCH_ASSOC);
                     if (!$superior) {
-                        $stmt = $pdo->prepare("SELECT employee_id, employee_name, employee_email 
-                                            FROM employees 
-                                            WHERE role = 'superior' 
-                                            LIMIT 1");
+                        $stmt = $pdo->prepare("SELECT TOP 1 employee_id, employee_name, employee_email 
+                                            FROM uar.employees 
+                                            WHERE role = 'superior'");
                         $stmt->execute();
                         $superior = $stmt->fetch(PDO::FETCH_ASSOC);
                     }
@@ -291,7 +294,7 @@
 
                     // Update the request with the superior's ID
                     if ($superior) {
-                        $stmt = $pdo->prepare("UPDATE access_requests 
+                        $stmt = $pdo->prepare("UPDATE uar.access_requests 
                                             SET superior_id = ? 
                                             WHERE access_request_number = ?");
                         $stmt->execute([$superior['employee_id'], $access_request_number]);
@@ -325,22 +328,29 @@
 
         try {
             // Check both tables to find the highest request number
-            $sql = "SELECT MAX(request_num) as max_num FROM (
-                SELECT CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED) as request_num 
-                FROM access_requests 
-                WHERE access_request_number LIKE :year_prefix
-                UNION
-                SELECT CAST(SUBSTRING_INDEX(access_request_number, '-', -1) AS UNSIGNED) as request_num 
-                FROM approval_history 
-                WHERE access_request_number LIKE :year_prefix
-            ) combined";
-
-            $stmt = $pdo->prepare($sql);
+            // First try to get max from access_requests
+            $sql1 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
+                     FROM uar.access_requests 
+                     WHERE access_request_number LIKE :year_prefix";
+            
+            $stmt = $pdo->prepare($sql1);
             $year_prefix = "$year-%";
             $stmt->execute(['year_prefix' => $year_prefix]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-            $next_num = ($result['max_num'] ?? 0) + 1;
+            $result1 = $stmt->fetch(PDO::FETCH_ASSOC);
+            $max1 = $result1['max_num'] ?? 0;
+            
+            // Then try to get max from approval_history
+            $sql2 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
+                     FROM uar.approval_history 
+                     WHERE access_request_number LIKE :year_prefix";
+            
+            $stmt = $pdo->prepare($sql2);
+            $stmt->execute(['year_prefix' => $year_prefix]);
+            $result2 = $stmt->fetch(PDO::FETCH_ASSOC);
+            $max2 = $result2['max_num'] ?? 0;
+            
+            // Get the highest number between both tables
+            $next_num = max($max1, $max2) + 1;
             $access_request_number = sprintf("%d-%03d", $year, $next_num);
 
             // Log the generated access request number for debugging
@@ -356,14 +366,14 @@
             $pdo->beginTransaction();
 
             // Insert into access_requests table first (parent record)
-            $sql = "INSERT INTO access_requests (
+            $sql = "INSERT INTO uar.access_requests (
                 requestor_name, business_unit, access_request_number, department, 
                 employee_email, employee_id, request_date, system_type, other_system_type,
                 submission_date, status
             ) VALUES (
                 :requestor_name, :business_unit, :access_request_number, :department,
                 :employee_email, :employee_id, :request_date, :system_type, :other_system_type,
-                NOW(), 'pending_superior'
+                GETDATE(), 'pending_superior'
             )";
 
             $stmt = $pdo->prepare($sql);
@@ -413,7 +423,7 @@
             }
 
             // Determine which table to insert into based on access_type
-            $requestTable = ($_POST['access_type'] === 'individual') ? 'individual_requests' : 'group_requests';
+            $requestTable = ($_POST['access_type'] === 'individual') ? 'uar.individual_requests' : 'uar.group_requests';
             
             // Insert into the appropriate request table
             $sql = "INSERT INTO {$requestTable} (
