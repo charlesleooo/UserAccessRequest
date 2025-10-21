@@ -710,10 +710,29 @@ try {
                 const lastRow = rows[rows.length - 1];
 
                 // Check if the last row is complete
-                const username = lastRow.querySelector('input[name="ind_user_names"]').value;
+                // For first row, check ind_user_names, for subsequent rows check ind_username_copy[]
+                let username;
+                const firstRowUsername = lastRow.querySelector('input[name="ind_user_names"]');
+                const copyUsername = lastRow.querySelector('input[name="ind_username_copy[]"]');
+                
+                if (firstRowUsername && firstRowUsername.offsetParent !== null) {
+                    // First row - visible username input
+                    username = firstRowUsername.value;
+                } else if (copyUsername) {
+                    // Subsequent rows - hidden username copy
+                    username = copyUsername.value;
+                } else {
+                    // Fallback - any visible text input in first cell
+                    const firstCell = lastRow.querySelector('td:first-child');
+                    const visibleInput = firstCell ? firstCell.querySelector('input[type="text"]:not([type="hidden"])') : null;
+                    username = visibleInput ? visibleInput.value : (copyUsername ? copyUsername.value : '');
+                }
+
                 const application = lastRow.querySelector('select[name="ind_application[]"]').value;
                 const accessType = lastRow.querySelector('select[name="ind_access_type[]"]').value;
                 const durationType = lastRow.querySelector('select[name="ind_duration_type[]"]').value;
+                const startDate = lastRow.querySelector('input[name="ind_start_date[]"]').value;
+                const endDate = lastRow.querySelector('input[name="ind_end_date[]"]').value;
                 const dateNeeded = lastRow.querySelector('input[name="ind_date_needed[]"]').value;
                 const justification = lastRow.querySelector('input[name="ind_justification[]"]').value;
 
@@ -723,6 +742,17 @@ try {
                         icon: 'warning',
                         title: 'Complete Current Row',
                         text: 'Please complete all fields in the current row before adding a new row.',
+                        confirmButtonColor: '#0084FF'
+                    });
+                    return;
+                }
+
+                // If temporary access, validate start and end dates
+                if (durationType === 'temporary' && (!startDate || !endDate)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Missing Dates',
+                        text: 'Please set both start and end dates for temporary access.',
                         confirmButtonColor: '#0084FF'
                     });
                     return;

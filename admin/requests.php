@@ -96,6 +96,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['request_id' => $request_id]);
         $request = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // 2. Get additional data from child tables (duration_type, dates, justification, access_type)
+        if ($request) {
+            try {
+                $childSql = "SELECT TOP 1 access_type, justification, access_duration as duration_type, start_date, end_date 
+                            FROM uar.individual_requests WHERE access_request_number = :arn";
+                $childStmt = $pdo->prepare($childSql);
+                $childStmt->execute(['arn' => $request['access_request_number']]);
+                $childData = $childStmt->fetch(PDO::FETCH_ASSOC);
+                
+                if (!$childData) {
+                    // Try group_requests
+                    $childSql = "SELECT TOP 1 access_type, justification, access_duration as duration_type, start_date, end_date 
+                                FROM uar.group_requests WHERE access_request_number = :arn";
+                    $childStmt = $pdo->prepare($childSql);
+                    $childStmt->execute(['arn' => $request['access_request_number']]);
+                    $childData = $childStmt->fetch(PDO::FETCH_ASSOC);
+                }
+                
+                // Merge child data into request array
+                if ($childData) {
+                    $request['access_type'] = $childData['access_type'] ?? '';
+                    $request['justification'] = $childData['justification'] ?? '';
+                    $request['duration_type'] = $childData['duration_type'] ?? null;
+                    $request['start_date'] = $childData['start_date'] ?? null;
+                    $request['end_date'] = $childData['end_date'] ?? null;
+                }
+            } catch (Exception $e) {
+                error_log("Error fetching child table data: " . $e->getMessage());
+            }
+        }
 
         if (!$request) {
             throw new Exception('Request not found');
@@ -272,82 +303,101 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
         // Standard handling for other access types or rejection actions
         if ($action === 'approve' || $action === 'decline') {
             if ($next_status === 'approved' || $next_status === 'rejected') {
-                // Final approval/rejection - move to history
-                $sql = "INSERT INTO uar.approval_history (
-                    access_request_number,
-                    action,
-                    requestor_name,
-                    business_unit,
-                    department,
-                    access_type,
-                    admin_id,
-                    comments,
-                    system_type,
-                    duration_type,
-                    start_date,
-                    end_date,
-                    justification,
-                    email,
-                    contact_number,
-                    testing_status,
-                    superior_id,
-                    superior_notes,
-                    technical_id,
-                    technical_notes,
-                    process_owner_id,
-                    process_owner_notes
-                ) VALUES (
-                    :access_request_number,
-                    :action,
-                    :requestor_name,
-                    :business_unit,
-                    :department,
-                    :access_type,
-                    :admin_id,
-                    :comments,
-                    :system_type,
-                    :duration_type,
-                    :start_date,
-                    :end_date,
-                    :justification,
-                    :email,
-                    :contact_number,
-                    'not_required',
-                    :superior_id,
-                    :superior_notes,
-                    :technical_id,
-                    :technical_notes,
-                    :process_owner_id,
-                    :process_owner_notes
-                )";
-
-                $stmt = $pdo->prepare($sql);
-                $result = $stmt->execute([
+                // Check if history entry already exists to prevent duplicates
+                $historyCheckStmt = $pdo->prepare("
+                    SELECT COUNT(*) as count 
+                    FROM uar.approval_history 
+                    WHERE access_request_number = :access_request_number 
+                    AND action = :action
+                ");
+                $historyCheckStmt->execute([
                     'access_request_number' => $request['access_request_number'],
-                    'action' => $next_status === 'approved' ? 'approved' : 'rejected',
-                    'requestor_name' => $request['requestor_name'],
-                    'business_unit' => $request['business_unit'],
-                    'department' => $request['department'],
-                    'access_type' => $request['access_type'],
-                    'admin_id' => $admin_users_id,
-                    'comments' => $review_notes,
-                    'system_type' => $request['system_type'],
-                    'duration_type' => $request['duration_type'],
-                    'start_date' => $request['start_date'],
-                    'end_date' => $request['end_date'],
-                    'justification' => $request['justification'],
-                    'email' => $request['email'],
-                    'contact_number' => $request['contact_number'] ?? 'Not provided',
-                    'superior_id' => $request['superior_id'],
-                    'superior_notes' => $request['superior_notes'],
-                    'technical_id' => $request['technical_id'],
-                    'technical_notes' => $request['technical_notes'],
-                    'process_owner_id' => $request['process_owner_id'],
-                    'process_owner_notes' => $request['process_owner_notes']
+                    'action' => $next_status === 'approved' ? 'approved' : 'rejected'
                 ]);
+                $historyExists = $historyCheckStmt->fetch(PDO::FETCH_ASSOC);
+                
+                // Only insert if history entry doesn't already exist
+                if (!$historyExists || $historyExists['count'] == 0) {
+                    // Final approval/rejection - move to history
+                    $sql = "INSERT INTO uar.approval_history (
+                        access_request_number,
+                        action,
+                        requestor_name,
+                        business_unit,
+                        department,
+                        access_type,
+                        admin_id,
+                        comments,
+                        system_type,
+                        duration_type,
+                        start_date,
+                        end_date,
+                        justification,
+                        email,
+                        contact_number,
+                        testing_status,
+                        superior_id,
+                        superior_notes,
+                        technical_id,
+                        technical_notes,
+                        process_owner_id,
+                        process_owner_notes
+                    ) VALUES (
+                        :access_request_number,
+                        :action,
+                        :requestor_name,
+                        :business_unit,
+                        :department,
+                        :access_type,
+                        :admin_id,
+                        :comments,
+                        :system_type,
+                        :duration_type,
+                        :start_date,
+                        :end_date,
+                        :justification,
+                        :email,
+                        :contact_number,
+                        'not_required',
+                        :superior_id,
+                        :superior_notes,
+                        :technical_id,
+                        :technical_notes,
+                        :process_owner_id,
+                        :process_owner_notes
+                    )";
 
-                if (!$result) {
-                    throw new Exception('Failed to insert into approval history');
+                    $stmt = $pdo->prepare($sql);
+                    $result = $stmt->execute([
+                        'access_request_number' => $request['access_request_number'],
+                        'action' => $next_status === 'approved' ? 'approved' : 'rejected',
+                        'requestor_name' => $request['requestor_name'],
+                        'business_unit' => $request['business_unit'],
+                        'department' => $request['department'],
+                        'access_type' => $request['access_type'],
+                        'admin_id' => $admin_users_id,
+                        'comments' => $review_notes,
+                        'system_type' => $request['system_type'],
+                        'duration_type' => $request['duration_type'],
+                        'start_date' => $request['start_date'],
+                        'end_date' => $request['end_date'],
+                        'justification' => $request['justification'],
+                        'email' => $request['email'],
+                        'contact_number' => $request['contact_number'] ?? 'Not provided',
+                        'superior_id' => $request['superior_id'],
+                        'superior_notes' => $request['superior_notes'],
+                        'technical_id' => $request['technical_id'],
+                        'technical_notes' => $request['technical_notes'],
+                        'process_owner_id' => $request['process_owner_id'],
+                        'process_owner_notes' => $request['process_owner_notes']
+                    ]);
+
+                    if (!$result) {
+                        throw new Exception('Failed to insert into approval history');
+                    }
+                } else {
+                    // History entry already exists, skip insert to prevent duplicate
+                    error_log("Skipped duplicate history insert for request {$request['access_request_number']} with action " . ($next_status === 'approved' ? 'approved' : 'rejected'));
                 }
 
                 // Delete from access_requests table
@@ -516,9 +566,10 @@ try {
 
     // Process any found requests to ensure they are moved to approval_history
     foreach ($approvedRequests as $request) {
-        // Check if this request already exists in approval_history
+        // Check if this request already exists in approval_history with 'approved' action
         $historySql = "SELECT COUNT(*) FROM uar.approval_history 
-                      WHERE access_request_number = :access_request_number";
+                      WHERE access_request_number = :access_request_number 
+                      AND action = 'approved'";
         $historyStmt = $pdo->prepare($historySql);
         $historyStmt->execute(['access_request_number' => $request['access_request_number']]);
         $exists = $historyStmt->fetchColumn();

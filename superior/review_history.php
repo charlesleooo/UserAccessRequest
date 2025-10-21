@@ -12,117 +12,73 @@ $admin_id = $_SESSION['admin_id'];
 $admin_username = $_SESSION['admin_username'] ?? '';
 
 try {
-    // First, get the admin_users.id from the database
-    // This is needed because the superior_id in approval_history matches admin_users.id, not the session admin_id
+    // First, get the admin_users.id from the database (same logic as helpdesk)
     $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
     $adminQuery->execute([
         'username' => $admin_username,
         'employee_id' => $admin_id
     ]);
     $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
-    $superior_id = $adminRecord ? $adminRecord['id'] : $admin_id; // Fallback to session ID if not found
+    $admin_users_id = $adminRecord ? $adminRecord['id'] : $admin_id;
 
-    // Get requests reviewed by this superior
-    // Use ROW_NUMBER() to get only the most recent entry per access_request_number across both tables
+    // Get requests reviewed by this superior from both active requests and approval history
     $stmt = $pdo->prepare("
-        SELECT 
-            access_request_number,
-            requestor_name,
-            department,
-            business_unit,
-            access_type,
-            system_type,
-            review_date,
-            review_notes,
-            status,
-            justification,
-            employee_id,
-            email,
-            role_access_type,
-            duration_type,
-            start_date,
-            end_date,
-            action
-        FROM (
+        SELECT * FROM (
             SELECT 
-                access_request_number,
-                requestor_name,
-                department,
-                business_unit,
-                access_type,
-                system_type,
-                review_date,
-                review_notes,
-                status,
-                justification,
-                employee_id,
-                email,
-                role_access_type,
-                duration_type,
-                start_date,
-                end_date,
-                action,
-                ROW_NUMBER() OVER (PARTITION BY access_request_number ORDER BY review_date DESC) as rn
-            FROM (
-                SELECT 
-                    ar.access_request_number,
-                    ar.requestor_name,
-                    ar.department,
-                    ar.business_unit,
-                    ar.access_level as access_type,
-                    ar.system_type,
-                    ar.superior_review_date as review_date,
-                    ar.superior_notes as review_notes,
-                    ar.status,
-                    '' as justification,
-                    ar.employee_id,
-                    ar.employee_email as email,
-                    '' as role_access_type,
-                    '' as duration_type,
-                    '' as start_date,
-                    '' as end_date,
-                    CASE 
-                        WHEN ar.status = 'rejected' AND ar.superior_id = :superior_id THEN 'Rejected'
-                        ELSE 'Approved/Forwarded'
-                    END as action
-                FROM 
-                    access_requests ar
-                WHERE 
-                    ar.superior_id = :superior_id AND ar.superior_review_date IS NOT NULL
-                UNION ALL
-                SELECT 
-                    ah.access_request_number,
-                    ah.requestor_name,
-                    ah.department,
-                    ah.business_unit,
-                    ah.access_type,
-                    ah.system_type,
-                    ah.created_at as review_date,
-                    ah.superior_notes as review_notes,
-                    ah.action as status,
-                    ah.justification,
-                    ah.employee_id,
-                    ah.email,
-                    '',
-                    ah.duration_type,
-                    ah.start_date,
-                    ah.end_date,
-                    CASE 
-                        WHEN ah.action = 'rejected' AND ah.superior_id = :superior_id THEN 'Rejected'
-                        ELSE 'Approved/Forwarded'
-                    END as action
-                FROM 
-                    approval_history ah
-                WHERE 
-                    ah.superior_id = :superior_id
-            ) combined_data
-        ) final_data
+                ar.access_request_number,
+                ar.requestor_name,
+                ar.department,
+                ar.business_unit,
+                ar.access_level as access_type,
+                ar.system_type,
+                ar.superior_review_date as review_date,
+                ar.superior_notes as review_notes,
+                ar.status,
+                ar.employee_id,
+                ar.employee_email as email,
+                CASE 
+                    WHEN ar.status = 'rejected' THEN 'Rejected'
+                    ELSE 'Approved/Forwarded'
+                END as action,
+                ROW_NUMBER() OVER (PARTITION BY ar.access_request_number ORDER BY ar.superior_review_date DESC) as rn
+            FROM 
+                uar.access_requests ar
+            WHERE 
+                ar.superior_id = :superior_id1 
+                AND ar.superior_review_date IS NOT NULL
+            
+            UNION ALL
+            
+            SELECT 
+                ah.access_request_number,
+                ah.requestor_name,
+                ah.department,
+                ah.business_unit,
+                ah.access_type,
+                ah.system_type,
+                ah.created_at as review_date,
+                ah.superior_notes as review_notes,
+                ah.action as status,
+                ah.employee_id,
+                ah.email,
+                CASE 
+                    WHEN ah.action = 'rejected' THEN 'Rejected'
+                    ELSE 'Approved/Forwarded'
+                END as action,
+                ROW_NUMBER() OVER (PARTITION BY ah.access_request_number ORDER BY ah.created_at DESC) as rn
+            FROM 
+                uar.approval_history ah
+            WHERE 
+                ah.superior_id = :superior_id2
+        ) combined
         WHERE rn = 1
-        ORDER BY 
-            review_date DESC
+        ORDER BY review_date DESC
     ");
 
-    $stmt->execute(['superior_id' => $superior_id]);
+    $stmt->execute([
+        'superior_id1' => $admin_users_id,
+        'superior_id2' => $admin_users_id
+    ]);
     $reviewed_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching review history: " . $e->getMessage();
@@ -205,21 +161,29 @@ try {
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>                               
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Date</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($reviewed_requests)): ?>
                                     <?php foreach ($reviewed_requests as $index => $request): ?>
                                         <tr class="hover:bg-gray-50 cursor-pointer" 
-                                            onclick="window.location.href='view_request.php?id=<?php echo $request['access_request_number']; ?>&from=history'">
+                                            onclick="viewRequest('<?php echo htmlspecialchars($request['access_request_number'], ENT_QUOTES); ?>')">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php echo htmlspecialchars($request['requestor_name']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php echo htmlspecialchars($request['business_unit']); ?>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <?php echo htmlspecialchars($request['department']); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                                 <?php echo date('M d, Y', strtotime($request['review_date'])); ?>
@@ -234,8 +198,10 @@ try {
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
-                                            No review history found
+                                        <td colspan="6" class="px-6 py-12 text-center">
+                                            <i class='bx bx-folder-open text-6xl text-gray-300'></i>
+                                            <p class="mt-4 text-lg text-gray-500 font-medium">No review history found</p>
+                                            <p class="mt-2 text-sm text-gray-400">Requests you review will appear here</p>
                                         </td>
                                     </tr>
                                 <?php endif; ?>
@@ -247,7 +213,12 @@ try {
         </div>
     </div>
 
-
+    <script>
+        function viewRequest(accessRequestNumber) {
+            // Navigate to view_request.php with proper parameters
+            window.location.href = 'view_request.php?access_request_number=' + encodeURIComponent(accessRequestNumber) + '&from_history=true';
+        }
+    </script>
 </body>
 
 </html>

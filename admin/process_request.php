@@ -243,8 +243,8 @@ try {
 
         case 'process_owner':
             $can_handle = ($current_status === 'pending_process_owner');
-            // Process owner should recommend to admin, not send back to help desk
-            $next_status = ($action === 'approve') ? 'pending_admin' : 'rejected';
+            // Process owner sends back to help desk after approval
+            $next_status = ($action === 'approve') ? 'pending_help_desk' : 'rejected';
             $id_field = 'process_owner_id';
             $date_field = 'process_owner_review_date';
             $notes_field = 'process_owner_notes';
@@ -661,11 +661,9 @@ try {
         }
     }
 
-    // If request is approved by admin, rejected by anyone, or recommended by any role, move to history
-    $should_create_history = ($next_status === 'approved' || $next_status === 'rejected' ||
-        ($role === 'superior' && $next_status === 'pending_help_desk') ||
-        ($role === 'process_owner' && $next_status === 'pending_admin') ||
-        ($role === 'technical_support' && $next_status === 'pending_admin'));
+    // Only create approval_history records when request is actually finalized (approved/rejected by admin)
+    // or when rejected by any role (since rejection is final)
+    $should_create_history = ($next_status === 'approved' || $next_status === 'rejected');
 
     if ($should_create_history) {
         // Get the current request data for history
@@ -698,85 +696,112 @@ try {
         $requestData = $requestDataQuery->fetch(PDO::FETCH_ASSOC);
 
         if ($requestData) {
-            // Derive access_type and justification from child tables
+            // Derive access_type, justification, duration, and dates from child tables
             $childAccessType = '';
             $childJustification = '';
+            $childDurationType = null;
+            $childStartDate = null;
+            $childEndDate = null;
             try {
-                $cj1 = $cleanPdo->prepare("SELECT TOP 1 justification, access_type FROM uar.individual_requests WHERE access_request_number = :arn");
+                $cj1 = $cleanPdo->prepare("SELECT TOP 1 justification, access_type, access_duration, start_date, end_date FROM uar.individual_requests WHERE access_request_number = :arn");
                 $cj1->execute(['arn' => $requestData['access_request_number']]);
                 $cjr = $cj1->fetch(PDO::FETCH_ASSOC);
                 if ($cjr) {
                     $childJustification = $cjr['justification'] ?? '';
                     $childAccessType = $cjr['access_type'] ?? '';
+                    $childDurationType = $cjr['access_duration'] ?? null;
+                    $childStartDate = $cjr['start_date'] ?? null;
+                    $childEndDate = $cjr['end_date'] ?? null;
                 } else {
-                    $cj2 = $cleanPdo->prepare("SELECT TOP 1 justification, access_type FROM uar.group_requests WHERE access_request_number = :arn");
+                    $cj2 = $cleanPdo->prepare("SELECT TOP 1 justification, access_type, access_duration, start_date, end_date FROM uar.group_requests WHERE access_request_number = :arn");
                     $cj2->execute(['arn' => $requestData['access_request_number']]);
                     $cjr = $cj2->fetch(PDO::FETCH_ASSOC);
                     if ($cjr) {
                         $childJustification = $cjr['justification'] ?? '';
                         $childAccessType = $cjr['access_type'] ?? '';
+                        $childDurationType = $cjr['access_duration'] ?? null;
+                        $childStartDate = $cjr['start_date'] ?? null;
+                        $childEndDate = $cjr['end_date'] ?? null;
                     }
                 }
             } catch (Exception $e) {
                 $childAccessType = '';
                 $childJustification = '';
+                $childDurationType = null;
+                $childStartDate = null;
+                $childEndDate = null;
             }
-            // Insert into approval history with explicit schema and required columns
-            $historyInsert = $cleanPdo->prepare("
-                INSERT INTO uar.approval_history (
-                    access_request_number,
-                    requestor_name, 
-                    employee_id, 
-                    email, 
-                    department, 
-                    business_unit, 
-                    access_type, 
-                    system_type,
-                    justification, 
-                    duration_type, 
-                    start_date, 
-                    end_date,
-                    contact_number,
-                    superior_id, 
-                    superior_notes,
-                    help_desk_id, 
-                    help_desk_notes,
-                    process_owner_id, 
-                    process_owner_notes,
-                    technical_id, 
-                    technical_notes,
-                    admin_id, 
-                    action, 
-                    comments,
-                    created_at
-                ) VALUES (
-                    :access_request_number,
-                    :requestor_name, 
-                    :employee_id, 
-                    :email, 
-                    :department, 
-                    :business_unit, 
-                    :access_type, 
-                    :system_type,
-                    :justification, 
-                    :duration_type, 
-                    :start_date, 
-                    :end_date,
-                    :contact_number,
-                    :superior_id, 
-                    :superior_notes,
-                    :help_desk_id, 
-                    :help_desk_notes,
-                    :process_owner_id, 
-                    :process_owner_notes,
-                    :technical_id, 
-                    :technical_notes,
-                    :admin_id, 
-                    :action, 
-                    :comments,
-                    GETDATE()
-                )
+            // Check if history entry already exists to prevent duplicates
+            $historyCheckStmt = $cleanPdo->prepare("
+                SELECT COUNT(*) as count 
+                FROM uar.approval_history 
+                WHERE access_request_number = :access_request_number 
+                AND action = :action
             ");
+            $historyCheckStmt->execute([
+                'access_request_number' => $requestData['access_request_number'],
+                'action' => $next_status
+            ]);
+            $historyExists = $historyCheckStmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Only insert if history entry doesn't already exist
+            if (!$historyExists || $historyExists['count'] == 0) {
+                // Insert into approval history with explicit schema and required columns
+                $historyInsert = $cleanPdo->prepare("
+                    INSERT INTO uar.approval_history (
+                        access_request_number,
+                        requestor_name, 
+                        employee_id, 
+                        email, 
+                        department, 
+                        business_unit, 
+                        access_type, 
+                        system_type,
+                        justification, 
+                        duration_type, 
+                        start_date, 
+                        end_date,
+                        contact_number,
+                        superior_id, 
+                        superior_notes,
+                        help_desk_id, 
+                        help_desk_notes,
+                        process_owner_id, 
+                        process_owner_notes,
+                        technical_id, 
+                        technical_notes,
+                        admin_id, 
+                        action, 
+                        comments,
+                        created_at
+                    ) VALUES (
+                        :access_request_number,
+                        :requestor_name, 
+                        :employee_id, 
+                        :email, 
+                        :department, 
+                        :business_unit, 
+                        :access_type, 
+                        :system_type,
+                        :justification, 
+                        :duration_type, 
+                        :start_date, 
+                        :end_date,
+                        :contact_number,
+                        :superior_id, 
+                        :superior_notes,
+                        :help_desk_id, 
+                        :help_desk_notes,
+                        :process_owner_id, 
+                        :process_owner_notes,
+                        :technical_id, 
+                        :technical_notes,
+                        :admin_id, 
+                        :action, 
+                        :comments,
+                        GETDATE()
+                    )
+                ");
 
             // Determine who made the final decision and what notes to use
             $decision_maker_notes = '';
@@ -796,63 +821,43 @@ try {
             // This matches the integer FK columns in approval_history
             $currentRoleId = $admin_users_id;
 
-            // Fallbacks for duration-related fields come from child tables as well
-            $derivedDurationType = null;
-            $derivedStart = null;
-            $derivedEnd = null;
-            try {
-                if (!empty($childAccessType) || !empty($childJustification)) {
-                    // reuse last child lookup result if available; if not, query for date fields
-                    if (!isset($cjr) || !$cjr) {
-                        $dj1 = $cleanPdo->prepare("SELECT TOP 1 access_duration AS duration_type, start_date, end_date FROM uar.individual_requests WHERE access_request_number = :arn");
-                        $dj1->execute(['arn' => $requestData['access_request_number']]);
-                        $cjr = $dj1->fetch(PDO::FETCH_ASSOC);
-                    }
-                    if (!$cjr) {
-                        $dj2 = $cleanPdo->prepare("SELECT TOP 1 access_duration AS duration_type, start_date, end_date FROM uar.group_requests WHERE access_request_number = :arn");
-                        $dj2->execute(['arn' => $requestData['access_request_number']]);
-                        $cjr = $dj2->fetch(PDO::FETCH_ASSOC);
-                    }
-                    if ($cjr) {
-                        $derivedDurationType = $cjr['duration_type'] ?? null;
-                        $derivedStart = $cjr['start_date'] ?? null;
-                        $derivedEnd = $cjr['end_date'] ?? null;
-                    }
-                }
-            } catch (Exception $e) {
-                $derivedDurationType = null;
-                $derivedStart = null;
-                $derivedEnd = null;
+            // Use the data already fetched from child tables above
+            $derivedDurationType = $childDurationType;
+            $derivedStart = $childStartDate;
+            $derivedEnd = $childEndDate;
+
+                $historyParams = [
+                    'access_request_number' => $requestData['access_request_number'],
+                    'requestor_name' => $requestData['requestor_name'],
+                    'employee_id' => $requestData['employee_id'],
+                    'email' => $requestData['email'],
+                    'department' => $requestData['department'],
+                    'business_unit' => $requestData['business_unit'],
+                    'access_type' => $childAccessType,
+                    'system_type' => $requestData['system_type'],
+                    'justification' => $childJustification,
+                    'duration_type' => $derivedDurationType,
+                    'start_date' => $derivedStart,
+                    'end_date' => $derivedEnd,
+                    'contact_number' => '',
+                    'superior_id' => $role === 'superior' ? $currentRoleId : $requestData['superior_id'],
+                    'superior_notes' => $requestData['superior_notes'],
+                    'help_desk_id' => $role === 'help_desk' ? $currentRoleId : $requestData['help_desk_id'],
+                    'help_desk_notes' => $requestData['help_desk_notes'],
+                    'process_owner_id' => $role === 'process_owner' ? $currentRoleId : $requestData['process_owner_id'],
+                    'process_owner_notes' => $requestData['process_owner_notes'],
+                    'technical_id' => ($role === 'technical' || $role === 'technical_support') ? $currentRoleId : $requestData['technical_id'],
+                    'technical_notes' => $requestData['technical_notes'],
+                    'admin_id' => $role === 'admin' ? $currentRoleId : $requestData['admin_id'],
+                    'action' => $next_status,
+                    'comments' => $decision_maker_notes
+                ];
+
+                $historyInsert->execute($historyParams);
+            } else {
+                // History entry already exists, skip insert to prevent duplicate
+                error_log("Skipped duplicate history insert for request {$requestData['access_request_number']} with action " . ($action === 'approve' ? 'approved' : 'rejected'));
             }
-
-            $historyParams = [
-                'access_request_number' => $requestData['access_request_number'],
-                'requestor_name' => $requestData['requestor_name'],
-                'employee_id' => $requestData['employee_id'],
-                'email' => $requestData['email'],
-                'department' => $requestData['department'],
-                'business_unit' => $requestData['business_unit'],
-                'access_type' => $childAccessType,
-                'system_type' => $requestData['system_type'],
-                'justification' => $childJustification,
-                'duration_type' => $derivedDurationType,
-                'start_date' => $derivedStart,
-                'end_date' => $derivedEnd,
-                'contact_number' => '',
-                'superior_id' => $role === 'superior' ? $currentRoleId : $requestData['superior_id'],
-                'superior_notes' => $requestData['superior_notes'],
-                'help_desk_id' => $role === 'help_desk' ? $currentRoleId : $requestData['help_desk_id'],
-                'help_desk_notes' => $requestData['help_desk_notes'],
-                'process_owner_id' => $role === 'process_owner' ? $currentRoleId : $requestData['process_owner_id'],
-                'process_owner_notes' => $requestData['process_owner_notes'],
-                'technical_id' => ($role === 'technical' || $role === 'technical_support') ? $currentRoleId : $requestData['technical_id'],
-                'technical_notes' => $requestData['technical_notes'],
-                'admin_id' => $role === 'admin' ? $currentRoleId : $requestData['admin_id'],
-                'action' => $action === 'approve' ? 'approved' : 'rejected',
-                'comments' => $decision_maker_notes
-            ];
-
-            $historyInsert->execute($historyParams);
 
             // Update message to indicate history was created
             if (($role === 'superior' && $next_status === 'pending_help_desk') ||

@@ -18,11 +18,22 @@ if (
 }
 
 // Get current user's admin ID for filtering
-$current_admin_id = $_SESSION['admin_id'];
+// First, get the admin_users.id from the database (same logic as process_request.php)
+$adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
+$adminQuery->execute([
+    'username' => $_SESSION['admin_username'] ?? '',
+    'employee_id' => $_SESSION['admin_id'] ?? ''
+]);
+$adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
+$current_admin_id = $adminRecord ? $adminRecord['id'] : $_SESSION['admin_id']; // Fallback to session ID if not found
+
+// Debug: Log session data (remove in production)
+// error_log("Process Owner Requests - Session Data: " . print_r($_SESSION, true));
+// error_log("Process Owner Requests - Current Admin ID: " . $current_admin_id);
 
 // Get all requests pending process owner review assigned to this specific user ONLY
 try {
-    $sql = "SELECT ar.*, 
+    $sql = "SELECT DISTINCT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
                 WHEN ar.status = 'pending_technical' THEN 'Pending Technical Review'
@@ -31,8 +42,11 @@ try {
                 WHEN ar.status = 'approved' THEN 'Approved'
                 WHEN ar.status = 'rejected' THEN 'Rejected'
                 ELSE ar.status
-            END as status_display
+            END as status_display,
+            ISNULL(ir.date_needed, gr.date_needed) as date_needed
             FROM uar.access_requests ar 
+            LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
+            LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
             WHERE ar.status = 'pending_process_owner'
             AND ar.process_owner_id = :current_admin_id
             ORDER BY ar.submission_date DESC";
@@ -40,6 +54,9 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['current_admin_id' => $current_admin_id]);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Debug: Log query results (remove in production)
+    // error_log("Process Owner Requests - Found " . count($requests) . " requests for admin_id: " . $current_admin_id);
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching requests: " . $e->getMessage();
     $requests = [];
@@ -98,6 +115,11 @@ try {
 
             <!-- Content -->
             <div class="p-8">
+                <!-- Debug Info (remove in production) -->
+                <!-- <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+                    <strong>Debug Info:</strong> Admin ID: <?php echo $current_admin_id; ?> | Requests Found: <?php echo count($requests); ?> | Role: <?php echo $_SESSION['role']; ?>
+                </div> -->
+                
                 <div class="bg-white rounded-xl shadow overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -142,7 +164,13 @@ try {
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                <?php echo date('M d, Y', strtotime($request['date_needed'])); ?>
+                                                <?php 
+                                                if (!empty($request['date_needed'])) {
+                                                    echo date('M d, Y', strtotime($request['date_needed']));
+                                                } else {
+                                                    echo 'N/A';
+                                                }
+                                                ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">

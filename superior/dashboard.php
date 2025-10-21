@@ -1,7 +1,7 @@
 <?php
 session_start();
 require_once '../config.php';
-require_once '../admin/analytics_functions.php';
+
 
 // Authentication check
 if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
@@ -11,9 +11,7 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
 
 // Get quick stats for the dashboard
 try {
-    // Get analytics data
-    $statsData = getDashboardStats($pdo);
-
+    
     // Get pending requests count
     $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status = 'pending_superior'");
     $pendingRequests = $stmt->fetchColumn();

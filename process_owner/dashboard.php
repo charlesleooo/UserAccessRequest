@@ -12,7 +12,7 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'process_owner') {
 // Get quick stats for the dashboard
 try {
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status = 'pending'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status = 'pending_process_owner'");
     $pendingRequests = $stmt->fetchColumn();
 
     // Get today's process reviews count
@@ -21,9 +21,9 @@ try {
     $stmt->execute([':today' => $todayDate]);
     $processReviewsToday = $stmt->fetchColumn();
 
-    // Get recent requests
+    // Get recent requests (using DISTINCT to avoid duplicates)
     $stmt = $pdo->prepare("
-        SELECT ar.*, 
+        SELECT DISTINCT ar.*, 
             CASE 
                 WHEN ar.status = 'pending_superior' THEN 'Pending Superior Review'
                 WHEN ar.status = 'pending_help_desk' THEN 'Pending Help Desk Review'

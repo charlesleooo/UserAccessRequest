@@ -13,37 +13,17 @@ $admin_username = $_SESSION['admin_username'] ?? '';
 
 try {
     // First, get the admin_users.id from the database
-    // This is needed because the help_desk_id in approval_history matches admin_users.id, not the session admin_id
-    $adminQuery = $pdo->prepare("SELECT id FROM admin_users WHERE username = :username OR username = :employee_id");
+    $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
     $adminQuery->execute([
         'username' => $admin_username,
         'employee_id' => $admin_id
     ]);
     $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
-    $admin_users_id = $adminRecord ? $adminRecord['id'] : $admin_id; // Fallback to session ID if not found
+    $admin_users_id = $adminRecord ? $adminRecord['id'] : $admin_id;
 
-    // Get requests reviewed by this help desk
-    // Use ROW_NUMBER() to get only the most recent entry per access_request_number
+    // Get requests reviewed by this help desk from both active requests and approval history
     $stmt = $pdo->prepare("
-        SELECT 
-            access_request_number,
-            requestor_name,
-            department,
-            business_unit,
-            access_type,
-            system_type,
-            review_date,
-            review_notes,
-            status,
-            justification,
-            employee_id,
-            email,
-            role_access_type,
-            duration_type,
-            start_date,
-            end_date,
-            action
-        FROM (
+        SELECT * FROM (
             SELECT 
                 ar.access_request_number,
                 ar.requestor_name,
@@ -54,23 +34,21 @@ try {
                 ar.help_desk_review_date as review_date,
                 ar.help_desk_notes as review_notes,
                 ar.status,
-                '' as justification,
                 ar.employee_id,
                 ar.employee_email as email,
-                '' as role_access_type,
-                '' as duration_type,
-                '' as start_date,
-                '' as end_date,
                 CASE 
-                    WHEN ar.status = 'rejected' AND ar.help_desk_id = :help_desk_id THEN 'Rejected'
+                    WHEN ar.status = 'rejected' THEN 'Rejected'
                     ELSE 'Approved/Forwarded'
                 END as action,
                 ROW_NUMBER() OVER (PARTITION BY ar.access_request_number ORDER BY ar.help_desk_review_date DESC) as rn
             FROM 
-                access_requests ar
+                uar.access_requests ar
             WHERE 
-                ar.help_desk_id = :help_desk_id AND ar.help_desk_review_date IS NOT NULL
+                ar.help_desk_id = :help_desk_id1 
+                AND ar.help_desk_review_date IS NOT NULL
+            
             UNION ALL
+            
             SELECT 
                 ah.access_request_number,
                 ah.requestor_name,
@@ -81,31 +59,26 @@ try {
                 ah.created_at as review_date,
                 ah.help_desk_notes as review_notes,
                 ah.action as status,
-                ah.justification,
                 ah.employee_id,
                 ah.email,
-                '',
-                ah.duration_type,
-                ah.start_date,
-                ah.end_date,
                 CASE 
-                    WHEN ah.action = 'rejected' AND ah.help_desk_id = :help_desk_id THEN 'Rejected'
+                    WHEN ah.action = 'rejected' THEN 'Rejected'
                     ELSE 'Approved/Forwarded'
                 END as action,
                 ROW_NUMBER() OVER (PARTITION BY ah.access_request_number ORDER BY ah.created_at DESC) as rn
             FROM 
-                approval_history ah
+                uar.approval_history ah
             WHERE 
-                ah.help_desk_id = :help_desk_id
+                ah.help_desk_id = :help_desk_id2
         ) combined
         WHERE rn = 1
-        GROUP BY access_request_number
-        ORDER BY 
-            review_date DESC
+        ORDER BY review_date DESC
     ");
 
-    // Execute with the admin_users.id from the database
-    $stmt->execute(['help_desk_id' => $admin_users_id]);
+    $stmt->execute([
+        'help_desk_id1' => $admin_users_id,
+        'help_desk_id2' => $admin_users_id
+    ]);
     $reviewed_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching review history: " . $e->getMessage();
@@ -124,7 +97,6 @@ try {
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Tailwind Configuration -->
     <script>
         tailwind.config = {
             theme: {
@@ -184,6 +156,22 @@ try {
                         <?php unset($_SESSION['success_message']); ?>
                     <?php endif; ?>
 
+                    <?php if (isset($_SESSION['error_message'])): ?>
+                        <div class="bg-red-50 p-4 border-l-4 border-red-500">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <i class='bx bx-error text-xl text-red-500'></i>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-red-700">
+                                        <?php echo $_SESSION['error_message']; ?>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <?php unset($_SESSION['error_message']); ?>
+                    <?php endif; ?>
+
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
@@ -200,7 +188,7 @@ try {
                                 <?php if (!empty($reviewed_requests)): ?>
                                     <?php foreach ($reviewed_requests as $index => $request): ?>
                                         <tr class="hover:bg-gray-50 cursor-pointer" 
-                                            onclick="window.location='view_request.php?access_request_number=<?php echo urlencode($request['access_request_number']); ?>&from_history=true'">
+                                            onclick="viewRequest('<?php echo htmlspecialchars($request['access_request_number'], ENT_QUOTES); ?>')">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -226,8 +214,10 @@ try {
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">
-                                            No review history found
+                                        <td colspan="6" class="px-6 py-12 text-center">
+                                            <i class='bx bx-folder-open text-6xl text-gray-300'></i>
+                                            <p class="mt-4 text-lg text-gray-500 font-medium">No review history found</p>
+                                            <p class="mt-2 text-sm text-gray-400">Requests you review will appear here</p>
                                         </td>
                                     </tr>
                                 <?php endif; ?>
@@ -239,7 +229,12 @@ try {
         </div>
     </div>
 
-
+    <script>
+        function viewRequest(accessRequestNumber) {
+            // Navigate to view_request.php with proper parameters
+            window.location.href = 'view_request.php?access_request_number=' + encodeURIComponent(accessRequestNumber) + '&from_history=true';
+        }
+    </script>
 </body>
 
 </html>

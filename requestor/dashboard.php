@@ -429,11 +429,16 @@ try {
                 <?php
                 // Get pending testing requests for this user
                 $pendingTestingRequestsQuery = "
-                    SELECT ar.*, 
-                           ISNULL(ir.access_type, gr.access_type) as access_type
+                    SELECT ar.*, at.access_type
                     FROM uar.access_requests ar
-                    LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
-                    LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
+                    OUTER APPLY (
+                        SELECT TOP 1 x.access_type
+                        FROM (
+                            SELECT ir.access_type FROM uar.individual_requests ir WHERE ir.access_request_number = ar.access_request_number
+                            UNION ALL
+                            SELECT gr.access_type FROM uar.group_requests gr WHERE gr.access_request_number = ar.access_request_number
+                        ) AS x
+                    ) AS at
                     WHERE ar.employee_id = :employee_id 
                     AND ar.status = 'pending_testing' 
                     ORDER BY ar.submission_date DESC

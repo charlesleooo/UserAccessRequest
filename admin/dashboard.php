@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once '../config.php';
-require_once 'analytics_functions.php';
 
 // Authentication check
 if (!isset($_SESSION['admin_id'])) {
@@ -16,28 +15,49 @@ function formatStatus($status)
 
 // Get quick stats for the dashboard
 try {
-    // Get analytics data
-    $statsData = getDashboardStats($pdo);
+    // Get total requests
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests");
+    $totalRequests = $stmt->fetchColumn();
+
+    // Get approved requests
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE uar.enum2str\$access_requests\$status(status) = 'approved'");
+    $approvedRequests = $stmt->fetchColumn();
+
+    // Calculate approval rate
+    $approvalRate = $totalRequests > 0 ? round(($approvedRequests / $totalRequests) * 100, 1) : 0;
+    $declineRate = $totalRequests > 0 ? round((($totalRequests - $approvedRequests) / $totalRequests) * 100, 1) : 0;
+
+    $statsData = [
+        'total' => $totalRequests,
+        'approved' => $approvedRequests,
+        'approval_rate' => $approvalRate,
+        'decline_rate' => $declineRate
+    ];
 
     // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE status = 'pending'");
+    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE uar.enum2str\$access_requests\$status(status) = 'pending'");
     $pendingRequests = $stmt->fetchColumn();
 
-    // Get today's approvals count
+    // Get today's approvals count (action: 1=approved, 2=rejected)
     $todayDate = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'approved' AND CAST(created_at AS DATE) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 1 AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $approvedToday = $stmt->fetchColumn();
 
     // Get today's rejections count
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 'rejected' AND CAST(created_at AS DATE) = :today");
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 2 AND CAST(created_at AS DATE) = :today");
     $stmt->execute([':today' => $todayDate]);
     $rejectedToday = $stmt->fetchColumn();
 
     // Get recent requests with access_type from child tables
     $stmt = $pdo->query("
-        SELECT TOP 5 ar.*, 
-               ISNULL(ir.access_type, gr.access_type) as access_type
+        SELECT TOP 5 
+            ar.access_request_number,
+            ar.requestor_name,
+            ar.business_unit,
+            ar.submission_date,
+            uar.enum2str\$access_requests\$status(ar.status) as status,
+            ISNULL(ir.access_type, gr.access_type) as access_type
         FROM uar.access_requests ar
         LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
         LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
@@ -51,15 +71,6 @@ try {
                         LEFT JOIN uar.admin_users a ON h.admin_id = a.id 
                         ORDER BY h.created_at DESC");
     $recentApprovals = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Get access type distribution for mini chart
-    $stmt = $pdo->query("SELECT 
-                         access_type,
-                         COUNT(*) as count
-                         FROM uar.approval_history
-                         GROUP BY access_type
-                         ORDER BY count DESC");
-    $accessTypeDistribution = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Handle database errors gracefully
     error_log("Dashboard data fetch error: " . $e->getMessage());
@@ -74,7 +85,6 @@ try {
     ];
     $recentRequests = [];
     $recentApprovals = [];
-    $accessTypeDistribution = [];
 }
 
 ?>
@@ -230,40 +240,7 @@ try {
         <!-- Content Area -->
         <div class="p-4 lg:p-8">
             <!-- Main Navigation Cards -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <!-- Analytics Card -->
-                <a href="analytics.php" class="group relative bg-white border border-gray-200 rounded-xl shadow-sm p-6 card-hover overflow-hidden">
-                    <div class="relative z-10">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="flex-1">
-                                <h3 class="text-xl font-bold text-gray-800 mb-2">Analytics</h3>
-                                <p class="text-gray-600 text-sm">View system analytics and insights</p>
-                            </div>
-                            <div class="text-primary bg-primary-50 p-3 rounded-lg group-hover:scale-110 transition-transform">
-                                <i class='bx bx-line-chart text-2xl'></i>
-                            </div>
-                        </div>
-
-                        <!-- Mini Analytics Data -->
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div class="bg-gray-50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-500 mb-1">Approval Rate</p>
-                                <p class="text-lg font-bold text-primary"><?php echo $statsData['approval_rate']; ?>%</p>
-                            </div>
-                            <div class="bg-gray-50 p-3 rounded-lg">
-                                <p class="text-xs text-gray-500 mb-1">Total Requests</p>
-                                <p class="text-lg font-bold text-gray-800"><?php echo number_format($statsData['total']); ?></p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center text-primary font-medium">
-                            <span class="text-sm">View Details</span>
-                            <i class='bx bx-right-arrow-alt ml-2 group-hover:translate-x-1 transition-transform'></i>
-                        </div>
-                    </div>
-                    <div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                </a>
-
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <!-- Requests Card -->
                 <a href="requests.php" class="group relative bg-white border border-gray-200 rounded-xl shadow-sm p-6 card-hover overflow-hidden">
                     <div class="relative z-10">
@@ -404,8 +381,8 @@ try {
                 </div>
             </div>
 
-            <!-- Additional Data Section -->
-            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <!-- Recent Requests Section -->
+            <div class="w-full">
                 <!-- Recent Requests -->
                 <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
                     <div class="px-6 py-4 border-b border-gray-100">
@@ -464,97 +441,6 @@ try {
                                 <?php endif; ?>
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                <!-- Access Type Distribution -->
-                <div class="bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <div class="px-6 py-4 border-b border-gray-100">
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-lg font-semibold text-gray-800">Access Type Distribution</h3>
-                            <a href="analytics.php" class="text-sm text-primary hover:text-primary-700 flex items-center transition-colors">
-                                View Analytics
-                                <i class='bx bx-right-arrow-alt ml-1'></i>
-                            </a>
-                        </div>
-                    </div>
-                    <div class="p-6">
-                        <?php if (!empty($accessTypeDistribution)): ?>
-                            <div class="h-64 flex items-center justify-center">
-                                <canvas id="accessTypeChart" class="max-w-full max-h-full"></canvas>
-                            </div>
-                            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-                            <script>
-                                // Access Type Distribution Chart
-                                document.addEventListener('DOMContentLoaded', function() {
-                                    const ctx = document.getElementById('accessTypeChart');
-                                    if (ctx) {
-                                        const context = ctx.getContext('2d');
-
-                                        // Common colors
-                                        const colors = [
-                                            'rgb(0, 132, 255)', // Facebook Messenger Blue
-                                            'rgb(34, 197, 94)', // Green
-                                            'rgb(249, 115, 22)', // Orange
-                                            'rgb(139, 92, 246)' // Purple
-                                        ];
-
-                                        new Chart(context, {
-                                            type: 'doughnut',
-                                            data: {
-                                                labels: [
-                                                    <?php foreach ($accessTypeDistribution as $item): ?> "<?php echo addslashes($item['access_type']); ?>",
-                                                    <?php endforeach; ?>
-                                                ],
-                                                datasets: [{
-                                                    data: [
-                                                        <?php foreach ($accessTypeDistribution as $item): ?>
-                                                            <?php echo $item['count']; ?>,
-                                                        <?php endforeach; ?>
-                                                    ],
-                                                    backgroundColor: colors,
-                                                    borderWidth: 2,
-                                                    borderColor: '#ffffff'
-                                                }]
-                                            },
-                                            options: {
-                                                responsive: true,
-                                                maintainAspectRatio: false,
-                                                plugins: {
-                                                    legend: {
-                                                        position: 'bottom',
-                                                        labels: {
-                                                            padding: 20,
-                                                            usePointStyle: true,
-                                                            font: {
-                                                                size: 12
-                                                            }
-                                                        }
-                                                    },
-                                                    tooltip: {
-                                                        callbacks: {
-                                                            label: function(context) {
-                                                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                                                const value = context.raw;
-                                                                const percentage = ((value / total) * 100).toFixed(1);
-                                                                return `${context.label}: ${value} (${percentage}%)`;
-                                                            }
-                                                        }
-                                                    }
-                                                },
-                                                cutout: '60%'
-                                            }
-                                        });
-                                    }
-                                });
-                            </script>
-                        <?php else: ?>
-                            <div class="flex flex-col items-center justify-center h-64">
-                                <i class='bx bx-pie-chart-alt text-4xl text-gray-300 mb-2'></i>
-                                <p class="text-gray-500">No data available</p>
-                                <p class="text-sm text-gray-400 mt-1">Chart will appear when data is available</p>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 </div>
             </div>

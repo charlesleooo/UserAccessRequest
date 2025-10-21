@@ -1,6 +1,6 @@
 <?php
 require_once '../config.php';
-session_start();
+if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
 // Track if a transaction is active
 $transaction_active = false;
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         throw new Exception('Invalid email format');
                     }
 
-                    $stmt = $pdo->prepare("UPDATE employees SET employee_name = ?, company = ?, department = ?, employee_email = ? WHERE employee_id = ?");
+                    $stmt = $pdo->prepare("UPDATE uar.employees SET employee_name = ?, company = ?, department = ?, employee_email = ? WHERE employee_id = ?");
                     $stmt->execute([$employee_name, $company, $department, $email, $employee_id]);
 
                     $_SESSION['message'] = [
@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $transaction_active = true;
 
                         // First get the employee details with error handling
-                        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_id = ?");
+                        $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_id = ?");
                         if (!$stmt->execute([$employee_id])) {
                             throw new Exception("Failed to fetch employee details");
                         }
@@ -85,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // When logging in, admin_id in session is set to employee_id, not the admin_users.id
                         if (isset($_SESSION['admin_username'])) {
                             $adminUsername = $_SESSION['admin_username'];
-                            $findAdmin = $pdo->prepare("SELECT id FROM admin_users WHERE username = ?");
+                            $findAdmin = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = ?");
                             $findAdmin->execute([$_SESSION['admin_id']]);
                             $adminData = $findAdmin->fetch(PDO::FETCH_ASSOC);
 
@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 $admin_id = $adminData['id'];
                             } else {
                                 // Fallback to any admin user if the current admin is not found
-                                $get_admin = $pdo->query("SELECT id FROM admin_users LIMIT 1");
+                                $get_admin = $pdo->query("SELECT TOP 1 id FROM uar.admin_users");
                                 $admin_record = $get_admin->fetch(PDO::FETCH_ASSOC);
                                 $admin_id = $admin_record ? $admin_record['id'] : null;
 
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         } else {
                             // Fallback to any admin user if no admin is logged in
-                            $get_admin = $pdo->query("SELECT id FROM admin_users LIMIT 1");
+                            $get_admin = $pdo->query("SELECT TOP 1 id FROM uar.admin_users");
                             $admin_record = $get_admin->fetch(PDO::FETCH_ASSOC);
                             $admin_id = $admin_record ? $admin_record['id'] : null;
 
@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         // Insert into archive with verified admin_id
-                        $stmt = $pdo->prepare("INSERT INTO employees_archive (employee_id, company, employee_name, department, employee_email, archived_by, archive_reason) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                        $stmt = $pdo->prepare("INSERT INTO uar.employees_archive (employee_id, company, employee_name, department, employee_email, archived_by, archive_reason) VALUES (?, ?, ?, ?, ?, ?, ?)");
                         if (!$stmt->execute([
                             $employee['employee_id'],
                             $employee['company'],
@@ -127,7 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         // Delete from active employees
-                        $stmt = $pdo->prepare("DELETE FROM employees WHERE employee_id = ?");
+                        $stmt = $pdo->prepare("DELETE FROM uar.employees WHERE employee_id = ?");
                         if (!$stmt->execute([$employee_id])) {
                             throw new Exception("Failed to remove employee from active list");
                         }
@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $transaction_active = true;
 
                         // First get the archived employee details with error handling
-                        $stmt = $pdo->prepare("SELECT * FROM employees_archive WHERE employee_id = ?");
+                        $stmt = $pdo->prepare("SELECT * FROM uar.employees_archive WHERE employee_id = ?");
                         if (!$stmt->execute([$employee_id])) {
                             throw new Exception("Failed to fetch archived employee details");
                         }
@@ -170,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         // Insert back into employees
-                        $stmt = $pdo->prepare("INSERT INTO employees (employee_id, company, employee_name, department, employee_email) VALUES (?, ?, ?, ?, ?)");
+                        $stmt = $pdo->prepare("INSERT INTO uar.employees (employee_id, company, employee_name, department, employee_email) VALUES (?, ?, ?, ?, ?)");
                         if (!$stmt->execute([
                             $employee['employee_id'],
                             $employee['company'],
@@ -182,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         // Delete from archive
-                        $stmt = $pdo->prepare("DELETE FROM employees_archive WHERE employee_id = ?");
+                        $stmt = $pdo->prepare("DELETE FROM uar.employees_archive WHERE employee_id = ?");
                         if (!$stmt->execute([$employee_id])) {
                             throw new Exception("Failed to remove employee from archive");
                         }
@@ -224,14 +224,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     // Check if employee ID already exists
-                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE employee_id = ?");
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.employees WHERE employee_id = ?");
                     $stmt->execute([$employee_id]);
                     if ($stmt->fetchColumn() > 0) {
                         throw new Exception('Employee ID already exists');
                     }
 
                     // Check if email already exists
-                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM employees WHERE employee_email = ?");
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.employees WHERE employee_email = ?");
                     $stmt->execute([$email]);
                     if ($stmt->fetchColumn() > 0) {
                         throw new Exception('Email address already exists');
@@ -243,18 +243,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     try {
                         // Insert into employees table WITH THE CORRECT ROLE
-                        $stmt = $pdo->prepare("INSERT INTO employees (employee_id, employee_name, company, department, employee_email, role) VALUES (?, ?, ?, ?, ?, ?)");
+                        $stmt = $pdo->prepare("INSERT INTO uar.employees (employee_id, employee_name, company, department, employee_email, role) VALUES (?, ?, ?, ?, ?, ?)");
                         $stmt->execute([$employee_id, $employee_name, $company, $department, $email, $role]);
 
                         // Default password for admin users
                         $default_password = password_hash('password123', PASSWORD_DEFAULT);
 
                         // Delete any existing admin user entry first
-                        $delete_stmt = $pdo->prepare("DELETE FROM admin_users WHERE username = ?");
+                        $delete_stmt = $pdo->prepare("DELETE FROM uar.admin_users WHERE username = ?");
                         $delete_stmt->execute([$employee_id]);
 
                         // Now create a fresh admin user entry with the selected role
-                        $insert_stmt = $pdo->prepare("INSERT INTO admin_users (username, password, role) VALUES (?, ?, ?)");
+                        $insert_stmt = $pdo->prepare("INSERT INTO uar.admin_users (username, password, role) VALUES (?, ?, ?)");
                         $insert_result = $insert_stmt->execute([$employee_id, $default_password, $role]);
 
                         if (!$insert_result) {
@@ -302,18 +302,18 @@ $department_filter = isset($_GET['department']) ? htmlspecialchars($_GET['depart
 // Fetch unique companies and departments for filters with error handling
 try {
     // Fetch from both active and archived employees for comprehensive filtering
-    $companies = $pdo->query("SELECT DISTINCT company FROM employees 
+$companies = $pdo->query("SELECT DISTINCT company FROM uar.employees 
                            UNION 
-                           SELECT DISTINCT company FROM employees_archive 
+                           SELECT DISTINCT company FROM uar.employees_archive 
                            ORDER BY company")->fetchAll(PDO::FETCH_COLUMN);
     if ($companies === false) {
         $companies = [];
         error_log("Failed to fetch companies list");
     }
 
-    $departments = $pdo->query("SELECT DISTINCT department FROM employees 
+    $departments = $pdo->query("SELECT DISTINCT department FROM uar.employees 
                               UNION 
-                              SELECT DISTINCT department FROM employees_archive 
+                              SELECT DISTINCT department FROM uar.employees_archive 
                               ORDER BY department")->fetchAll(PDO::FETCH_COLUMN);
     if ($departments === false) {
         $departments = [];
@@ -345,9 +345,10 @@ try {
                           employee_name, 
                           department, 
                           employee_email, 
-                          'active' as status 
+                          'active' as status,
+                          0 as sort_order
                         FROM 
-                          employees 
+                          uar.employees 
                         WHERE 1=1";
 
         if (isset($_GET['company']) && $_GET['company'] !== '') {
@@ -371,9 +372,10 @@ try {
                             employee_name, 
                             department, 
                             employee_email, 
-                            'inactive' as status 
+                            'inactive' as status,
+                            1 as sort_order
                           FROM 
-                            employees_archive 
+                            uar.employees_archive 
                           WHERE 1=1";
 
         if (isset($_GET['company']) && $_GET['company'] !== '') {
@@ -392,8 +394,8 @@ try {
     // Combine the parts with UNION ALL
     $query = implode(" UNION ALL ", $parts);
 
-    // Add ordering
-    $query .= " ORDER BY CASE WHEN status = 'active' THEN 0 ELSE 1 END, employee_name ASC";
+    // Add ordering using the projected sort_order to satisfy UNION ORDER BY rules
+    $query .= " ORDER BY sort_order, employee_name ASC";
 
     error_log("SQL Query: " . $query);
     error_log("Query params: " . print_r($params, true));
@@ -419,7 +421,7 @@ try {
 }
 
 // Fetch all admin users
-$stmt = $pdo->query("SELECT * FROM admin_users");
+$stmt = $pdo->query("SELECT * FROM uar.admin_users");
 $admin_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // Create a lookup of existing admin usernames
@@ -580,7 +582,7 @@ $existing_usernames = array_column($admin_users, 'username');
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
-                                <?php foreach ($employees as $employee): ?>
+                                <?php if (!empty($employees)): foreach ($employees as $employee): ?>
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             <?php echo htmlspecialchars($employee['employee_id']); ?>
@@ -633,7 +635,7 @@ $existing_usernames = array_column($admin_users, 'username');
                                             </div>
                                         </td>
                                     </tr>
-                                <?php endforeach; ?>
+                                <?php endforeach; endif; ?>
                             </tbody>
                         </table>
                     </div>
@@ -952,6 +954,7 @@ $existing_usernames = array_column($admin_users, 'username');
                 language: {
                     lengthMenu: "Show _MENU_ entries per page",
                     info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                    emptyTable: "No users found",
                     paginate: {
                         first: "First",
                         last: "Last",
@@ -1288,12 +1291,13 @@ $existing_usernames = array_column($admin_users, 'username');
                 });
             });
 
-            // Success/Error message handling
+            // Success/Error message handling (safe JSON injection to avoid JS syntax errors)
             <?php if (isset($_SESSION['message'])): ?>
+                const flash = <?php echo json_encode($_SESSION['message'], JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT); ?>;
                 Swal.fire({
-                    title: '<?php echo $_SESSION['message']['title'] ?? ''; ?>',
-                    text: '<?php echo $_SESSION['message']['text']; ?>',
-                    icon: '<?php echo $_SESSION['message']['type']; ?>',
+                    title: (flash && flash.title) ? flash.title : '',
+                    text: (flash && flash.text) ? flash.text : '',
+                    icon: (flash && flash.type) ? flash.type : 'info',
                     timer: 3000,
                     showConfirmButton: false
                 });

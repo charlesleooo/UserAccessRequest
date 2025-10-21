@@ -20,7 +20,7 @@ $dateFilter = $_GET['date'] ?? 'all';
 $searchQuery = $_GET['search'] ?? '';
 
 // Prepare base query for all requests (both pending and processed)
-// Use a subquery to get the most recent status for each access_request_number
+// Prioritize access_requests table status over approval_history to avoid inconsistencies
 $query = "SELECT 
             source,
             request_id,
@@ -52,7 +52,13 @@ $query = "SELECT
               email,
               employee_id,
               requestor_name,
-              ROW_NUMBER() OVER (PARTITION BY access_request_number ORDER BY created_at DESC) as rn
+              ROW_NUMBER() OVER (PARTITION BY access_request_number ORDER BY 
+                CASE 
+                  WHEN source = 'pending' THEN 0  -- Prioritize access_requests table
+                  ELSE 1 
+                END, 
+                created_at DESC
+              ) as rn
             FROM (
               SELECT 
                 'pending' as source,
@@ -91,6 +97,7 @@ $query = "SELECT
                 ah.requestor_name
               FROM uar.approval_history ah
               WHERE ah.employee_id = :employee_id2
+                AND ah.action IN ('approved', 'rejected', 'cancelled')  -- Only show final statuses
             ) all_requests
           ) ranked_requests
           WHERE rn = 1";

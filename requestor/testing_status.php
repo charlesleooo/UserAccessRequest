@@ -143,93 +143,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
             $requestData = $requestDataQuery->fetch(PDO::FETCH_ASSOC);
 
             if ($requestData) {
-                // Insert into approval_history table
-                $historyInsert = $pdo->prepare("
-                    INSERT INTO uar.approval_history (
-                        access_request_number,
-                        requestor_name, 
-                        employee_id, 
-                        email, 
-                        contact_number, 
-                        department, 
-                        business_unit, 
-                        access_type, 
-                        system_type,
-                        justification, 
-                        duration_type, 
-                        start_date, 
-                        end_date,
-                        superior_id, 
-                        superior_notes,
-                        help_desk_id, 
-                        help_desk_notes,
-                        process_owner_id, 
-                        process_owner_notes,
-                        technical_id, 
-                        technical_notes,
-                        admin_id, 
-                        action, 
-                        comments,
-                        testing_status,
-                        created_at
-                    ) VALUES (
-                        :access_request_number,
-                        :requestor_name, 
-                        :employee_id, 
-                        :email, 
-                        :contact_number, 
-                        :department, 
-                        :business_unit, 
-                        :access_type, 
-                        :system_type,
-                        :justification, 
-                        :duration_type, 
-                        :start_date, 
-                        :end_date,
-                        :superior_id, 
-                        :superior_notes,
-                        :help_desk_id, 
-                        :help_desk_notes,
-                        :process_owner_id, 
-                        :process_owner_notes,
-                        :technical_id, 
-                        :technical_notes,
-                        :admin_id, 
-                        'approved', 
-                        :comments,
-                        :testing_status,
-                        GETDATE()
-                    )
+                // Check if history entry already exists to prevent duplicates
+                $historyCheckStmt = $pdo->prepare("
+                    SELECT COUNT(*) as count 
+                    FROM uar.approval_history 
+                    WHERE access_request_number = :access_request_number 
+                    AND action = 'approved'
                 ");
+                $historyCheckStmt->execute([
+                    'access_request_number' => $requestData['access_request_number']
+                ]);
+                $historyExists = $historyCheckStmt->fetch(PDO::FETCH_ASSOC);
+                
+                // Only insert if history entry doesn't already exist
+                if (!$historyExists || $historyExists['count'] == 0) {
+                    // Insert into approval_history table
+                    $historyInsert = $pdo->prepare("
+                        INSERT INTO uar.approval_history (
+                            access_request_number,
+                            requestor_name, 
+                            employee_id, 
+                            email, 
+                            contact_number, 
+                            department, 
+                            business_unit, 
+                            access_type, 
+                            system_type,
+                            justification, 
+                            duration_type, 
+                            start_date, 
+                            end_date,
+                            superior_id, 
+                            superior_notes,
+                            help_desk_id, 
+                            help_desk_notes,
+                            process_owner_id, 
+                            process_owner_notes,
+                            technical_id, 
+                            technical_notes,
+                            admin_id, 
+                            action, 
+                            comments,
+                            testing_status,
+                            created_at
+                        ) VALUES (
+                            :access_request_number,
+                            :requestor_name, 
+                            :employee_id, 
+                            :email, 
+                            :contact_number, 
+                            :department, 
+                            :business_unit, 
+                            :access_type, 
+                            :system_type,
+                            :justification, 
+                            :duration_type, 
+                            :start_date, 
+                            :end_date,
+                            :superior_id, 
+                            :superior_notes,
+                            :help_desk_id, 
+                            :help_desk_notes,
+                            :process_owner_id, 
+                            :process_owner_notes,
+                            :technical_id, 
+                            :technical_notes,
+                            :admin_id, 
+                            'approved', 
+                            :comments,
+                            :testing_status,
+                            GETDATE()
+                        )
+                    ");
 
-                $historyParams = [
-                    'access_request_number' => $requestData['access_request_number'],
-                    'requestor_name' => $requestData['requestor_name'],
-                    'employee_id' => $requestData['employee_id'],
-                    'email' => $requestData['email'],
-                    'contact_number' => $requestData['contact_number'] ?? 'Not provided',
-                    'department' => $requestData['department'],
-                    'business_unit' => $requestData['business_unit'],
-                    'access_type' => $requestData['access_type'],
-                    'system_type' => $requestData['system_type'],
-                    'justification' => $requestData['justification'],
-                    'duration_type' => $requestData['duration_type'],
-                    'start_date' => $requestData['start_date'],
-                    'end_date' => $requestData['end_date'],
-                    'superior_id' => $requestData['superior_id'],
-                    'superior_notes' => $requestData['superior_notes'],
-                    'help_desk_id' => $requestData['help_desk_id'],
-                    'help_desk_notes' => $requestData['help_desk_notes'],
-                    'process_owner_id' => $requestData['process_owner_id'],
-                    'process_owner_notes' => $requestData['process_owner_notes'],
-                    'technical_id' => $requestData['technical_id'],
-                    'technical_notes' => $requestData['technical_notes'],
-                    'admin_id' => $requestData['admin_id'],
-                    'comments' => 'Automatically approved after successful testing. Testing notes: ' . $testing_notes,
-                    'testing_status' => $requestData['testing_status']
-                ];
+                    $historyParams = [
+                        'access_request_number' => $requestData['access_request_number'],
+                        'requestor_name' => $requestData['requestor_name'],
+                        'employee_id' => $requestData['employee_id'],
+                        'email' => $requestData['email'],
+                        'contact_number' => $requestData['contact_number'] ?? 'Not provided',
+                        'department' => $requestData['department'],
+                        'business_unit' => $requestData['business_unit'],
+                        'access_type' => $requestData['access_type'],
+                        'system_type' => $requestData['system_type'],
+                        'justification' => $requestData['justification'],
+                        'duration_type' => $requestData['duration_type'],
+                        'start_date' => $requestData['start_date'],
+                        'end_date' => $requestData['end_date'],
+                        'superior_id' => $requestData['superior_id'],
+                        'superior_notes' => $requestData['superior_notes'],
+                        'help_desk_id' => $requestData['help_desk_id'],
+                        'help_desk_notes' => $requestData['help_desk_notes'],
+                        'process_owner_id' => $requestData['process_owner_id'],
+                        'process_owner_notes' => $requestData['process_owner_notes'],
+                        'technical_id' => $requestData['technical_id'],
+                        'technical_notes' => $requestData['technical_notes'],
+                        'admin_id' => $requestData['admin_id'],
+                        'comments' => 'Automatically approved after successful testing. Testing notes: ' . $testing_notes,
+                        'testing_status' => $requestData['testing_status']
+                    ];
 
-                $historyInsert->execute($historyParams);
+                    $historyInsert->execute($historyParams);
+                } else {
+                    // History entry already exists, skip insert to prevent duplicate
+                    error_log("Skipped duplicate history insert for request {$requestData['access_request_number']} (testing approval)");
+                }
 
                 // Delete from access_requests table since it's now in history
                 $deleteStmt = $pdo->prepare("DELETE FROM uar.access_requests WHERE id = ?");

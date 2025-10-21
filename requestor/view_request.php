@@ -196,8 +196,11 @@ try {
 
 <body class="bg-gray-50 font-sans">
 
+    <!-- Sidebar -->
+    <?php include 'sidebar.php'; ?>
+
     <!-- Main Content -->
-    <div class="w-full transition-all duration-300">
+    <div class="flex-1 ml-72 transition-all duration-300">
         <!-- Header -->
         <div class="bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
             <div class="flex justify-between items-center px-6 py-4">

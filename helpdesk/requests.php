@@ -185,7 +185,7 @@ try {
                                 <?php else: ?>
                                     <tr>
                                         <td colspan="9" class="px-6 py-4 text-center text-gray-500">
-                                            No pending technical reviews found
+                                            No pending reviews found
                                         </td>
                                     </tr>
                                 <?php endif; ?>

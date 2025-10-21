@@ -22,86 +22,34 @@ try {
     $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
     $process_owner_id = $adminRecord ? $adminRecord['id'] : $admin_id; // Fallback to session ID if not found
 
-    // Get requests reviewed by this process owner
-    // Use ROW_NUMBER() to get only the most recent entry per access_request_number
+    // Get requests reviewed by this process owner from approval_history
     $stmt = $pdo->prepare("
         SELECT 
-            access_request_number,
-            requestor_name,
-            department,
-            business_unit,
-            access_type,
-            system_type,
-            review_date,
-            review_notes,
-            status,
-            justification,
-            employee_id,
-            email,
-            role_access_type,
-            duration_type,
-            start_date,
-            end_date,
-            action
-        FROM (
-            SELECT 
-                ar.access_request_number,
-                ar.requestor_name,
-                ar.department,
-                ar.business_unit,
-                ar.access_level as access_type,
-                ar.system_type,
-                ar.process_owner_review_date as review_date,
-                ar.process_owner_notes as review_notes,
-                ar.status,
-                '' as justification,
-                ar.employee_id,
-                ar.employee_email as email,
-                '' as role_access_type,
-                '' as duration_type,
-                '' as start_date,
-                '' as end_date,
-                CASE 
-                    WHEN ar.status = 'rejected' AND ar.process_owner_id = :process_owner_id THEN 'Rejected'
-                    ELSE 'Approved/Forwarded'
-                END as action,
-                ROW_NUMBER() OVER (PARTITION BY ar.access_request_number ORDER BY ar.process_owner_review_date DESC) as rn
-            FROM 
-                access_requests ar
-            WHERE 
-                ar.process_owner_id = :process_owner_id AND ar.process_owner_review_date IS NOT NULL
-            UNION ALL
-            SELECT 
-                ah.access_request_number,
-                ah.requestor_name,
-                ah.department,
-                ah.business_unit,
-                ah.access_type,
-                ah.system_type,
-                ah.created_at as review_date,
-                ah.process_owner_notes as review_notes,
-                ah.action as status,
-                ah.justification,
-                ah.employee_id,
-                ah.email,
-                '',
-                ah.duration_type,
-                ah.start_date,
-                ah.end_date,
-                CASE 
-                    WHEN ah.action = 'rejected' AND ah.process_owner_id = :process_owner_id THEN 'Rejected'
-                    ELSE 'Approved/Forwarded'
-                END as action,
-                ROW_NUMBER() OVER (PARTITION BY ah.access_request_number ORDER BY ah.created_at DESC) as rn
-            FROM 
-                approval_history ah
-            WHERE 
-                ah.process_owner_id = :process_owner_id
-        ) combined
-        WHERE rn = 1
-        GROUP BY access_request_number
+            ah.access_request_number,
+            ah.requestor_name,
+            ah.department,
+            ah.business_unit,
+            ah.access_type,
+            ah.system_type,
+            ah.created_at as review_date,
+            ah.process_owner_notes as review_notes,
+            ah.action as status,
+            ah.justification,
+            ah.employee_id,
+            ah.email,
+            ah.duration_type,
+            ah.start_date,
+            ah.end_date,
+            CASE 
+                WHEN ah.action = 'rejected' THEN 'Rejected'
+                ELSE 'Approved/Forwarded'
+            END as action
+        FROM 
+            uar.approval_history ah
+        WHERE 
+            ah.process_owner_id = :process_owner_id
         ORDER BY 
-            review_date DESC
+            ah.created_at DESC
     ");
 
     $stmt->execute(['process_owner_id' => $process_owner_id]);

@@ -78,33 +78,45 @@
             // Debug: Log the count of forms
             error_log("Processing " . count($userForms) . " forms");
 
-            // Generate one request number for all forms
+            // Generate one request number for all forms with proper locking to prevent race conditions
             $year = date('Y');
-            
-            // First try to get max from access_requests
-            $sql1 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
-                     FROM uar.access_requests 
-                     WHERE access_request_number LIKE :year_prefix";
-            
-            $stmt = $pdo->prepare($sql1);
             $year_prefix = "$year-%";
-            $stmt->execute(['year_prefix' => $year_prefix]);
-            $result1 = $stmt->fetch(PDO::FETCH_ASSOC);
-            $max1 = $result1['max_num'] ?? 0;
             
-            // Then try to get max from approval_history
-            $sql2 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
-                     FROM uar.approval_history 
-                     WHERE access_request_number LIKE :year_prefix";
+            // Start a transaction with SERIALIZABLE isolation to prevent race conditions
+            $pdo->exec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+            $pdo->beginTransaction();
             
-            $stmt = $pdo->prepare($sql2);
-            $stmt->execute(['year_prefix' => $year_prefix]);
-            $result2 = $stmt->fetch(PDO::FETCH_ASSOC);
-            $max2 = $result2['max_num'] ?? 0;
-            
-            // Get the highest number between both tables
-            $next_num = max($max1, $max2) + 1;
-            $access_request_number = sprintf("%d-%03d", $year, $next_num);
+            try {
+                // Get max from access_requests with locking hints
+                $sql1 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
+                         FROM uar.access_requests WITH (UPDLOCK, HOLDLOCK)
+                         WHERE access_request_number LIKE :year_prefix";
+                
+                $stmt = $pdo->prepare($sql1);
+                $stmt->execute(['year_prefix' => $year_prefix]);
+                $result1 = $stmt->fetch(PDO::FETCH_ASSOC);
+                $max1 = $result1['max_num'] ?? 0;
+                
+                // Get max from approval_history with locking hints
+                $sql2 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
+                         FROM uar.approval_history WITH (UPDLOCK, HOLDLOCK)
+                         WHERE access_request_number LIKE :year_prefix";
+                
+                $stmt = $pdo->prepare($sql2);
+                $stmt->execute(['year_prefix' => $year_prefix]);
+                $result2 = $stmt->fetch(PDO::FETCH_ASSOC);
+                $max2 = $result2['max_num'] ?? 0;
+                
+                // Get the highest number between both tables
+                $next_num = max($max1, $max2) + 1;
+                $access_request_number = sprintf("%d-%03d", $year, $next_num);
+                
+                // Commit the transaction lock (will be kept until main transaction completes)
+                $pdo->commit();
+            } catch (Exception $e) {
+                $pdo->rollBack();
+                throw $e;
+            }
 
             $first_access_request_number = $access_request_number;
 
@@ -323,25 +335,28 @@
         }
 
         // Single request processing
-        // Generate access request number (2025-XXX format)
+        // Generate access request number (2025-XXX format) with proper locking
         $year = date('Y');
+        $year_prefix = "$year-%";
 
         try {
-            // Check both tables to find the highest request number
-            // First try to get max from access_requests
+            // Start a transaction with SERIALIZABLE isolation to prevent race conditions
+            $pdo->exec("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE");
+            $pdo->beginTransaction();
+            
+            // Get max from access_requests with locking hints
             $sql1 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
-                     FROM uar.access_requests 
+                     FROM uar.access_requests WITH (UPDLOCK, HOLDLOCK)
                      WHERE access_request_number LIKE :year_prefix";
             
             $stmt = $pdo->prepare($sql1);
-            $year_prefix = "$year-%";
             $stmt->execute(['year_prefix' => $year_prefix]);
             $result1 = $stmt->fetch(PDO::FETCH_ASSOC);
             $max1 = $result1['max_num'] ?? 0;
             
-            // Then try to get max from approval_history
+            // Get max from approval_history with locking hints
             $sql2 = "SELECT MAX(CAST(RIGHT(access_request_number, LEN(access_request_number) - CHARINDEX('-', access_request_number)) AS INT)) as max_num 
-                     FROM uar.approval_history 
+                     FROM uar.approval_history WITH (UPDLOCK, HOLDLOCK)
                      WHERE access_request_number LIKE :year_prefix";
             
             $stmt = $pdo->prepare($sql2);
@@ -352,6 +367,9 @@
             // Get the highest number between both tables
             $next_num = max($max1, $max2) + 1;
             $access_request_number = sprintf("%d-%03d", $year, $next_num);
+            
+            // Commit the lock transaction
+            $pdo->commit();
 
             // Log the generated access request number for debugging
             error_log("Single request - Generated access_request_number: " . $access_request_number);

@@ -78,43 +78,57 @@ try {
         exit();
     }
 
-    // Insert into approval_history
-    $historySql = "INSERT INTO uar.approval_history (
-        access_request_number, action, requestor_name, business_unit, department,
-        access_type, comments, system_type, duration_type, start_date,
-        end_date, justification, email, employee_id, created_at
-    ) VALUES (
-        :access_request_number, 'cancelled', :requestor_name, :business_unit, :department,
-        :access_type, :comments, :system_type, :duration_type, :start_date,
-        :end_date, :justification, :email, :employee_id, GETDATE()
-    )";
+    // Check if cancelled history entry already exists to prevent duplicates
+    $historyCheckStmt = $pdo->prepare("
+        SELECT COUNT(*) as count 
+        FROM uar.approval_history 
+        WHERE access_request_number = :access_request_number 
+        AND action = 'cancelled'
+    ");
+    $historyCheckStmt->execute([
+        'access_request_number' => $request['access_request_number']
+    ]);
+    $historyExists = $historyCheckStmt->fetch(PDO::FETCH_ASSOC);
+    
+    // Only insert if history entry doesn't already exist
+    if (!$historyExists || $historyExists['count'] == 0) {
+        // Insert into approval_history
+        $historySql = "INSERT INTO uar.approval_history (
+            access_request_number, action, requestor_name, business_unit, department,
+            access_type, comments, system_type, duration_type, start_date,
+            end_date, justification, email, employee_id, created_at
+        ) VALUES (
+            :access_request_number, 'cancelled', :requestor_name, :business_unit, :department,
+            :access_type, :comments, :system_type, :duration_type, :start_date,
+            :end_date, :justification, :email, :employee_id, GETDATE()
+        )";
 
-    $historyStmt = $pdo->prepare($historySql);
-    // access_requests doesn't store access_type/justification; resolve from child tables
-    $childJust = '';
-    $childAccessType = '';
-    try {
-        $cj1 = $pdo->prepare("SELECT TOP 1 justification, access_type FROM uar.individual_requests WHERE access_request_number = :arn");
-        $cj1->execute(['arn' => $request['access_request_number']]);
-        $cjr = $cj1->fetch(PDO::FETCH_ASSOC);
-        if ($cjr) {
-            $childJust = $cjr['justification'] ?? '';
-            $childAccessType = $cjr['access_type'] ?? '';
-        } else {
-            $cj2 = $pdo->prepare("SELECT TOP 1 justification, access_type FROM uar.group_requests WHERE access_request_number = :arn");
-            $cj2->execute(['arn' => $request['access_request_number']]);
-            $cjr = $cj2->fetch(PDO::FETCH_ASSOC);
+        $historyStmt = $pdo->prepare($historySql);
+        // access_requests doesn't store access_type/justification; resolve from child tables
+        $childJust = '';
+        $childAccessType = '';
+        try {
+            $cj1 = $pdo->prepare("SELECT TOP 1 justification, access_type FROM uar.individual_requests WHERE access_request_number = :arn");
+            $cj1->execute(['arn' => $request['access_request_number']]);
+            $cjr = $cj1->fetch(PDO::FETCH_ASSOC);
             if ($cjr) {
                 $childJust = $cjr['justification'] ?? '';
                 $childAccessType = $cjr['access_type'] ?? '';
+            } else {
+                $cj2 = $pdo->prepare("SELECT TOP 1 justification, access_type FROM uar.group_requests WHERE access_request_number = :arn");
+                $cj2->execute(['arn' => $request['access_request_number']]);
+                $cjr = $cj2->fetch(PDO::FETCH_ASSOC);
+                if ($cjr) {
+                    $childJust = $cjr['justification'] ?? '';
+                    $childAccessType = $cjr['access_type'] ?? '';
+                }
             }
+        } catch (Exception $e) {
+            $childJust = '';
+            $childAccessType = '';
         }
-    } catch (Exception $e) {
-        $childJust = '';
-        $childAccessType = '';
-    }
 
-    $historyResult = $historyStmt->execute([
+        $historyResult = $historyStmt->execute([
         ':access_request_number' => $request['access_request_number'],
         ':requestor_name' => $request['requestor_name'],
         ':business_unit' => $request['business_unit'],
@@ -130,8 +144,12 @@ try {
         ':employee_id' => $request['employee_id']
     ]);
 
-    if (!$historyResult) {
-        throw new PDOException("Failed to insert into approval history");
+        if (!$historyResult) {
+            throw new PDOException("Failed to insert into approval history");
+        }
+    } else {
+        // History entry already exists, skip insert to prevent duplicate
+        error_log("Skipped duplicate history insert for cancelled request {$request['access_request_number']}");
     }
 
     // Insert into cancelled_requests

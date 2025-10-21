@@ -1,7 +1,6 @@
 <?php
 session_start();
 require_once '../config.php';
-require_once '../admin/analytics_functions.php';
 
 // Authentication check
 if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'technical_support') {
