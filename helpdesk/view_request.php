@@ -275,13 +275,13 @@ try {
     ?>
 
     <!-- Main Content -->
-    <div class="flex-1 ml-72 transition-all duration-300">
+    <div class="flex-1 lg:ml-72 transition-all duration-300">
         <!-- Header -->
         <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-            <div class="flex justify-between items-center px-6 py-4">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-6 py-4 gap-3">
                 <div>
-                    <h2 class="text-4xl font-bold text-white"><?php echo $fromHistory ? 'Review History Details' : 'View Request Details'; ?></h2>
-                    <p class="text-white text-lg mt-1">Request #<?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></p>
+                    <h2 class="text-2xl md:text-4xl font-bold text-white"><?php echo $fromHistory ? 'Review History Details' : 'View Request Details'; ?></h2>
+                    <p class="text-white text-sm md:text-lg mt-1">Request #<?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></p>
                 </div>
                 <div class="flex space-x-2">
                     <?php if ($fromHistory): ?>

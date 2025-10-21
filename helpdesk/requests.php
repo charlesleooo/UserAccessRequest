@@ -115,17 +115,17 @@ try {
         <!-- Sidebar -->
         <?php include 'sidebar.php'; ?>
         <!-- Main Content -->
-        <div class="flex-1 ml-72">
+        <div class="flex-1 lg:ml-72">
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
-                <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Help Desk Reviews</h1>
-                    <p class="text-gray-600 mt-1">Review and process access requests from superiors</p>
+                <div class="px-4 md:px-8 py-4">
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">Help Desk Reviews</h1>
+                    <p class="text-gray-600 mt-1 text-sm md:text-base">Review and process access requests from superiors</p>
                 </div>
             </div>
 
             <!-- Content -->
-            <div class="p-8">
+            <div class="p-4 md:p-8">
                 <div class="bg-white rounded-xl shadow overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">

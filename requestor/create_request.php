@@ -123,41 +123,61 @@ try {
 
 <head>
     <meta charset="UTF-8">
-    <title>Create Request</title>
+    <title>Create Request - UAR System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Flowbite CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.css" rel="stylesheet" />
+    
+    <!-- Boxicons -->
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Alpine.js -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
     <!-- Animate on Scroll -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
     <style>
         body {
-            font-family: 'Poppins', sans-serif;
-            background-color: #f4f7fc;
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
             margin: 0;
             padding: 0;
-        }
-
-        .form-container {
-            background-color: #ffffff;
-            border: 1px solid #dcdcdc;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            padding: 30px;
-            max-width: 800px;
-            margin: 40px auto;
         }
 
         input,
         select,
         button {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Flowbite Table Enhancements */
+        .flowbite-table input,
+        .flowbite-table select {
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .flowbite-table input:focus,
+        .flowbite-table select:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
     </style>
     <script>
@@ -166,8 +186,19 @@ try {
                 extend: {
                     colors: {
                         primary: {
-                            DEFAULT: '#0084FF',
-                            dark: '#006ACC',
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            950: '#172554',
+                            DEFAULT: '#3b82f6',
+                            dark: '#1d4ed8',
                         },
                         danger: {
                             DEFAULT: '#dc3545',
@@ -201,35 +232,46 @@ try {
 
     <!-- Main Content -->
     <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
-        <!-- Header -->
-        <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-            <div class="flex justify-between items-center px-8 py-4">
+        <!-- Header - Flowbite Style -->
+        <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-3">
                 <div class="flex items-center" data-aos="fade-right" data-aos-duration="800">
                     <!-- Hamburger button for toggling sidebar -->
                     <button
                         @click="sidebarOpen = !sidebarOpen"
-                        class="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white mr-4"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-lg p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 mr-3 md:mr-4 transition-all"
                         aria-label="Toggle sidebar">
-                        <i class='bx bx-menu text-2xl'></i>
+                        <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
+                        </svg>
                     </button>
                     <div>
-                        <h2 class="text-4xl font-bold text-white">Create New User Access Request (UAR)</h2>
+                        <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-white">Create New User Access Request (UAR)</h2>
                     </div>
                 </div>
                 <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
-                    <button class="text-white hover:text-blue-200 focus:outline-none">
-                        <i class='bx bx-info-circle text-2xl'></i>
+                    <button type="button" class="inline-flex items-center p-2 text-white bg-blue-800 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all">
+                        <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="sr-only">Privacy info</span>
                     </button>
                     <div x-cloak x-show="privacyNoticeOpen"
-                        class="absolute right-0 mt-2 w-64 p-4 bg-white rounded-md shadow-lg text-gray-700 text-sm z-50"
+                        class="absolute right-0 mt-2 w-72 p-4 bg-white rounded-lg shadow-xl text-gray-700 text-sm z-50 border border-gray-200"
                         x-transition:enter="transition ease-out duration-200"
                         x-transition:enter-start="opacity-0 transform scale-95"
                         x-transition:enter-end="opacity-100 transform scale-100"
                         x-transition:leave="transition ease-in duration-75"
                         x-transition:leave-start="opacity-100 transform scale-100"
                         x-transition:leave-end="opacity-0 transform scale-95">
-                        <p class="font-semibold mb-2">Data Privacy Notice</p>
-                        <p>Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
+                        <div class="flex items-start mb-2">
+                            <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            <p class="font-semibold text-gray-900">Data Privacy Notice</p>
+                        </div>
+                        <p class="ml-7 text-gray-600">Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
                     </div>
                 </div>
             </div>
@@ -239,74 +281,137 @@ try {
         <div class="p-5" data-aos="fade-up" data-aos-duration="800">
             <form id="uarForm" class="w-full">
                 <!-- Requestor Information -->
-                <div class="bg-primary text-white py-3 px-5 rounded mb-5 text-center text-base font-bold">Requestor Information</div>
+                <div class="flex items-center justify-between p-4 mb-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-lg shadow-md border-b-4 border-blue-950">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-white">Requestor Information</h3>
+                    </div>
+                    <div class="h-6 w-px bg-white opacity-30"></div>
+                </div>
+                <!-- Flowbite Info Table -->
                 <div class="mb-8 w-full">
-                    <table class="w-full border-collapse mb-6 shadow-sm table-fixed">
-                        <tr>
-                            <td class="border border-gray-200 p-4 w-1/12"><strong>Name</strong>
-                            <td class="border border-gray-200 p-4 w-5/12"><input type="text" name="name" value="<?php echo htmlspecialchars($fullName); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly></td>
-                            <td class="border border-gray-200 p-4 w-1/12"><strong><span class=" after:ml-1">Date</span></strong></td>
-                            <td class="border border-gray-200 p-4 w-5/12"><input type="text" name="date" value="<?php echo date('Y-m-d'); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly></td>
-                        </tr>
-                        <tr class="bg-gray-50">
-                            <td class="border border-gray-200 p-4"><strong>Business Unit Entity</strong></td>
-                            <td class="border border-gray-200 p-4">
-                                <input type="text" name="business_unit" id="business_unit" value="<?php echo htmlspecialchars($businessUnit); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly>
-                                <input type="hidden" name="business_unit_value" value="<?php echo htmlspecialchars($businessUnit); ?>">
-                            </td>
-                            <td class="border border-gray-200 p-4"><strong>Department</strong></td>
-                            <td class="border border-gray-200 p-4">
-                                <input type="text" name="department" id="department" value="<?php echo htmlspecialchars($departmentName); ?>" class="w-full p-3 border border-gray-300 rounded bg-gray-50 shadow-inner" readonly>
-                                <input type="hidden" name="department_value" value="<?php echo htmlspecialchars($departmentName); ?>">
-                            </td>
-                        </tr>
-                    </table>
+                    <div class="relative overflow-x-auto shadow-md rounded-lg border border-gray-200">
+                        <table class="w-full text-sm text-left text-gray-700 table-fixed">
+                            <tbody>
+                                <tr class="bg-white border-b hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-semibold text-gray-900 bg-gray-50 w-1/6">Name</td>
+                                    <td class="px-6 py-4 w-1/3">
+                                        <input type="text" name="name" value="<?php echo htmlspecialchars($fullName); ?>" class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 cursor-not-allowed" readonly>
+                                    </td>
+                                    <td class="px-6 py-4 font-semibold text-gray-900 bg-gray-50 w-1/6">Date</td>
+                                    <td class="px-6 py-4 w-1/3">
+                                        <input type="text" name="date" value="<?php echo date('Y-m-d'); ?>" class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 cursor-not-allowed" readonly>
+                                    </td>
+                                </tr>
+                                <tr class="bg-white border-b hover:bg-gray-50">
+                                    <td class="px-6 py-4 font-semibold text-gray-900 bg-gray-50">Business Unit Entity</td>
+                                    <td class="px-6 py-4">
+                                        <input type="text" name="business_unit" id="business_unit" value="<?php echo htmlspecialchars($businessUnit); ?>" class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 cursor-not-allowed" readonly>
+                                        <input type="hidden" name="business_unit_value" value="<?php echo htmlspecialchars($businessUnit); ?>">
+                                    </td>
+                                    <td class="px-6 py-4 font-semibold text-gray-900 bg-gray-50">Department</td>
+                                    <td class="px-6 py-4">
+                                        <input type="text" name="department" id="department" value="<?php echo htmlspecialchars($departmentName); ?>" class="bg-gray-100 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 cursor-not-allowed" readonly>
+                                        <input type="hidden" name="department_value" value="<?php echo htmlspecialchars($departmentName); ?>">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <!-- Request Details -->
-                <div class="bg-primary text-white py-3 px-5 rounded mb-5 text-center text-base font-bold">Request Details</div>
+                <div class="flex items-center justify-between p-4 mb-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-lg shadow-md border-b-4 border-blue-950">
+                    <div class="flex items-center">
+                        <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                        </svg>
+                        <h3 class="text-lg font-semibold text-white">Request Details</h3>
+                    </div>
+                    <div class="h-6 w-px bg-white opacity-30"></div>
+                </div>
 
-                <!-- Access Type Selector -->
-                <div class="p-5 mb-6 bg-gray-50 rounded-md border-l-4 border-primary flex space-x-8">
-                    <label class="flex items-center cursor-pointer font-bold ">
-                        <input type="radio" name="access_type" value="individual" checked class="mr-2 cursor-pointer"> Individual Access
+                <!-- Access Type Selector - Flowbite Radio Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <label class="relative flex items-center p-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-md transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 has-[:checked]:bg-blue-50">
+                        <input type="radio" name="access_type" value="individual" checked class="sr-only peer">
+                        <div class="flex items-center w-full">
+                            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 peer-checked:bg-blue-600 peer-checked:text-white mr-3">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Individual Access</p>
+                                <p class="text-xs text-gray-500">Single user request</p>
+                            </div>
+                        </div>
                     </label>
-                    <label class="flex items-center cursor-pointer font-bold">
-                        <input type="radio" name="access_type" value="group" class="mr-2 cursor-pointer"> Group Access
+                    <label class="relative flex items-center p-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-md transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 has-[:checked]:bg-blue-50">
+                        <input type="radio" name="access_type" value="group" class="sr-only peer">
+                        <div class="flex items-center w-full">
+                            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 peer-checked:bg-blue-600 peer-checked:text-white mr-3">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Group Access</p>
+                                <p class="text-xs text-gray-500">Multiple users request</p>
+                            </div>
+                        </div>
                     </label>
                 </div>
 
                 <!-- Individual Access -->
                 <div id="individualAccess" class="mb-0">
-                    <h3 class="mb-4 text-primary text-base font-medium">I. For Individual Access</h3>
-                    <div class="p-4 mb-5 bg-blue-50 border-l-4 border-blue-500 rounded">
-                        <i class="fas fa-info-circle"></i> Add additional access requests for the same user below.
+                    <h3 class="mb-4 text-blue-700 text-base font-semibold flex items-center">
+                        <span class="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">I</span>
+                        For Individual Access
+                    </h3>
+                    <!-- Flowbite Alert -->
+                    <div class="flex items-center p-4 mb-5 text-sm text-blue-800 rounded-lg bg-blue-50 border border-blue-200" role="alert">
+                        <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                        </svg>
+                        <span class="sr-only">Info</span>
+                        <div>
+                            <span class="font-medium">Information:</span> Add additional access requests for the same user below.
+                        </div>
                     </div>
-                    <button type="button" class="bg-primary hover:bg-primary-dark text-white py-2.5 px-4 rounded mb-5 transition flex items-center" onclick="addRow('individualTable')">
-                        <i class="fas fa-plus-circle mr-2"></i> Additional Request
+                    <!-- Flowbite Button -->
+                    <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-5 inline-flex items-center transition-all shadow-sm hover:shadow-md" onclick="addRow('individualTable')">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Additional Request
                     </button>
-                    <div class="w-full overflow-x-auto">
-                        <table id="individualTable" class="w-full border-collapse mb-0 shadow-sm">
-                            <thead>
+                    <!-- Flowbite Table -->
+                    <div class="relative overflow-x-auto shadow-md rounded-lg border border-gray-200 flowbite-table">
+                        <table id="individualTable" class="w-full text-sm text-left text-gray-700">
+                            <thead class="text-xs text-white uppercase bg-gradient-to-r from-blue-700 to-blue-900 border-b-2 border-blue-950">
                                 <tr>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[25%]">User Name <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[17%]">Application/System <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[8%]">Access Type <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[11%]">Access Duration <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">Start Date <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">End Date <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[4%]">Date Needed <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[15.5%]">Justification <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[5%] text-center">Delete</th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[25%]">User Name <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[17%]">Application/System <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[8%]">Access Type <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[11%]">Access Duration <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-2 py-3 font-semibold w-[4%]">Start Date <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-2 py-3 font-semibold w-[4%]">End Date <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-2 py-3 font-semibold w-[4%]">Date Needed <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[15.5%]">Justification <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[5%] text-center">Delete</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr>
-                                    <td class="border border-gray-200 p-2">
-                                        <input type="text" placeholder="User Name" name="ind_user_names" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition">
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="px-4 py-3">
+                                        <input type="text" placeholder="User Name" name="ind_user_names" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 transition-all">
                                     </td>
-                                    <td class="border border-gray-200 p-2">
-                                        <select name="ind_application[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                                    <td class="px-4 py-3">
+                                        <select name="ind_application[]" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 transition-all" required>
                                             <option value="">Select Application</option>
                                             <?php foreach ($systemApplications as $app): ?>
                                                 <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
@@ -354,33 +459,48 @@ try {
 
                 <!-- Group Access -->
                 <div id="groupAccess" class="mb-0 hidden">
-                    <h3 class="mb-4 text-primary text-base font-medium">II. For Group Access</h3>
-                    <div class="p-4 mb-5 bg-blue-50 border-l-4 border-blue-500 rounded">
-                        <i class="fas fa-info-circle"></i> Add group access requests below. For multiple applications, add additional rows.
+                    <h3 class="mb-4 text-blue-700 text-base font-semibold flex items-center">
+                        <span class="bg-blue-100 text-blue-700 rounded-full w-7 h-7 flex items-center justify-center mr-2 text-sm">II</span>
+                        For Group Access
+                    </h3>
+                    <!-- Flowbite Alert -->
+                    <div class="flex items-center p-4 mb-5 text-sm text-blue-800 rounded-lg bg-blue-50 border border-blue-200" role="alert">
+                        <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
+                        </svg>
+                        <span class="sr-only">Info</span>
+                        <div>
+                            <span class="font-medium">Information:</span> Add group access requests below. For multiple applications, add additional rows.
+                        </div>
                     </div>
-                    <button type="button" class="bg-primary hover:bg-primary-dark text-white py-2.5 px-4 rounded mb-5 transition flex items-center" onclick="addRow('groupTable')">
-                        <i class="fas fa-plus-circle mr-2"></i> Additional Request
+                    <!-- Flowbite Button -->
+                    <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-5 inline-flex items-center transition-all shadow-sm hover:shadow-md" onclick="addRow('groupTable')">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Additional Request
                     </button>
-                    <div class="w-full overflow-x-auto">
-                        <table id="groupTable" class="w-full border-collapse mb-0 shadow-sm">
-                            <thead>
+                    <!-- Flowbite Table -->
+                    <div class="relative overflow-x-auto shadow-md rounded-lg border border-gray-200 flowbite-table">
+                        <table id="groupTable" class="w-full text-sm text-left text-gray-700">
+                            <thead class="text-xs text-white uppercase bg-gradient-to-r from-blue-700 to-blue-900 border-b-2 border-blue-950">
                                 <tr>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[18.5%]">Application/System <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[32%] min-w-[200px]">User Name <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[8%] min-w-[110px]">Access Type <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[12%]">Access Duration <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">Start Date <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">End Date <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-1 bg-blue-50 text-primary font-semibold w-[3%]">Date Needed <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[15.5%]">Justification <span class="text-red-500">*</span></th>
-                                    <th class="border border-gray-200 p-3 bg-blue-50 text-primary font-semibold w-[5%] text-center">Delete</th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[18.5%]">Application/System <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[32%] min-w-[200px]">User Name <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[8%] min-w-[110px]">Access Type <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[12%]">Access Duration <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-2 py-3 font-semibold w-[3%]">Start Date <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-2 py-3 font-semibold w-[3%]">End Date <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-2 py-3 font-semibold w-[3%]">Date Needed <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[15.5%]">Justification <span class="text-red-600">*</span></th>
+                                    <th scope="col" class="px-4 py-3 font-semibold w-[5%] text-center">Delete</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr class="application-row" data-app-id="1">
-                                    <td class="border border-gray-200 p-2">
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                <tr class="application-row hover:bg-gray-50 transition-colors" data-app-id="1">
+                                    <td class="px-4 py-3">
                                         <div class="flex gap-2 items-center">
-                                            <select name="grp_application[]" class="app-select flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                                            <select name="grp_application[]" class="app-select flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 transition-all" required>
                                                 <option value="">Select Application</option>
                                                 <?php foreach ($systemApplications as $app): ?>
                                                     <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
@@ -435,12 +555,19 @@ try {
                     </div>
                 </div>
 
-                <div class="mt-2 text-center flex justify-center gap-5 flex-wrap">
-                    <button type="submit" class="bg-primary hover:bg-primary-dark text-white py-3.5 px-8 rounded transition text-base font-medium min-w-[200px]">
-                        <i class="fas fa-paper-plane mr-2"></i> Submit Request
+                <!-- Flowbite Action Buttons -->
+                <div class="mt-8 flex justify-center gap-4 flex-wrap">
+                    <button type="submit" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-base px-8 py-3.5 inline-flex items-center justify-center min-w-[200px] shadow-md hover:shadow-lg transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
+                        </svg>
+                        Submit Request
                     </button>
-                    <button type="reset" class="bg-danger hover:bg-danger-dark text-white py-3.5 px-8 rounded transition text-base font-medium min-w-[200px]">
-                        <i class="fas fa-undo mr-2"></i> Reset Form
+                    <button type="reset" class="text-white bg-gray-600 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-base px-8 py-3.5 inline-flex items-center justify-center min-w-[200px] shadow-md hover:shadow-lg transition-all">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"></path>
+                        </svg>
+                        Reset Form
                     </button>
                 </div>
             </form>
@@ -1416,6 +1543,10 @@ try {
             }
         });
     </script>
+    
+    <!-- Flowbite JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
+    
     <?php include 'footer.php'; ?>
 
 </body>

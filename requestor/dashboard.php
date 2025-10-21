@@ -84,13 +84,21 @@ try {
     <meta charset="UTF-8">
     <title>Requestor Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Boxicons -->
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- Alpine.js for interactions -->
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
     <!-- Animate on Scroll -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- Flowbite CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.css" rel="stylesheet" />
+    <!-- Flowbite JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
 
     <script>
         tailwind.config = {
@@ -108,8 +116,12 @@ try {
                             700: '#1d4ed8',
                             800: '#1e40af',
                             900: '#1e3a8a',
+                            950: '#172554',
                         },
-                    }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
                 }
             }
         }
@@ -117,6 +129,10 @@ try {
 
 
     <style>
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
         [x-cloak] {
             display: none !important;
         }
@@ -205,11 +221,11 @@ try {
         }
 
         .enhanced-table thead {
-            background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%);
+            background: linear-gradient(90deg, #1d4ed8 0%, #1e3a8a 100%) !important;
         }
 
         .dark .enhanced-table thead {
-            background: linear-gradient(90deg, #1f2937 0%, #111827 100%);
+            background: linear-gradient(90deg, #1d4ed8 0%, #1e3a8a 100%) !important;
         }
 
         .enhanced-table tr {
@@ -343,42 +359,53 @@ try {
     <!-- Main Content -->
     <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
         <!-- Header -->
-        <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
-            <div class="flex justify-between items-center px-8 py-4">
+        <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-3">
                 <div class="flex items-center" data-aos="fade-right" data-aos-duration="800">
                     <!-- Hamburger button for toggling sidebar -->
                     <button
                         @click="sidebarOpen = !sidebarOpen"
-                        class="inline-flex items-center justify-center rounded-md p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white mr-4"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-lg p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 mr-3 md:mr-4 transition-all"
                         aria-label="Toggle sidebar">
-                        <i class='bx bx-menu text-2xl'></i>
+                        <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
+                        </svg>
                     </button>
                     <div>
-                        <h2 class="text-4xl font-bold text-white">ABU IT - Electronic User Access Request (UAR)</h2>
+                        <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-white">Dashboard</h2>
                     </div>
                 </div>
 
                 <!-- Data Privacy Notice -->
                 <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
-                    <button class="text-white hover:text-blue-200 focus:outline-none">
-                        <i class='bx bx-info-circle text-2xl'></i>
+                    <button type="button" class="inline-flex items-center p-2 text-white bg-blue-800 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all">
+                        <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="sr-only">Privacy info</span>
                     </button>
                     <div x-cloak x-show="privacyNoticeOpen"
-                        class="absolute right-0 mt-2 w-64 p-4 bg-white rounded-md shadow-lg text-gray-700 text-sm z-50"
+                        class="absolute right-0 mt-2 w-72 p-4 bg-white rounded-lg shadow-xl text-gray-700 text-sm z-50 border border-gray-200"
                         x-transition:enter="transition ease-out duration-200"
                         x-transition:enter-start="opacity-0 transform scale-95"
                         x-transition:enter-end="opacity-100 transform scale-100"
                         x-transition:leave="transition ease-in duration-75"
                         x-transition:leave-start="opacity-100 transform scale-100"
                         x-transition:leave-end="opacity-0 transform scale-95">
-                        <p class="font-semibold mb-2">Data Privacy Notice</p>
-                        <p>Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
+                        <div class="flex items-start mb-2">
+                            <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            <p class="font-semibold text-gray-900">Data Privacy Notice</p>
+                        </div>
+                        <p class="ml-7 text-gray-600">Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="p-8" data-aos="fade-up" data-aos-duration="800">
+        <div class="p-4 md:p-8" data-aos="fade-up" data-aos-duration="800">
             <!-- Stats Cards -->
             <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-8">
                 <div onclick="filterRequests('all')" class="stat-card rounded-xl p-6 flex items-center bg-gradient-to-br from-blue-500 via-blue-400 to-blue-300 cursor-pointer hover:shadow-lg transition-all duration-300">
@@ -421,7 +448,7 @@ try {
 
             <!-- Requests Table -->
             <div class="bg-white rounded-xl shadow-sm overflow-hidden enhanced-table">
-                <div class="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 flex justify-between items-center">
+                <div class="px-6 py-4 bg-white border-b border-gray-200 flex justify-between items-center">
                     <h2 class="text-lg font-medium text-gray-800">My Access Requests</h2>
 
                 </div>
@@ -534,25 +561,23 @@ try {
                         <div class="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
                             <div class="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
                                 <table class="min-w-full divide-y divide-gray-200 responsive-table">
-                                    <thead class="bg-gray-50">
+                                    <thead class="text-xs text-white uppercase bg-gradient-to-r from-blue-700 to-blue-900 border-b-2 border-blue-950">
                                         <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th scope="col" class="px-6 py-3 text-left font-semibold tracking-wider">
                                                 UAR REF NO.
                                             </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th scope="col" class="px-6 py-3 text-left font-semibold tracking-wider">
                                                 Status
                                             </th>
-
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th scope="col" class="px-6 py-3 text-left font-semibold tracking-wider">
                                                 Date Requested
                                             </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th scope="col" class="px-6 py-3 text-left font-semibold tracking-wider">
                                                 Days Pending
                                             </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            <th scope="col" class="px-6 py-3 text-left font-semibold tracking-wider">
                                                 Date Needed
                                             </th>
-
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-gray-200">

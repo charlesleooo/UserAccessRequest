@@ -128,17 +128,17 @@ try {
         <?php include 'sidebar.php'; ?>
 
         <!-- Main Content -->
-        <div class="flex-1 ml-72">
+        <div class="flex-1 lg:ml-72">
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
-                <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-gray-800">Review History</h1>
-                    <p class="text-gray-600 mt-1">Historical record of all requests you have reviewed</p>
+                <div class="px-4 md:px-8 py-4">
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">Review History</h1>
+                    <p class="text-gray-600 mt-1 text-sm md:text-base">Historical record of all requests you have reviewed</p>
                 </div>
             </div>
 
             <!-- Content -->
-            <div class="p-8">
+            <div class="p-4 md:p-8">
                 <div class="bg-white rounded-xl shadow overflow-hidden">
                     <?php if (isset($_SESSION['success_message'])): ?>
                         <div class="bg-green-50 p-4 border-l-4 border-green-500">

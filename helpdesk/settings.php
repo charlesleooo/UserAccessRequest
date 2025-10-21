@@ -140,11 +140,11 @@ try {
         <?php include 'sidebar.php'; ?>
 
         <!-- Main Content -->
-        <div class="flex-1 ml-72">
+        <div class="flex-1 lg:ml-72">
             <!-- Header -->
             <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
-                <div class="px-8 py-4">
-                    <h2 class="text-2xl font-bold text-gray-800">Settings</h2>
+                <div class="px-4 md:px-8 py-4">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Settings</h2>
                     <p class="text-gray-600 text-sm mt-1">
                         Manage your account settings and preferences
                     </p>
@@ -152,7 +152,7 @@ try {
             </div>
 
             <!-- Content Area -->
-            <div class="p-8">
+            <div class="p-4 md:p-8">
                 <!-- Encryption Code Settings Card -->
                 <div class="bg-white rounded-xl shadow-sm mb-6">
                     <div class="border-b border-gray-100 px-6 py-4">

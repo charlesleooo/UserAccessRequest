@@ -92,12 +92,12 @@ $isFiltersOpen = !empty($filters);
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 ml-72">
+        <div class="flex-1 lg:ml-72">
             <!-- Header -->
             <div class="bg-white border-b border-gray-200">
-                <div class="flex justify-between items-center px-8 py-4">
+                <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">Analytics Dashboard</h2>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">Analytics Dashboard</h2>
                         <p class="text-gray-600 text-sm mt-1">
                             Comprehensive analysis of access requests and approvals
                         </p>
@@ -118,7 +118,7 @@ $isFiltersOpen = !empty($filters);
             </div>
 
             <!-- Content Area -->
-            <div class="p-8">
+            <div class="p-4 md:p-8">
                 <!-- Filters - Flowbite Accordion -->
                 <div id="accordion-flush" data-accordion="collapse" data-active-classes="bg-white" data-inactive-classes="text-gray-500">
                     <h2 id="accordion-flush-heading-1">

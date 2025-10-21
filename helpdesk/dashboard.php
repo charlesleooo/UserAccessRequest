@@ -127,16 +127,16 @@ try {
         <?php include 'sidebar.php'; ?>
 
         <!-- Main Content -->
-        <div class="flex-1 ml-72">
+        <div class="flex-1 lg:ml-72">
             <!-- Header -->
             <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
-                <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-white">Help Desk Dashboard</h1>
+                <div class="px-4 md:px-8 py-4">
+                    <h1 class="text-xl md:text-2xl font-bold text-white">Help Desk Dashboard</h1>
                 </div>
             </div>
 
             <!-- Content -->
-            <div class="p-8 space-y-6">
+            <div class="p-4 md:p-8 space-y-6">
                 <!-- Stats Overview -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Total Requests Card -->

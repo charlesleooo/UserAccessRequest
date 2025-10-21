@@ -319,10 +319,26 @@ $companies = $pdo->query("SELECT DISTINCT company FROM uar.employees
         $departments = [];
         error_log("Failed to fetch departments list");
     }
+
+    // Fetch company-department mapping for dynamic filtering
+    $companyDeptMapping = [];
+    $mappingQuery = "SELECT DISTINCT company, department FROM uar.employees 
+                     UNION 
+                     SELECT DISTINCT company, department FROM uar.employees_archive 
+                     ORDER BY company, department";
+    $mappingResult = $pdo->query($mappingQuery)->fetchAll(PDO::FETCH_ASSOC);
+    
+    foreach ($mappingResult as $row) {
+        if (!isset($companyDeptMapping[$row['company']])) {
+            $companyDeptMapping[$row['company']] = [];
+        }
+        $companyDeptMapping[$row['company']][] = $row['department'];
+    }
 } catch (PDOException $e) {
     error_log("Database error: " . $e->getMessage());
     $companies = [];
     $departments = [];
+    $companyDeptMapping = [];
 }
 
 // Build the query to fetch both active and archived employees
@@ -482,17 +498,17 @@ $existing_usernames = array_column($admin_users, 'username');
         </div>
 
         <!-- Main Content -->
-        <div class="flex-1 ml-72">
+        <div class="flex-1 lg:ml-72">
             <!-- Header -->
             <div class="bg-white border-b border-gray-200">
-                <div class="flex justify-between items-center px-8 py-4">
+                <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-gray-800">User Management</h2>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">User Management</h2>
                         <p class="text-gray-600 text-sm mt-1">
                             Manage and organize user information
                         </p>
                     </div>
-                    <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-4 flex-wrap">
 
                         <div class="relative">
                             <input type="text"
@@ -513,7 +529,7 @@ $existing_usernames = array_column($admin_users, 'username');
             </div>
 
             <!-- Content Area -->
-            <div class="p-8">
+            <div class="p-4 md:p-8">
                 <!-- Filters -->
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Users</h3>
@@ -572,64 +588,64 @@ $existing_usernames = array_column($admin_users, 'username');
                         <table class="min-w-full divide-y divide-gray-200" id="employeesTable">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
+                                    <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                    <th class="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                                    <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-3 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($employees)): foreach ($employees as $employee): ?>
                                     <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        <td class="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                             <?php echo htmlspecialchars($employee['employee_id']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-3 md:px-6 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($employee['employee_name']); ?></div>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="hidden md:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo htmlspecialchars($employee['company']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo htmlspecialchars($employee['department']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        <td class="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <?php echo htmlspecialchars($employee['employee_email']); ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-3 md:px-6 py-4 whitespace-nowrap">
                                             <?php if ($employee['status'] === 'active'): ?>
                                                 <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
                                             <?php else: ?>
                                                 <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inactive</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <div class="flex justify-end gap-2">
+                                        <td class="px-3 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div class="flex justify-end gap-1 md:gap-2">
                                                 <?php if ($employee['status'] === 'active'): ?>
-                                                    <button class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 edit-employee"
+                                                    <button class="inline-flex items-center px-2 md:px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 edit-employee text-xs md:text-sm"
                                                         data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
                                                         data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>"
                                                         data-company="<?php echo htmlspecialchars($employee['company']); ?>"
                                                         data-department="<?php echo htmlspecialchars($employee['department']); ?>"
                                                         data-email="<?php echo htmlspecialchars($employee['employee_email']); ?>">
                                                         <i class="fas fa-edit me-1"></i>
-                                                        Edit
+                                                        <span class="hidden md:inline">Edit</span>
                                                     </button>
-                                                    <button class="inline-flex items-center px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 archive-employee"
+                                                    <button class="inline-flex items-center px-2 md:px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 archive-employee text-xs md:text-sm"
                                                         data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
                                                         data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>">
                                                         <i class="fas fa-archive me-1"></i>
-                                                        Archive
+                                                        <span class="hidden md:inline">Archive</span>
                                                     </button>
                                                 <?php else: ?>
-                                                    <button class="inline-flex items-center px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 restore-employee"
+                                                    <button class="inline-flex items-center px-2 md:px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 restore-employee text-xs md:text-sm"
                                                         data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
                                                         data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>">
                                                         <i class="fas fa-undo me-1"></i>
-                                                        Restore
+                                                        <span class="hidden md:inline">Restore</span>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -644,72 +660,68 @@ $existing_usernames = array_column($admin_users, 'username');
         </div>
     </div>
 
-    <!-- Edit Modal -->
-    <div id="editModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
-        <div class="flex items-center justify-center min-h-screen">
-            <div class="bg-white rounded-xl p-8 max-w-2xl w-full mx-4">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="text-xl font-semibold text-gray-800">Edit User</h3>
-                    <button onclick="hideEditModal()" class="text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-
-                <form id="editForm" method="POST">
-                    <input type="hidden" name="action" value="update">
-                    <input type="hidden" name="employee_id" id="edit_employee_id">
-                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
-
-                    <div class="grid grid-cols-2 gap-6">
+    <!-- Edit Modal - Flowbite Style -->
+    <div id="editModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Edit User Information
+                </h3>
+                <button type="button" onclick="hideEditModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <form id="editForm" method="POST">
+                <input type="hidden" name="action" value="update">
+                <input type="hidden" name="employee_id" id="edit_employee_id">
+                <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
+                
+                <div class="p-4 md:p-5">
+                    <div class="grid gap-4 mb-4 grid-cols-2">
                         <div class="col-span-2">
-                            <label for="edit_employee_name" class="block text-sm font-medium text-gray-700 mb-2">Employee Name</label>
-                            <input type="text" id="edit_employee_name" name="employee_name" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20">
+                            <label for="edit_employee_name" class="block mb-2 text-sm font-medium text-gray-900">Employee Name</label>
+                            <input type="text" name="employee_name" id="edit_employee_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="Type employee name" required="">
                         </div>
-
-                        <div>
-                            <label for="edit_company" class="block text-sm font-medium text-gray-700 mb-2">Company</label>
-                            <select id="edit_company" name="company" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20">
+                        <div class="col-span-2 sm:col-span-1">
+                            <label for="edit_company" class="block mb-2 text-sm font-medium text-gray-900">Business Unit</label>
+                            <select id="edit_company" name="company" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required="">
+                                <option value="">Select business unit</option>
                                 <?php foreach ($companies as $company): ?>
                                     <option value="<?php echo htmlspecialchars($company); ?>">
                                         <?php echo htmlspecialchars($company); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                            <p class="mt-1 text-xs text-gray-500">Changing company will update available departments</p>
                         </div>
-
-                        <div>
-                            <label for="edit_department" class="block text-sm font-medium text-gray-700 mb-2">Department</label>
-                            <select id="edit_department" name="department" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20">
-                                <?php foreach ($departments as $department): ?>
-                                    <option value="<?php echo htmlspecialchars($department); ?>">
-                                        <?php echo htmlspecialchars($department); ?>
-                                    </option>
-                                <?php endforeach; ?>
+                        <div class="col-span-2 sm:col-span-1">
+                            <label for="edit_department" class="block mb-2 text-sm font-medium text-gray-900">Department</label>
+                            <select id="edit_department" name="department" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required="">
+                                <option value="">Select department</option>
+                                <!-- Departments will be populated dynamically based on company selection -->
                             </select>
                         </div>
-
                         <div class="col-span-2">
-                            <label for="edit_email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input type="email" id="edit_email" name="email" required
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary/20">
+                            <label for="edit_email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
+                            <input type="email" name="email" id="edit_email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="name@company.com" required="">
                         </div>
                     </div>
-
-                    <div class="mt-6 flex justify-end space-x-3">
-                        <button type="button" onclick="hideEditModal()"
-                            class="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">
+                    <div class="flex items-center space-x-4">
+                        <button type="submit" class="text-white inline-flex items-center bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                            <svg class="me-1 -ms-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                            Update user
+                        </button>
+                        <button type="button" onclick="hideEditModal()" class="text-gray-600 inline-flex items-center hover:text-white border border-gray-600 hover:bg-gray-600 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
                             Cancel
                         </button>
-                        <button type="submit"
-                            class="px-4 py-2 text-white bg-primary rounded-lg hover:bg-primary/90">
-                            Save Changes
-                        </button>
                     </div>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -787,76 +799,85 @@ $existing_usernames = array_column($admin_users, 'username');
         </div>
     </div>
 
-    <!-- Add Employee Modal -->
+    <!-- Add Employee Modal - Flowbite Style -->
     <div class="modal fade" id="addEmployeeModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Add New User </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow-xl rounded-lg">
+                <!-- Modal header -->
+                <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Add New User
+                    </h3>
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center" data-bs-dismiss="modal">
+                        <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
+                        <span class="sr-only">Close modal</span>
+                    </button>
                 </div>
+                <!-- Modal body -->
                 <div class="modal-body">
                     <form id="addEmployeeForm" method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
                         <input type="hidden" name="action" value="add">
                         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
 
-                        <div class="mb-3">
-                            <label for="add_employee_id" class="form-label">Employee ID <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="add_employee_id" name="employee_id" required
-                                pattern="[a-zA-Z0-9-]+" title="Only letters, numbers, and hyphens are allowed">
-                            <div class="form-text">Only letters, numbers, and hyphens are allowed</div>
+                        <div class="grid gap-4 mb-4 grid-cols-2">
+                            <div class="col-span-2 sm:col-span-1">
+                                <label for="add_employee_id" class="block mb-2 text-sm font-medium text-gray-900">Employee ID</label>
+                                <input type="text" name="employee_id" id="add_employee_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required="" pattern="[a-zA-Z0-9-]+" title="Only letters, numbers, and hyphens are allowed">
+                                <p class="mt-1 text-xs text-gray-500">Only letters, numbers, and hyphens allowed</p>
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <label for="add_employee_name" class="block mb-2 text-sm font-medium text-gray-900">Employee Name</label>
+                                <input type="text" name="employee_name" id="add_employee_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="John Doe" required="">
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <label for="add_company" class="block mb-2 text-sm font-medium text-gray-900">Business Unit</label>
+                                <select id="add_company" name="company" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required="">
+                                    <option value="">Select business unit</option>
+                                    <?php foreach ($companies as $company): ?>
+                                        <option value="<?php echo htmlspecialchars($company); ?>">
+                                            <?php echo htmlspecialchars($company); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Select company first to load departments</p>
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <label for="add_department" class="block mb-2 text-sm font-medium text-gray-900">Department</label>
+                                <select id="add_department" name="department" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required="" disabled>
+                                    <option value="">Select company first</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Departments will appear after selecting company</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label for="add_email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
+                                <input type="email" name="email" id="add_email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="name@company.com" required="">
+                                <p class="mt-1 text-xs text-gray-500">Enter a valid email address</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label for="add_role" class="block mb-2 text-sm font-medium text-gray-900">System Role</label>
+                                <select id="add_role" name="role" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required="">
+                                    <option value="requestor">Requestor</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="help_desk">Help Desk</option>
+                                    <option value="superior">Immediate Superior</option>
+                                    <option value="technical_support">Technical Support</option>
+                                    <option value="process_owner">Process Owner</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Assign a role for system access</p>
+                            </div>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="add_employee_name" class="form-label">Employee Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="add_employee_name" name="employee_name" required>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="add_company" class="form-label">Company <span class="text-danger">*</span></label>
-                            <select class="form-select" id="add_company" name="company" required>
-                                <option value="">Select Company</option>
-                                <?php foreach ($companies as $company): ?>
-                                    <option value="<?php echo htmlspecialchars($company); ?>">
-                                        <?php echo htmlspecialchars($company); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="add_department" class="form-label">Department <span class="text-danger">*</span></label>
-                            <select class="form-select" id="add_department" name="department" required>
-                                <option value="">Select Department</option>
-                                <?php foreach ($departments as $department): ?>
-                                    <option value="<?php echo htmlspecialchars($department); ?>">
-                                        <?php echo htmlspecialchars($department); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="add_email" class="form-label">Email <span class="text-danger">*</span></label>
-                            <input type="email" class="form-control" id="add_email" name="email" required>
-                            <div class="form-text">Enter a valid email address</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="add_role" class="form-label">Role</label>
-                            <select class="form-select" id="add_role" name="role" required>
-                                <option value="requestor">Requestor</option>
-                                <option value="admin">Admin</option>
-                                <option value="superior">Immediate Superior</option>
-                                <option value="technical_support">Technical Support</option>
-                                <option value="process_owner">Process Owner</option>
-                            </select>
-                            <div class="form-text">Assign a role if this employee needs system access</div>
-                        </div>
-
-                        <div class="text-end">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Add User</button>
+                        
+                        <div class="flex items-center space-x-4 pt-2">
+                            <button type="submit" class="text-white inline-flex items-center bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">
+                                <svg class="me-1 -ms-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path></svg>
+                                Add new user
+                            </button>
+                            <button type="button" class="text-gray-600 inline-flex items-center hover:text-white border border-gray-600 hover:bg-gray-600 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center" data-bs-dismiss="modal">
+                                <svg class="me-1 -ms-1 w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
+                                Cancel
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -1338,8 +1359,23 @@ $existing_usernames = array_column($admin_users, 'username');
             $('#edit_employee_id').val(employeeId);
             $('#edit_employee_name').val(employeeName);
             $('#edit_company').val(company);
-            $('#edit_department').val(department);
             $('#edit_email').val(email);
+            
+            // Store current department for later use
+            $('#edit_department').data('current-dept', department);
+            
+            // Populate departments based on company
+            const deptSelect = $('#edit_department');
+            deptSelect.empty();
+            deptSelect.append('<option value="">Select department</option>');
+            
+            if (company && companyDeptMapping[company]) {
+                companyDeptMapping[company].forEach(function(dept) {
+                    const selected = dept === department ? 'selected' : '';
+                    deptSelect.append(`<option value="${dept}" ${selected}>${dept}</option>`);
+                });
+            }
+            
             $('#editModal').removeClass('hidden');
         }
 
@@ -1357,6 +1393,50 @@ $existing_usernames = array_column($admin_users, 'username');
         function hideArchiveModal() {
             $('#archiveModal').addClass('hidden');
         }
+
+        // Company-Department mapping data
+        const companyDeptMapping = <?php echo json_encode($companyDeptMapping); ?>;
+
+        // Dynamic department filtering for Add Employee form
+        $('#add_company').on('change', function() {
+            const selectedCompany = $(this).val();
+            const deptSelect = $('#add_department');
+            
+            // Clear current options
+            deptSelect.empty();
+            
+            if (selectedCompany && companyDeptMapping[selectedCompany]) {
+                // Enable and populate department dropdown
+                deptSelect.prop('disabled', false);
+                deptSelect.append('<option value="">Select department</option>');
+                companyDeptMapping[selectedCompany].forEach(function(dept) {
+                    deptSelect.append(`<option value="${dept}">${dept}</option>`);
+                });
+            } else {
+                // Disable department dropdown if no company selected
+                deptSelect.prop('disabled', true);
+                deptSelect.append('<option value="">Select company first</option>');
+            }
+        });
+
+        // Dynamic department filtering for Edit Employee form
+        $('#edit_company').on('change', function() {
+            const selectedCompany = $(this).val();
+            const deptSelect = $('#edit_department');
+            const currentDept = deptSelect.data('current-dept');
+            
+            // Clear current options
+            deptSelect.empty();
+            deptSelect.append('<option value="">Select department</option>');
+            
+            // Add departments for selected company
+            if (selectedCompany && companyDeptMapping[selectedCompany]) {
+                companyDeptMapping[selectedCompany].forEach(function(dept) {
+                    const selected = dept === currentDept ? 'selected' : '';
+                    deptSelect.append(`<option value="${dept}" ${selected}>${dept}</option>`);
+                });
+            }
+        });
 
         // Form validation function
         function validateForm(formId) {
