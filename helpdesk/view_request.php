@@ -293,14 +293,8 @@ try {
                             <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                         </a>
                         <?php if ($request['status'] === 'pending_help_desk'): ?>
-                            <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                                <i class='bx bx-edit mr-2'></i> Add Comments
-                            </button>
-                            <button onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                <i class='bx bx-x-circle mr-2'></i> Decline
-                            </button>
-                            <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                <i class='bx bx-check-circle mr-2'></i> Forward
+                            <button onclick="showApprovalModal()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                                <i class='bx bx-check-circle mr-2'></i> Review & Forward
                             </button>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -519,63 +513,101 @@ try {
             <?php endif; ?>
 
 
-            <!-- Actions -->
-            <?php if (!$fromHistory && $request['status'] === 'pending_help_desk'): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" >
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
+            <!-- Actions removed in favor of modal -->
+        </div>
+    </div>
+
+
+    <!-- sweetalert2 cdn -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Approval Modal (always rendered) -->
+    <div id="approvalModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-full max-w-lg mx-auto shadow-xl">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200">
+                    <div class="flex-1 text-center">
+                        <h3 class="text-xl font-semibold text-gray-800 flex items-center justify-center">
+                            <i class='bx bx-share text-green-600 text-2xl mr-2'></i>
                         Help Desk Review
                     </h3>
-                    <div class="p-4">
-                        <form id="reviewForm">
-                            <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
+                    </div>
+                    <button onclick="hideApprovalModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class='bx bx-x text-2xl'></i>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <!-- Review History -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Review history</h4>
+                        <div id="modalReviewHistory" class="space-y-3"></div>
+                    </div>
 
-                            <div class="mb-4">
-                                <label for="forward_to" class="block text-sm font-medium text-gray-700 mb-2">Forward To:</label>
-                                <select id="forward_to" name="forward_to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" onchange="updateUserOptions()">
+                    <div>
+                        <label for="modal_forward_to" class="block text-sm font-medium text-gray-700 mb-1">Forward To</label>
+                        <select id="modal_forward_to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
                                     <option value="technical_support">Technical Support</option>
                                     <option value="process_owner">Process Owner</option>
                                 </select>
                             </div>
 
-                            <div class="mb-4">
-                                <label for="user_id" class="block text-sm font-medium text-gray-700 mb-2">Select User:</label>
-                                <select id="user_id" name="user_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                    <!-- Options will be populated dynamically -->
-                                </select>
+                    <div>
+                        <label for="modal_user_id" class="block text-sm font-medium text-gray-700 mb-1">Select User</label>
+                        <select id="modal_user_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"></select>
                             </div>
 
-                            <div class="mb-4">
-                                <label for="review_notes" class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
-                                <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
+                    <div>
+                        <label for="modal_review_notes" class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
+                        <textarea id="modal_review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
                             </div>
 
-                            <div class="flex justify-end space-x-4">
-                                <button type="button" onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" onclick="hideApprovalModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                        <button type="button" onclick="handleApproval('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
                                     <i class='bx bx-x-circle mr-2'></i> Decline
                                 </button>
-                                <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                        <button type="button" onclick="handleApproval('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
                                     <i class='bx bx-check-circle mr-2'></i> Forward
                                 </button>
-                            </div>
-                        </form>
                     </div>
                 </div>
-            <?php endif; ?>
+            </div>
         </div>
     </div>
-
-
-    <!-- SweetAlert2 CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // All users grouped by role
         const usersByRole = <?php echo json_encode($usersByRole); ?>;
+        const currentRequestId = <?php echo $requestId ? intval($requestId) : 'null'; ?>;
+        const reviewers = [];
+        <?php
+            // Normalize possible column names coming from different views
+            $superiorNotes = $request['superior_notes']
+                ?? $request['superior_review_notes']
+                ?? null;
+            $technicalNotes = $request['technical_notes'] ?? null;
+            $processOwnerNotes = $request['process_owner_notes'] ?? null;
+            $helpDeskNotes = $request['help_desk_notes'] ?? null;
+            $adminNotes = $request['admin_notes'] ?? null;
+
+            $roleBadges = [];
+            $history = [];
+            if (!empty($superiorNotes)) { $roleBadges[] = 'Superior'; $history[] = ['role' => 'Superior', 'notes' => $superiorNotes]; }
+            if (!empty($helpDeskNotes)) { $roleBadges[] = 'Help Desk'; $history[] = ['role' => 'Help Desk', 'notes' => $helpDeskNotes]; }
+            if (!empty($technicalNotes)) { $roleBadges[] = 'Technical Support'; $history[] = ['role' => 'Technical Support', 'notes' => $technicalNotes]; }
+            if (!empty($processOwnerNotes)) { $roleBadges[] = 'Process Owner'; $history[] = ['role' => 'Process Owner', 'notes' => $processOwnerNotes]; }
+            if (!empty($adminNotes)) { $roleBadges[] = 'Admin'; $history[] = ['role' => 'Admin', 'notes' => $adminNotes]; }
+        ?>
+        const reviewedBy = <?php echo json_encode($roleBadges); ?>;
+        const reviewHistory = <?php echo json_encode($history); ?>;
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize user dropdown
+            // Initialize dropdowns in-page (legacy) and modal
             updateUserOptions();
+            if (document.getElementById('approvalModal')) {
+                renderReviewHistory();
+                updateModalUserOptions();
+            }
         });
 
         function scrollToReviewSection() {
@@ -617,53 +649,105 @@ try {
             }
         }
 
-        function handleRequest(action) {
-            const notes = document.getElementById('review_notes').value;
+        window.showApprovalModal = function showApprovalModal() {
+            const modal = document.getElementById('approvalModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.style.display = 'block';
+            // ensure modal dropdown is populated
+            if (document.getElementById('modal_forward_to')) {
+                updateModalUserOptions();
+            }
+            setTimeout(() => { const ta = document.getElementById('modal_review_notes'); if (ta) ta.focus(); }, 100);
+            // Load latest review history and notes from API to ensure accuracy
+            if (currentRequestId) {
+                fetch(`../admin/get_request_details.php?id=${currentRequestId}`)
+                    .then(r => r.json())
+                    .then(resp => {
+                        if (!resp || !resp.success || !resp.data) return;
+                        populateFromApi(resp.data);
+                    })
+                    .catch(() => {});
+            }
+        }
+
+        window.hideApprovalModal = function hideApprovalModal() {
+            const modal = document.getElementById('approvalModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            const notes = document.getElementById('modal_review_notes');
+            if (notes) notes.value = '';
+        }
+
+        function populateReviewedBy() {
+            const container = document.getElementById('reviewedByList');
+            if (!container) return;
+            container.innerHTML = '';
+            (reviewedBy || []).forEach(role => {
+                const span = document.createElement('span');
+                span.className = 'px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700';
+                span.textContent = role;
+                container.appendChild(span);
+            });
+            if ((reviewedBy || []).length === 0) {
+                const span = document.createElement('span');
+                span.className = 'text-sm text-gray-500';
+                span.textContent = 'No reviews yet';
+                container.appendChild(span);
+            }
+        }
+
+        function updateModalUserOptions() {
+            const forwardTo = document.getElementById('modal_forward_to').value;
+            const userSelect = document.getElementById('modal_user_id');
+            userSelect.innerHTML = '';
+            const users = usersByRole[forwardTo] || [];
+            users.forEach(u => {
+                const opt = document.createElement('option');
+                opt.value = u.id;
+                opt.textContent = u.employee_name;
+                userSelect.appendChild(opt);
+            });
+            if (users.length === 0) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = `No ${forwardTo} users available`;
+                userSelect.appendChild(opt);
+            }
+        }
+        // keep modal user list synced on change
+        document.addEventListener('change', (e) => {
+            const target = e.target || e.srcElement;
+            if (target && target.id === 'modal_forward_to') {
+                updateModalUserOptions();
+            }
+        });
+
+        window.handleApproval = function handleApproval(action) {
+            const notesEl = document.getElementById('modal_review_notes');
+            const forwardToEl = document.getElementById('modal_forward_to');
+            const userIdEl = document.getElementById('modal_user_id');
+            const notes = notesEl ? notesEl.value : '';
+            const forwardTo = forwardToEl ? forwardToEl.value : '';
+            const userId = userIdEl ? userIdEl.value : '';
             const requestId = <?php echo $requestId ? $requestId : 'null'; ?>;
 
             if (!requestId) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Cannot process request from history view.',
-                    icon: 'error',
-                    confirmButtonColor: '#0ea5e9'
-                });
+                Swal.fire({ title: 'Error', text: 'Cannot process request from history view.', icon: 'error', confirmButtonColor: '#0ea5e9' });
                 return;
             }
 
-            if (!notes) {
-                Swal.fire({
-                    title: 'Review Notes Required',
-                    text: 'Please provide review notes before submitting your decision.',
-                    icon: 'warning',
-                    confirmButtonColor: '#0ea5e9'
-                });
-                scrollToReviewSection();
+            if (!notes || !notes.trim()) {
+                Swal.fire({ title: 'Review Notes Required', text: 'Please provide review notes before submitting your decision.', icon: 'warning', confirmButtonColor: '#0ea5e9' });
                 return;
             }
-
-            let formData = new FormData();
-            formData.append('request_id', requestId);
-            formData.append('action', action);
-            formData.append('review_notes', notes);
 
             if (action === 'approve') {
-                const forwardTo = document.getElementById('forward_to').value;
-                const userId = document.getElementById('user_id').value;
-
                 if (!userId) {
-                    Swal.fire({
-                        title: 'User Selection Required',
-                        text: 'Please select a user to forward the request to.',
-                        icon: 'warning',
-                        confirmButtonColor: '#0ea5e9'
-                    });
-                    scrollToReviewSection();
+                    Swal.fire({ title: 'User Selection Required', text: 'Please select a user to forward the request to.', icon: 'warning', confirmButtonColor: '#0ea5e9' });
                     return;
                 }
-
-                formData.append('forward_to', forwardTo);
-                formData.append('user_id', userId);
             }
 
             Swal.fire({
@@ -677,54 +761,137 @@ try {
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Show loading state
-                    Swal.fire({
-                        title: 'Processing...',
-                        html: 'Please wait while we process your request.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+                    hideApprovalModal();
+                    Swal.fire({ title: 'Processing...', html: 'Please wait while we process your request.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
-                    // Submit the form via AJAX
-                    fetch('../admin/process_request.php', {
-                            method: 'POST',
-                            body: new URLSearchParams(formData)
-                        })
-                        .then(response => response.json())
+                    const params = new URLSearchParams();
+                    params.append('request_id', requestId);
+                    params.append('action', action);
+                    params.append('review_notes', notes);
+                    if (action === 'approve') {
+                        params.append('forward_to', forwardTo);
+                        params.append('user_id', userId);
+                    }
+
+                    fetch('../admin/process_request.php', { method: 'POST', body: params })
+                        .then(r => r.json())
                         .then(data => {
                             if (data.success) {
-                                Swal.fire({
-                                    title: 'Success!',
-                                    text: data.message,
-                                    icon: 'success',
-                                    confirmButtonColor: '#0ea5e9'
-                                }).then(() => {
-                                    window.location.href = 'requests.php';
-                                });
+                                Swal.fire({ title: 'Success!', text: data.message, icon: 'success', confirmButtonColor: '#0ea5e9' }).then(() => { window.location.href = 'requests.php'; });
                             } else {
-                                Swal.fire({
-                                    title: 'Error',
-                                    text: data.message || 'An error occurred while processing your request.',
-                                    icon: 'error',
-                                    confirmButtonColor: '#0ea5e9'
-                                });
+                                Swal.fire({ title: 'Error', text: data.message || 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' });
                             }
                         })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire({
-                                title: 'Error',
-                                text: 'An error occurred while processing your request.',
-                                icon: 'error',
-                                confirmButtonColor: '#0ea5e9'
-                            });
-                        });
+                        .catch(() => Swal.fire({ title: 'Error', text: 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' }));
                 }
             });
         }
+
+        function renderReviewHistory() {
+            const wrap = document.getElementById('modalReviewHistory');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (!reviewHistory || reviewHistory.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'text-sm text-gray-500';
+                p.textContent = 'No prior reviews.';
+                wrap.appendChild(p);
+                return;
+            }
+            reviewHistory.forEach(item => {
+                const box = document.createElement('div');
+                box.className = 'bg-gray-50 rounded-lg p-3 max-h-36 overflow-auto';
+                const role = document.createElement('div');
+                role.className = 'text-xs font-semibold text-gray-700 mb-1';
+                role.textContent = item.role;
+                const note = document.createElement('div');
+                note.className = 'text-sm text-gray-700 whitespace-pre-wrap break-words';
+                note.textContent = item.notes;
+                box.appendChild(role);
+                box.appendChild(note);
+                wrap.appendChild(box);
+            });
+        }
+
+        function populateFromApi(data) {
+            // Build history array and deduplicate by role
+            const historyMap = new Map();
+            
+            // Add notes from individual fields
+            if (data.superior_review_notes && data.superior_review_notes.trim() !== '') { 
+                historyMap.set('Superior', { role: 'Superior', notes: data.superior_review_notes }); 
+            }
+            if (data.help_desk_review_notes && data.help_desk_review_notes.trim() !== '') { 
+                historyMap.set('Help Desk', { role: 'Help Desk', notes: data.help_desk_review_notes }); 
+            }
+            if (data.technical_review_notes && data.technical_review_notes.trim() !== '') { 
+                historyMap.set('Technical Support', { role: 'Technical Support', notes: data.technical_review_notes }); 
+            }
+            if (data.process_owner_review_notes && data.process_owner_review_notes.trim() !== '') { 
+                historyMap.set('Process Owner', { role: 'Process Owner', notes: data.process_owner_review_notes }); 
+            }
+            if (data.admin_review_notes && data.admin_review_notes.trim() !== '') { 
+                historyMap.set('Admin', { role: 'Admin', notes: data.admin_review_notes }); 
+            }
+            
+            // Also merge API-provided review_history list if present (this will override duplicates)
+            if (Array.isArray(data.review_history)) {
+                data.review_history.forEach(r => {
+                    if (r && r.role && r.note) {
+                        historyMap.set(r.role, { role: r.role, notes: r.note });
+                    }
+                });
+            }
+            
+            // Convert map to array for rendering
+            const history = Array.from(historyMap.values());
+            
+            // Render only the review history
+            try {
+                const wrap = document.getElementById('modalReviewHistory');
+                if (wrap) {
+                    wrap.innerHTML = '';
+                    if (history.length === 0) {
+                        const p = document.createElement('p');
+                        p.className = 'text-sm text-gray-500';
+                        p.textContent = 'No prior reviews.';
+                        wrap.appendChild(p);
+                    } else {
+                        history.forEach(item => {
+                            const box = document.createElement('div');
+                            box.className = 'bg-gray-50 rounded-lg p-3 max-h-36 overflow-auto';
+                            const role = document.createElement('div');
+                            role.className = 'text-xs font-semibold text-gray-700 mb-1';
+                            role.textContent = item.role;
+                            const note = document.createElement('div');
+                            note.className = 'text-sm text-gray-700 whitespace-pre-wrap break-words';
+                            note.textContent = item.notes;
+                            box.appendChild(role);
+                            box.appendChild(note);
+                            wrap.appendChild(box);
+                        });
+                    }
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+        // Fallback: bind button by ID if present and inline handler fails
+        document.addEventListener('DOMContentLoaded', function() {
+            const openBtn = document.getElementById('openApprovalModalBtn');
+            if (openBtn) {
+                openBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    window.showApprovalModal && window.showApprovalModal();
+                });
+            }
+            // Close on Escape
+            document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { window.hideApprovalModal && window.hideApprovalModal(); } });
+            // Close when clicking backdrop
+            const m = document.getElementById('approvalModal');
+            if (m) { m.addEventListener('click', function(e){ if (e.target === m) { window.hideApprovalModal && window.hideApprovalModal(); } }); }
+        });
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

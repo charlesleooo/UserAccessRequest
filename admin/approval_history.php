@@ -12,14 +12,14 @@ if (!isset($_SESSION['admin_id'])) {
 try {
     // Show only the latest history entry per access_request_number to avoid duplicates
     $sql = "SELECT h.*, a.username as admin_username, e.employee_name as admin_name
-            FROM approval_history h
+            FROM uar.approval_history h
             INNER JOIN (
                 SELECT access_request_number, MAX(history_id) AS latest_id
-                FROM approval_history
+                FROM uar.approval_history
                 GROUP BY access_request_number
             ) latest ON latest.latest_id = h.history_id
-            LEFT JOIN admin_users a ON h.admin_id = a.id
-            LEFT JOIN employees e ON a.username = e.employee_id
+            LEFT JOIN uar.admin_users a ON h.admin_id = a.id
+            LEFT JOIN uar.employees e ON a.username = e.employee_id
             ORDER BY h.created_at DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
@@ -221,5 +221,5 @@ try {
         });
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

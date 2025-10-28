@@ -26,7 +26,7 @@ if ($token) {
     $token = trim($token);
     
     // Check the token directly from the database regardless of expiration
-    $stmt = $pdo->prepare("SELECT * FROM password_resets WHERE token = ?");
+    $stmt = $pdo->prepare("SELECT * FROM uar.password_resets WHERE token = ?");
     $stmt->execute([$token]);
     $reset = $stmt->fetch();
     
@@ -38,7 +38,7 @@ if ($token) {
         error_log("Admin token expiration time: " . $expires_at);
         
         // Check if the email belongs to an admin user
-        $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
+        $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
         $stmt->execute([$email]);
         $admin_user = $stmt->fetch();
         
@@ -63,7 +63,7 @@ if ($token) {
         error_log("Admin token not found in database");
         
         // Try checking if any token exists for debugging
-        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM password_resets");
+        $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM uar.password_resets");
         $stmt->execute();
         $count = $stmt->fetch();
         error_log("Total password reset tokens in database: " . $count['count']);
@@ -95,7 +95,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
     }
     
     // Check if token is valid
-    $stmt = $pdo->prepare("SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW()");
+    $stmt = $pdo->prepare("SELECT * FROM uar.password_resets WHERE token = ? AND expires_at > NOW()");
     $stmt->execute([$token]);
     $reset = $stmt->fetch();
     
@@ -105,7 +105,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
     }
     
     // Make sure it's an admin email
-    $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
+    $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
     $stmt->execute([$reset['employee_email']]);
     $admin_user = $stmt->fetch();
     
@@ -119,11 +119,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
         // Update user password
-        $stmt = $pdo->prepare("UPDATE employees SET password = ?, is_temp_password = 0 WHERE employee_email = ?");
+        $stmt = $pdo->prepare("UPDATE uar.employees SET password = ?, is_temp_password = 0 WHERE employee_email = ?");
         $stmt->execute([$hashed_password, $reset['employee_email']]);
         
         // Delete reset token
-        $stmt = $pdo->prepare("DELETE FROM password_resets WHERE token = ?");
+        $stmt = $pdo->prepare("DELETE FROM uar.password_resets WHERE token = ?");
         $stmt->execute([$reset['token']]);
         
         echo json_encode(['status' => 'success', 'message' => 'Password has been reset successfully']);
@@ -403,4 +403,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         });
     </script>
 </body>
+<?php include '../footer.php'; ?>
 </html> 

@@ -148,15 +148,15 @@ if (!empty($whereConditions)) {
     $query = "SELECT * FROM ($query) as combined_results WHERE " . implode(' AND ', $whereConditions);
 }
 
-// Sort by status priority: pending, approved, rejected, then by created date in descending order (newest first)
+// Sort by status priority: pending (any type), approved, rejected, then by UAR reference number in descending order
 $query .= " ORDER BY 
     CASE 
-        WHEN source = 'pending' THEN 0
+        WHEN source = 'pending' OR LOWER(status) LIKE 'pending%' THEN 0
         WHEN status = 'approved' THEN 1
         WHEN status = 'rejected' THEN 2
         ELSE 3
-    END, 
-    created_at DESC";
+    END,
+    access_request_number DESC";
 
 try {
     // Prepare and execute the query
@@ -615,29 +615,56 @@ try {
                                                     <td class="px-6 py-4 whitespace-nowrap">
                                                         <?php
                                                         $statusClass = '';
-                                                        $status = $request['source'] === 'pending' ? 'Pending' : ucfirst(strtolower($request['status']));
+                                                        $status = strtolower($request['status']);   
                                                         $displayStatus = '';
 
                                                         switch ($status) {
-                                                            case 'Pending':
+                                                            case 'pending_superior':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending Superior Review';
+                                                                break;
+                                                            case 'pending_technical':
+                                                            case 'pending_technical_support':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending Technical Review';
+                                                                break;
+                                                            case 'pending_process_owner':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending Process Owner Review';
+                                                                break;
+                                                            case 'pending_admin':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending Admin Review';
+                                                                break;
+                                                            case 'pending_testing':
+                                                            case 'pending_testing_setup':
+                                                            case 'pending_testing_review':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending Testing';
+                                                                break;
+                                                            case 'pending_help_desk':
+                                                                $statusClass = 'bg-yellow-100 text-yellow-800';
+                                                                $displayStatus = 'Pending Help Desk Review';
+                                                                break;
+                                                            case 'pending':
                                                                 $statusClass = 'bg-yellow-100 text-yellow-800';
                                                                 $displayStatus = 'Pending';
                                                                 break;
-                                                            case 'Approved':
+                                                            case 'approved':
                                                                 $statusClass = 'bg-green-100 text-green-800';
                                                                 $displayStatus = 'Approved';
                                                                 break;
-                                                            case 'Rejected':
+                                                            case 'rejected':
                                                                 $statusClass = 'bg-red-100 text-red-800';
                                                                 $displayStatus = 'Rejected';
                                                                 break;
-                                                            case 'Cancelled':
+                                                            case 'cancelled':
                                                                 $statusClass = 'bg-gray-100 text-gray-800';
                                                                 $displayStatus = 'Cancelled';
                                                                 break;
                                                             default:
                                                                 $statusClass = 'bg-gray-100 text-gray-800';
-                                                                $displayStatus = ucfirst($status);
+                                                                $displayStatus = ucfirst(str_replace('_', ' ', $status));
                                                         }
                                                         ?>
                                                         <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $statusClass; ?>">
@@ -768,5 +795,5 @@ try {
         }
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

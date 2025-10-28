@@ -266,14 +266,8 @@ try {
                         <i class='bx bx-arrow-back mr-2'></i> Back to <?php echo $fromHistory ? 'Review History' : 'Requests'; ?>
                     </a>
                     <?php if ($request['status'] === 'pending_superior'): ?>
-                        <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                            <i class='bx bx-edit mr-2'></i> Add Comments
-                        </button>
-                        <button onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                            <i class='bx bx-x-circle mr-2'></i> Decline
-                        </button>
-                        <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                            <i class='bx bx-check-circle mr-2'></i> Recommend
+                        <button onclick="showApprovalModal()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                            <i class='bx bx-check-circle mr-2'></i> Review & Recommend
                         </button>
                     <?php endif; ?>
                 </div>
@@ -598,35 +592,52 @@ try {
                 </div>
             <?php endif; ?>
 
-            <!-- Actions -->
-            <?php if ($request['status'] === 'pending_superior'): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
-                        Superior Review
+        </div>
+    </div>
+
+    <!-- Approval Modal -->
+    <div id="approvalModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-full max-w-md mx-auto shadow-xl">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200">
+                    <div class="flex-1 text-center">
+                        <h3 class="text-xl font-semibold text-gray-800 flex items-center justify-center">
+                            <i class='bx bx-check-circle text-green-600 text-2xl mr-2'></i>
+                        Your Review
                     </h3>
-                    <div class="p-4">
-                        <form id="reviewForm">
+                    </div>
+                    <button onclick="hideApprovalModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class='bx bx-x text-2xl'></i>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <form id="approvalForm">
                             <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
                             <div class="mb-4">
-                                <label for="review_notes" class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
-                                <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
+                            <label for="modal_review_notes" class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
+                            <textarea id="modal_review_notes" name="review_notes" rows="4" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                                placeholder="Enter your review notes..."></textarea>
                             </div>
-                            <div class="flex justify-end space-x-4">
-                                <button type="button" onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                    <i class='bx bx-x-circle mr-2'></i> Decline
+                        <div class="flex justify-end space-x-3">
+                            <button type="button" onclick="hideApprovalModal()" 
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                                Cancel
+                            </button>
+                            <button type="button" onclick="handleApproval('decline')" 
+                                class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                                    <i class='bx bx-x-circle mr-2'></i> Reject
                                 </button>
-                                <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                            <button type="button" onclick="handleApproval('approve')" 
+                                class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
                                     <i class='bx bx-check-circle mr-2'></i> Recommend
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
-            <?php endif; ?>
         </div>
     </div>
-
 
     <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -636,20 +647,22 @@ try {
             // Page loaded
         });
 
-        function scrollToReviewSection() {
-            // Find the review section and scroll to it
-            const reviewSection = document.getElementById('reviewForm');
-            if (reviewSection) {
-                reviewSection.scrollIntoView({
-                    behavior: 'smooth'
-                });
-                // Focus on the textarea
-                document.getElementById('review_notes').focus();
-            }
+        function showApprovalModal() {
+            document.getElementById('approvalModal').classList.remove('hidden');
+            // Focus on the textarea when modal opens
+            setTimeout(() => {
+                document.getElementById('modal_review_notes').focus();
+            }, 100);
         }
 
-        function handleRequest(action) {
-            const notes = document.getElementById('review_notes').value;
+        function hideApprovalModal() {
+            document.getElementById('approvalModal').classList.add('hidden');
+            // Clear the form when closing
+            document.getElementById('modal_review_notes').value = '';
+        }
+
+        function handleApproval(action) {
+            const notes = document.getElementById('modal_review_notes').value;
             const requestId = <?php echo $fromHistory ? 'null' : intval($requestId); ?>;
 
             <?php if ($fromHistory): ?>
@@ -657,14 +670,13 @@ try {
                 return;
             <?php endif; ?>
 
-            if (!notes) {
+            if (!notes.trim()) {
                 Swal.fire({
                     title: 'Review Notes Required',
                     text: 'Please provide review notes before submitting your decision.',
                     icon: 'warning',
                     confirmButtonColor: '#0ea5e9'
                 });
-                scrollToReviewSection();
                 return;
             }
 
@@ -679,6 +691,9 @@ try {
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    // Hide the modal first
+                    hideApprovalModal();
+                    
                     // Show loading state
                     Swal.fire({
                         title: 'Processing...',
@@ -729,7 +744,14 @@ try {
                 }
             });
         }
+
+        // Close modal when clicking outside
+        document.getElementById('approvalModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                hideApprovalModal();
+            }
+        });
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

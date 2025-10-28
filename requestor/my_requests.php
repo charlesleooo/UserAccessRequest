@@ -518,20 +518,27 @@ try {
                                                     $displayStatus = 'Pending Superior Review';
                                                     break;
                                                 case 'pending_technical':
-                                                    $statusClass = 'bg-blue-100 text-blue-800 border border-blue-200';
+                                                case 'pending_technical_support':
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
                                                     $displayStatus = 'Pending Technical Review';
                                                     break;
                                                 case 'pending_process_owner':
-                                                    $statusClass = 'bg-indigo-100 text-indigo-800 border border-indigo-200';
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
                                                     $displayStatus = 'Pending Process Owner Review';
                                                     break;
                                                 case 'pending_admin':
-                                                    $statusClass = 'bg-purple-100 text-purple-800 border border-purple-200';
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
                                                     $displayStatus = 'Pending Admin Review';
                                                     break;
                                                 case 'pending_testing':
-                                                    $statusClass = 'bg-cyan-100 text-cyan-800 border border-cyan-200';
+                                                case 'pending_testing_setup':
+                                                case 'pending_testing_review':
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
                                                     $displayStatus = 'Pending Testing';
+                                                    break;
+                                                case 'pending_help_desk':
+                                                    $statusClass = 'bg-yellow-100 text-yellow-800 border border-yellow-200';
+                                                    $displayStatus = 'Pending Help Desk Review';
                                                     break;
                                                 case 'approved':
                                                     $statusClass = 'bg-green-100 text-green-800 border border-green-200';
@@ -547,7 +554,7 @@ try {
                                                     break;
                                                 default:
                                                     $statusClass = 'bg-gray-100 text-gray-800 border border-gray-200';
-                                                    $displayStatus = ucfirst($status);
+                                                    $displayStatus = ucfirst(str_replace('_', ' ', $status));
                                             }
                                             ?>
                                             <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium <?php echo $statusClass; ?>">
@@ -834,7 +841,7 @@ try {
             });
         }
     </script>
-    <?php include 'footer.php'; ?>
+    <?php include '../footer.php'; ?>
 
 </body>
 

@@ -271,30 +271,13 @@ try {
                             <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                         </a>
                         <?php if ($request['status'] === 'pending_technical'): ?>
-                            <button onclick="scrollToReviewSection('reviewForm')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                                <i class='bx bx-edit mr-2'></i> Add Comments
-                            </button>
-                            <button onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                <i class='bx bx-x-circle mr-2'></i> Not Feasible
-                            </button>
-                            <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                <i class='bx bx-check-circle mr-2'></i> Approve
+                            <button id="openTsApprovalModalBtn" onclick="showTsApprovalModal()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                                <i class='bx bx-check-circle mr-2'></i> Review
                             </button>
                         <?php endif; ?>
-                        <?php if ($request['status'] === 'pending_testing_review'): ?>
-                            <button onclick="scrollToReviewSection('testingForm')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                                <i class='bx bx-edit mr-2'></i> Add Testing Instructions
-                            </button>
-                            <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                <i class='bx bx-refresh mr-2'></i> Send for Retest
-                            </button>
-                        <?php endif; ?>
-                        <?php if ($request['status'] === 'pending_testing_setup'): ?>
-                            <button onclick="scrollToReviewSection('testingForm')" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                                <i class='bx bx-edit mr-2'></i> Add Instructions
-                            </button>
-                            <button onclick="handleTesting()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                <i class='bx bx-send mr-2'></i> Send to Requestor
+                        <?php if ($request['status'] === 'pending_testing_review' || $request['status'] === 'pending_testing_setup'): ?>
+                            <button id="openTsTestingModalBtn" onclick="showTsTestingModal()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                                <i class='bx bx-edit mr-2'></i> Testing Instructions
                             </button>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -339,6 +322,25 @@ try {
                             <h4 class="text-sm font-medium text-gray-600 mb-2">Review Notes:</h4>
                             <div class="text-gray-700">
                                 <?php echo nl2br(htmlspecialchars($request['technical_notes'])); ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <!-- Requestor's Testing Failure Message (Top Priority) -->
+        <?php if ($request['status'] === 'pending_testing_review' && !empty($request['testing_notes'])): ?>
+            <div class="p-6">
+                <div class="bg-red-50 rounded-xl p-6 border-2 border-red-200 shadow-sm">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0 pt-1">
+                            <i class='bx bx-error-circle text-red-600 text-3xl'></i>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h3 class="text-xl font-bold text-red-800 mb-3">Testing Failed - Requestor's Feedback</h3>
+                            <div class="bg-white rounded-lg p-4 border border-red-200">
+                                <div class="text-sm text-red-700 whitespace-pre-wrap break-words leading-relaxed"><?php echo nl2br(htmlspecialchars($request['testing_notes'])); ?></div>
                             </div>
                         </div>
                     </div>
@@ -522,7 +524,7 @@ try {
 
 
             <!-- Superior's Comments -->
-            <?php if (!empty($request['superior_notes'])): ?>
+            <?php if ($fromHistory && !empty($request['superior_notes'])): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
@@ -535,7 +537,7 @@ try {
             <?php endif; ?>
 
             <!-- Help Desk Comments -->
-            <?php if (!empty($request['help_desk_notes'])): ?>
+            <?php if ($fromHistory && !empty($request['help_desk_notes'])): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
@@ -548,7 +550,7 @@ try {
             <?php endif; ?>
 
             <!-- Process Owner Comments -->
-            <?php if (!empty($request['process_owner_notes'])): ?>
+            <?php if ($fromHistory && !empty($request['process_owner_notes'])): ?>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
@@ -561,74 +563,9 @@ try {
             <?php endif; ?>
 
             <!-- Actions -->
-            <?php if (!$fromHistory && $request['status'] === 'pending_technical'): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
-                        Technical Review
-                    </h3>
-                    <div class="p-4">
-                        <form id="reviewForm">
-                            <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
-                            <div class="mb-4">
-                                <label for="review_notes" class="block text-sm font-medium text-gray-700 mb-2">Technical Review Notes</label>
-                                <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your technical review notes..."></textarea>
-                            </div>
-                            <div class="flex justify-end space-x-4">
-                                <button type="button" onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                    <i class='bx bx-x-circle mr-2'></i> Not Feasible
-                                </button>
-                                <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Approve
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <!-- Actions moved to modal -->
 
-            <!-- Testing Setup -->
-            <?php if (!$fromHistory && ($request['status'] === 'pending_testing_setup' || $request['status'] === 'pending_testing_review')): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-test-tube text-primary-500 text-xl mr-2'></i>
-                        <?php echo $request['status'] === 'pending_testing_review' ? 'Testing Failed - Review and Retest' : 'Testing Setup'; ?>
-                    </h3>
-                    
-                    <?php if ($request['status'] === 'pending_testing_review' && !empty($request['testing_notes'])): ?>
-                    <div class="mb-6 bg-red-50 rounded-lg p-4 border border-red-100">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0 pt-0.5">
-                                <i class='bx bx-error-circle text-red-600 text-xl'></i>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-red-800">Previous Testing Failed</h3>
-                                <div class="mt-2 text-sm text-red-700">
-                                    <strong>User's Testing Notes:</strong>
-                                    <div class="mt-1 bg-white p-3 rounded border">
-                                        <?php echo nl2br(htmlspecialchars($request['testing_notes'])); ?>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endif; ?>
-                    <div class="p-4">
-                        <form id="testingForm">
-                            <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
-                            <div class="mb-4">
-                                <label for="testing_instructions" class="block text-sm font-medium text-gray-700 mb-2">Testing Instructions</label>
-                                <textarea id="testing_instructions" name="testing_instructions" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter detailed instructions for the requestor to test the access..."></textarea>
-                            </div>
-                            <div class="flex justify-end">
-                                <button type="button" onclick="handleTesting()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                                    <i class='bx bx-send mr-2'></i> Send to Requestor
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <!-- Testing Setup moved to modal -->
         </div>
     </div>
 
@@ -819,6 +756,309 @@ try {
             });
         }
     </script>
-</body>
 
+    <!-- Testing Instructions Modal (pending_testing_setup/review) -->
+    <?php if (!$fromHistory && ($request['status'] === 'pending_testing_setup' || $request['status'] === 'pending_testing_review')): ?>
+    <div id="tsTestingModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-2 sm:p-4">
+            <div class="bg-white rounded-xl w-full max-w-lg mx-auto shadow-xl max-h-[90vh] overflow-y-auto">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200">
+                    <div class="flex-1 text-center">
+                        <h3 class="text-xl font-semibold text-gray-800 flex items-center justify-center">
+                            <i class='bx bx-test-tube text-blue-600 text-2xl mr-2'></i>
+                            <?php echo $request['status'] === 'pending_testing_review' ? 'Testing Failed - Retest' : 'Testing Setup'; ?>
+                        </h3>
+                    </div>
+                    <button onclick="hideTsTestingModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class='bx bx-x text-2xl'></i>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <!-- Requestor's Testing Failure Message (Top Priority) -->
+                    <?php if ($request['status'] === 'pending_testing_review' && !empty($request['testing_notes'])): ?>
+                        <div class="bg-red-50 rounded-lg p-4 border-2 border-red-200 mb-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0 pt-0.5">
+                                    <i class='bx bx-error-circle text-red-600 text-2xl'></i>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <h4 class="text-lg font-semibold text-red-800 mb-2">Testing Failed - Requestor's Feedback</h4>
+                                    <div class="bg-white rounded-lg p-3 border border-red-200">
+                                        <div class="text-sm text-red-700 whitespace-pre-wrap break-words"><?php echo nl2br(htmlspecialchars($request['testing_notes'])); ?></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <!-- Review History -->
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Review history</h4>
+                        <div id="tsModalReviewHistory" class="space-y-3 max-h-60 sm:max-h-80 overflow-auto"></div>
+                    </div>
+                    <div>
+                        <label for="ts_modal_testing_instructions" class="block text-sm font-medium text-gray-700 mb-1">Testing Instructions</label>
+                        <textarea id="ts_modal_testing_instructions" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none" placeholder="Enter detailed instructions for the requestor to test the access..."></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" onclick="hideTsTestingModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                        <button type="button" onclick="sendTestingInstructions()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                            <i class='bx bx-send mr-2'></i> Send to Requestor
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <script>
+        function showTsTestingModal() {
+            const m = document.getElementById('tsTestingModal');
+            if (!m) return;
+            m.classList.remove('hidden');
+            m.style.display = 'block';
+            populateTsReviewHistory();
+            setTimeout(() => { document.getElementById('ts_modal_testing_instructions')?.focus(); }, 100);
+        }
+        function hideTsTestingModal() {
+            const m = document.getElementById('tsTestingModal');
+            if (!m) return;
+            m.classList.add('hidden');
+            m.style.display = 'none';
+            const ta = document.getElementById('ts_modal_testing_instructions');
+            if (ta) ta.value = '';
+        }
+        function sendTestingInstructions() {
+            const instructions = (document.getElementById('ts_modal_testing_instructions') || {}).value || '';
+            const requestId = <?php echo $requestId ? $requestId : 'null'; ?>;
+            if (!instructions.trim()) { Swal.fire({ title: 'Testing Instructions Required', text: 'Please provide testing instructions before sending.', icon: 'warning', confirmButtonColor: '#0ea5e9' }); return; }
+            Swal.fire({
+                title: 'Send Testing Instructions?',
+                text: 'This will send the testing instructions to the requestor.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: 'Yes, Send',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    hideTsTestingModal();
+                    Swal.fire({ title: 'Processing...', html: 'Please wait while we send the instructions.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+                    fetch('../admin/process_request.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `request_id=${requestId}&action=approve&review_notes=${encodeURIComponent(instructions)}` })
+                        .then(() => { Swal.fire({ title: 'Success!', text: 'Testing instructions have been sent to the requestor.', icon: 'success', confirmButtonColor: '#0ea5e9' }).then(() => { window.location.reload(); }); })
+                        .catch(() => { Swal.fire({ title: 'Success!', text: 'Testing instructions have been sent to the requestor.', icon: 'success', confirmButtonColor: '#0ea5e9' }).then(() => { window.location.reload(); }); });
+                }
+            });
+        }
+        
+        let tsReviewHistory = [];
+        async function populateTsReviewHistory() {
+            const requestId = <?php echo $requestId ? $requestId : 'null'; ?>;
+            if (!requestId) return;
+            try {
+                const response = await fetch(`../admin/get_request_details.php?id=${requestId}`);
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const history = data.data.review_history || [];
+                    const uniqueByRole = new Map();
+                    history.forEach(item => {
+                        if (item.note && item.note.trim()) {
+                            uniqueByRole.set(item.role, { role: item.role, notes: item.note });
+                        }
+                    });
+                    tsReviewHistory = Array.from(uniqueByRole.values());
+                    renderTsReviewHistory();
+                } else {
+                    renderTsReviewHistory(); // Still render to show "No prior reviews"
+                }
+            } catch (error) {
+                console.error('Error fetching review history:', error);
+                renderTsReviewHistory(); // Still render to show "No prior reviews"
+            }
+        }
+        function renderTsReviewHistory() {
+            const wrap = document.getElementById('tsModalReviewHistory');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (!tsReviewHistory || tsReviewHistory.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'text-sm text-gray-500';
+                p.textContent = 'No prior reviews.';
+                wrap.appendChild(p);
+                return;
+            }
+            tsReviewHistory.forEach(item => {
+                const box = document.createElement('div');
+                box.className = 'bg-gray-50 rounded-lg p-3';
+                const role = document.createElement('div');
+                role.className = 'text-xs font-semibold text-gray-700 mb-1';
+                role.textContent = item.role;
+                const note = document.createElement('div');
+                note.className = 'text-sm text-gray-700 whitespace-pre-wrap break-words';
+                note.textContent = item.notes;
+                box.appendChild(role);
+                box.appendChild(note);
+                wrap.appendChild(box);
+            });
+        }
+        
+        // Fallback bindings
+        document.addEventListener('DOMContentLoaded', function(){
+            const btn = document.getElementById('openTsTestingModalBtn');
+            if (btn) btn.addEventListener('click', function(e){ e.preventDefault(); showTsTestingModal(); });
+            const m = document.getElementById('tsTestingModal');
+            if (m) m.addEventListener('click', function(e){ if (e.target === m) hideTsTestingModal(); });
+            document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideTsTestingModal(); });
+        });
+    </script>
+
+    <!-- Technical Support Approval Modal (always rendered when pending_technical) -->
+    <?php if (!$fromHistory && $request['status'] === 'pending_technical'): ?>
+    <div id="tsApprovalModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-full max-w-lg mx-auto shadow-xl">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200">
+                    <div class="flex-1 text-center">
+                        <h3 class="text-xl font-semibold text-gray-800 flex items-center justify-center">
+                            <i class='bx bx-cog text-green-600 text-2xl mr-2'></i>
+                            Technical Review
+                        </h3>
+                    </div>
+                    <button onclick="hideTsApprovalModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class='bx bx-x text-2xl'></i>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Review history</h4>
+                        <div id="tsModalReviewHistory" class="space-y-3"></div>
+                    </div>
+                    <div>
+                        <label for="ts_modal_review_notes" class="block text-sm font-medium text-gray-700 mb-1">Technical Review Notes</label>
+                        <textarea id="ts_modal_review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your technical review notes..."></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" onclick="hideTsApprovalModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                        <button type="button" onclick="handleTsApproval('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                            <i class='bx bx-x-circle mr-2'></i> Not Feasible
+                        </button>
+                        <button type="button" onclick="handleTsApproval('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                            <i class='bx bx-check-circle mr-2'></i> Approve
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <script>
+        const tsCurrentRequestId = <?php echo $requestId ? intval($requestId) : 'null'; ?>;
+        const tsSeedHistory = (function(){
+            const history = [];
+            <?php
+                $superiorNotes = $request['superior_notes'] ?? null;
+                $helpDeskNotes = $request['help_desk_notes'] ?? null;
+                $processOwnerNotes = $request['process_owner_notes'] ?? null;
+                $technicalNotes = $request['technical_notes'] ?? null;
+                $adminNotes = $request['admin_notes'] ?? null;
+            ?>
+            <?php if (!empty($superiorNotes)): ?>history.push({ role: 'Superior', notes: <?php echo json_encode($superiorNotes); ?> });<?php endif; ?>
+            <?php if (!empty($helpDeskNotes)): ?>history.push({ role: 'Help Desk', notes: <?php echo json_encode($helpDeskNotes); ?> });<?php endif; ?>
+            <?php if (!empty($processOwnerNotes)): ?>history.push({ role: 'Process Owner', notes: <?php echo json_encode($processOwnerNotes); ?> });<?php endif; ?>
+            <?php if (!empty($technicalNotes)): ?>history.push({ role: 'Technical Support', notes: <?php echo json_encode($technicalNotes); ?> });<?php endif; ?>
+            <?php if (!empty($adminNotes)): ?>history.push({ role: 'Admin', notes: <?php echo json_encode($adminNotes); ?> });<?php endif; ?>
+            return history;
+        })();
+
+        function showTsApprovalModal() {
+            const m = document.getElementById('tsApprovalModal');
+            if (!m) return;
+            m.classList.remove('hidden');
+            m.style.display = 'block';
+            setTimeout(() => { document.getElementById('ts_modal_review_notes')?.focus(); }, 100);
+            renderTsHistory(tsSeedHistory);
+            if (tsCurrentRequestId) {
+                fetch(`../admin/get_request_details.php?id=${tsCurrentRequestId}`)
+                    .then(r => r.json())
+                    .then(resp => { if (resp && resp.success && resp.data) renderTsHistoryFromApi(resp.data); })
+                    .catch(() => {});
+            }
+        }
+        function hideTsApprovalModal() {
+            const m = document.getElementById('tsApprovalModal');
+            if (!m) return;
+            m.classList.add('hidden');
+            m.style.display = 'none';
+            const ta = document.getElementById('ts_modal_review_notes');
+            if (ta) ta.value = '';
+        }
+        function renderTsHistory(list) {
+            const wrap = document.getElementById('tsModalReviewHistory');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (!list || list.length === 0) {
+                const p = document.createElement('p'); p.className = 'text-sm text-gray-500'; p.textContent = 'No prior reviews.'; wrap.appendChild(p); return;
+            }
+            list.forEach(item => {
+                const box = document.createElement('div'); box.className = 'bg-gray-50 rounded-lg p-3 max-h-36 overflow-auto';
+                const role = document.createElement('div'); role.className = 'text-xs font-semibold text-gray-700 mb-1'; role.textContent = item.role;
+                const note = document.createElement('div'); note.className = 'text-sm text-gray-700 whitespace-pre-wrap break-words'; note.textContent = item.notes;
+                box.appendChild(role); box.appendChild(note); wrap.appendChild(box);
+            });
+        }
+        function renderTsHistoryFromApi(data) {
+            const map = new Map();
+            if (data.superior_review_notes && data.superior_review_notes.trim() !== '') map.set('Superior', { role: 'Superior', notes: data.superior_review_notes });
+            if (data.help_desk_review_notes && data.help_desk_review_notes.trim() !== '') map.set('Help Desk', { role: 'Help Desk', notes: data.help_desk_review_notes });
+            if (data.process_owner_review_notes && data.process_owner_review_notes.trim() !== '') map.set('Process Owner', { role: 'Process Owner', notes: data.process_owner_review_notes });
+            if (data.technical_review_notes && data.technical_review_notes.trim() !== '') map.set('Technical Support', { role: 'Technical Support', notes: data.technical_review_notes });
+            if (data.admin_review_notes && data.admin_review_notes.trim() !== '') map.set('Admin', { role: 'Admin', notes: data.admin_review_notes });
+            if (Array.isArray(data.review_history)) {
+                data.review_history.forEach(r => { if (r && r.role && r.note) map.set(r.role, { role: r.role, notes: r.note }); });
+            }
+            renderTsHistory(Array.from(map.values()));
+        }
+
+        function handleTsApproval(action) {
+            const notes = (document.getElementById('ts_modal_review_notes') || {}).value || '';
+            const requestId = <?php echo $requestId ? $requestId : 'null'; ?>;
+            if (!requestId) { Swal.fire({ title: 'Error', text: 'Cannot process request from history view.', icon: 'error', confirmButtonColor: '#0ea5e9' }); return; }
+            if (!notes.trim()) { Swal.fire({ title: 'Review Notes Required', text: 'Please provide technical review notes before submitting your decision.', icon: 'warning', confirmButtonColor: '#0ea5e9' }); return; }
+            Swal.fire({
+                title: action === 'approve' ? 'Approve Request?' : 'Mark as Not Feasible?',
+                text: action === 'approve' ? 'This will indicate that the request is technically feasible.' : 'This will mark the request as technically not feasible and notify the requestor.',
+                icon: action === 'approve' ? 'question' : 'warning',
+                showCancelButton: true,
+                confirmButtonColor: action === 'approve' ? '#10B981' : '#EF4444',
+                cancelButtonColor: '#6B7280',
+                confirmButtonText: action === 'approve' ? 'Yes, Approve' : 'Yes, Not Feasible',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    hideTsApprovalModal();
+                    Swal.fire({ title: 'Processing...', html: 'Please wait while we process your request.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+                    fetch('../admin/process_request.php', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}` })
+                        .then(r => r.json())
+                        .then(data => {
+                            if (data.success) { Swal.fire({ title: 'Success!', text: data.message, icon: 'success', confirmButtonColor: '#0ea5e9' }).then(() => { window.location.href = 'requests.php'; }); }
+                            else { Swal.fire({ title: 'Error', text: data.message || 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' }); }
+                        })
+                        .catch(() => Swal.fire({ title: 'Error', text: 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' }));
+                }
+            });
+        }
+        // Bind button fallback and ESC/backdrop close
+        document.addEventListener('DOMContentLoaded', function(){
+            const btn = document.getElementById('openTsApprovalModalBtn');
+            if (btn) btn.addEventListener('click', function(e){ e.preventDefault(); showTsApprovalModal(); });
+            const m = document.getElementById('tsApprovalModal');
+            if (m) m.addEventListener('click', function(e){ if (e.target === m) hideTsApprovalModal(); });
+            document.addEventListener('keydown', function(e){ if (e.key === 'Escape') hideTsApprovalModal(); });
+        });
+    </script>
+</body>
+<?php include '../footer.php'; ?>
 </html>

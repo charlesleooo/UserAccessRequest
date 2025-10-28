@@ -69,7 +69,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Process Owner - Pending Reviews</title>
+    <title>Requests</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -109,7 +109,7 @@ try {
             <!-- Header -->
             <div class="bg-primary-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-white">Process Reviews</h1>
+                    <h1 class="text-2xl font-bold text-white">Requests</h1>
                 </div>
             </div>
 
@@ -484,5 +484,5 @@ try {
         }
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

@@ -606,19 +606,22 @@ try {
                                                             $displayStatus = 'Pending Help Desk Review';
                                                             break;
                                                         case 'pending_technical':
-                                                            $statusClass = 'bg-blue-100 text-blue-800';
+                                                        case 'pending_technical_support':
+                                                            $statusClass = 'bg-yellow-100 text-yellow-800';
                                                             $displayStatus = 'Pending Technical Review';
                                                             break;
                                                         case 'pending_process_owner':
-                                                            $statusClass = 'bg-indigo-100 text-indigo-800';
+                                                            $statusClass = 'bg-yellow-100 text-yellow-800';
                                                             $displayStatus = 'Pending Process Owner Review';
                                                             break;
                                                         case 'pending_admin':
-                                                            $statusClass = 'bg-purple-100 text-purple-800';
+                                                            $statusClass = 'bg-yellow-100 text-yellow-800';
                                                             $displayStatus = 'Pending Admin Review';
                                                             break;
                                                         case 'pending_testing':
-                                                            $statusClass = 'bg-cyan-100 text-cyan-800';
+                                                        case 'pending_testing_setup':
+                                                        case 'pending_testing_review':
+                                                            $statusClass = 'bg-yellow-100 text-yellow-800';
                                                             $displayStatus = 'Pending Testing';
                                                             break;
                                                         case 'approved':
@@ -629,9 +632,13 @@ try {
                                                             $statusClass = 'bg-red-100 text-red-800';
                                                             $displayStatus = 'Rejected';
                                                             break;
+                                                        case 'cancelled':
+                                                            $statusClass = 'bg-gray-100 text-gray-800';
+                                                            $displayStatus = 'Cancelled';
+                                                            break;
                                                         default:
                                                             $statusClass = 'bg-gray-100 text-gray-800';
-                                                            $displayStatus = ucfirst($status);
+                                                            $displayStatus = ucfirst(str_replace('_', ' ', $status));
                                                     }
                                                     ?>
                                                     <span class="status-badge <?php echo $statusClass; ?>">
@@ -800,6 +807,6 @@ try {
     </script>
 
 </body>
-<?php include 'footer.php'; ?>
+<?php include '../footer.php'; ?>
 
 </html>

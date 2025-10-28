@@ -251,4 +251,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         }
     </script>
 </body>
+<?php include '../footer.php'; ?>
 </html>

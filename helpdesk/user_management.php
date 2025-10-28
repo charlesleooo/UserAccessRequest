@@ -46,13 +46,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $company = filter_input(INPUT_POST, 'company', FILTER_SANITIZE_STRING);
                     $department = filter_input(INPUT_POST, 'department', FILTER_SANITIZE_STRING);
                     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
+                    $role = filter_input(INPUT_POST, 'role', FILTER_SANITIZE_STRING);
 
                     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                         throw new Exception('Invalid email format');
                     }
 
-                    $stmt = $pdo->prepare("UPDATE uar.employees SET employee_name = ?, company = ?, department = ?, employee_email = ? WHERE employee_id = ?");
-                    $stmt->execute([$employee_name, $company, $department, $email, $employee_id]);
+                    // Validate role
+                    $valid_roles = ['requestor', 'admin', 'help_desk', 'superior', 'technical_support', 'process_owner'];
+                    if (!in_array($role, $valid_roles)) {
+                        throw new Exception('Invalid role selected');
+                    }
+
+                    $stmt = $pdo->prepare("UPDATE uar.employees SET employee_name = ?, company = ?, department = ?, employee_email = ?, role = ? WHERE employee_id = ?");
+                    $stmt->execute([$employee_name, $company, $department, $email, $role, $employee_id]);
+
+                    // Also update the role in admin_users table if it exists
+                    $admin_stmt = $pdo->prepare("UPDATE uar.admin_users SET role = ? WHERE username = ?");
+                    $admin_stmt->execute([$role, $employee_id]);
 
                     $_SESSION['message'] = [
                         'title' => 'Success',
@@ -450,7 +461,7 @@ $existing_usernames = array_column($admin_users, 'username');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Management</title>
+    <title>User Management</title>
 
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -500,13 +511,10 @@ $existing_usernames = array_column($admin_users, 'username');
         <!-- Main Content -->
         <div class="flex-1 lg:ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200">
+            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-4">
                     <div>
-                        <h2 class="text-xl md:text-2xl font-bold text-gray-800">User Management</h2>
-                        <p class="text-gray-600 text-sm mt-1">
-                            Manage and organize user information
-                        </p>
+                        <h2 class="text-xl md:text-2xl font-bold text-white">User Management</h2>
                     </div>
                     <div class="flex items-center gap-4 flex-wrap">
 
@@ -535,7 +543,7 @@ $existing_usernames = array_column($admin_users, 'username');
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Users</h3>
                     <form method="GET" class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div class="space-y-2">
-                            <label class="block text-sm font-medium text-gray-700">Business Unit</label>
+                            <label class="block text-sm font-medium text-gray-700">Business Unit Entity</label>
                             <select name="company" class="block w-full h-12 rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-base">
                                 <option value="">All Business Units</option>
                                 <?php foreach ($companies as $company): ?>
@@ -590,7 +598,7 @@ $existing_usernames = array_column($admin_users, 'username');
                                 <tr>
                                     <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
                                     <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th class="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit Entity</th>
                                     <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                                     <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -630,7 +638,8 @@ $existing_usernames = array_column($admin_users, 'username');
                                                         data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>"
                                                         data-company="<?php echo htmlspecialchars($employee['company']); ?>"
                                                         data-department="<?php echo htmlspecialchars($employee['department']); ?>"
-                                                        data-email="<?php echo htmlspecialchars($employee['employee_email']); ?>">
+                                                        data-email="<?php echo htmlspecialchars($employee['employee_email']); ?>"
+                                                        data-role="<?php echo htmlspecialchars($employee['role'] ?? ''); ?>">
                                                         <i class="fas fa-edit me-1"></i>
                                                         <span class="hidden md:inline">Edit</span>
                                                     </button>
@@ -709,6 +718,17 @@ $existing_usernames = array_column($admin_users, 'username');
                         <div class="col-span-2">
                             <label for="edit_email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
                             <input type="email" name="email" id="edit_email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="name@company.com" required="">
+                        </div>
+                        <div class="col-span-2">
+                            <label for="edit_role" class="block mb-2 text-sm font-medium text-gray-900">System Role</label>
+                            <select id="edit_role" name="role" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required="">
+                                <option value="requestor">Requestor</option>
+                                <option value="admin">Admin</option>
+                                <option value="help_desk">Help Desk</option>
+                                <option value="superior">Immediate Superior</option>
+                                <option value="technical_support">Technical Support</option>
+                                <option value="process_owner">Process Owner</option>
+                            </select>
                         </div>
                     </div>
                     <div class="flex items-center space-x-4">
@@ -824,17 +844,16 @@ $existing_usernames = array_column($admin_users, 'username');
                         <div class="grid gap-4 mb-4 grid-cols-2">
                             <div class="col-span-2 sm:col-span-1">
                                 <label for="add_employee_id" class="block mb-2 text-sm font-medium text-gray-900">Employee ID</label>
-                                <input type="text" name="employee_id" id="add_employee_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required="" pattern="[a-zA-Z0-9-]+" title="Only letters, numbers, and hyphens are allowed">
-                                <p class="mt-1 text-xs text-gray-500">Only letters, numbers, and hyphens allowed</p>
+                                <input type="text" name="employee_id" id="add_employee_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required="" pattern="[a-zA-Z0-9-]+">
                             </div>
                             <div class="col-span-2 sm:col-span-1">
                                 <label for="add_employee_name" class="block mb-2 text-sm font-medium text-gray-900">Employee Name</label>
-                                <input type="text" name="employee_name" id="add_employee_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="John Doe" required="">
+                                <input type="text" name="employee_name" id="add_employee_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" required="">
                             </div>
                             <div class="col-span-2 sm:col-span-1">
-                                <label for="add_company" class="block mb-2 text-sm font-medium text-gray-900">Business Unit</label>
+                                <label for="add_company" class="block mb-2 text-sm font-medium text-gray-900">Business Unit Entity</label>
                                 <select id="add_company" name="company" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5" required="">
-                                    <option value="">Select business unit</option>
+                                    <option value="">Select business unit entity</option>
                                     <?php foreach ($companies as $company): ?>
                                         <option value="<?php echo htmlspecialchars($company); ?>">
                                             <?php echo htmlspecialchars($company); ?>
@@ -852,8 +871,7 @@ $existing_usernames = array_column($admin_users, 'username');
                             </div>
                             <div class="col-span-2">
                                 <label for="add_email" class="block mb-2 text-sm font-medium text-gray-900">Email</label>
-                                <input type="email" name="email" id="add_email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="name@company.com" required="">
-                                <p class="mt-1 text-xs text-gray-500">Enter a valid email address</p>
+                                <input type="email" name="email" id="add_email" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5" placeholder="name@saranganibay.com.ph" required="">
                             </div>
                             <div class="col-span-2">
                                 <label for="add_role" class="block mb-2 text-sm font-medium text-gray-900">System Role</label>
@@ -865,7 +883,6 @@ $existing_usernames = array_column($admin_users, 'username');
                                     <option value="technical_support">Technical Support</option>
                                     <option value="process_owner">Process Owner</option>
                                 </select>
-                                <p class="mt-1 text-xs text-gray-500">Assign a role for system access</p>
                             </div>
                         </div>
                         
@@ -1333,8 +1350,9 @@ $existing_usernames = array_column($admin_users, 'username');
                 const company = $(this).data('company');
                 const department = $(this).data('department');
                 const email = $(this).data('email');
+                const role = $(this).data('role');
 
-                showEditModal(employeeId, employeeName, company, department, email);
+                showEditModal(employeeId, employeeName, company, department, email, role);
             });
 
             // Handle archive button click
@@ -1355,11 +1373,12 @@ $existing_usernames = array_column($admin_users, 'username');
         });
 
         // Show/Hide Edit Modal
-        function showEditModal(employeeId, employeeName, company, department, email) {
+        function showEditModal(employeeId, employeeName, company, department, email, role) {
             $('#edit_employee_id').val(employeeId);
             $('#edit_employee_name').val(employeeName);
             $('#edit_company').val(company);
             $('#edit_email').val(email);
+            $('#edit_role').val(role);
             
             // Store current department for later use
             $('#edit_department').data('current-dept', department);
@@ -1477,5 +1496,5 @@ $existing_usernames = array_column($admin_users, 'username');
         }
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

@@ -47,7 +47,7 @@ try {
                         <svg class="w-8 h-8 transition duration-75 <?php echo $current_page == 'requests.php' ? 'text-white' : 'text-gray-500 group-hover:text-gray-900'; ?>" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
                             <path d="m17.418 3.623-.018-.008a6.713 6.713 0 0 0-2.4-.569V2h1a1 1 0 1 0 0-2h-2a1 1 0 0 0-1 1v2H9.89A6.977 6.977 0 0 1 12 8v5h-2V8A5 5 0 1 0 0 8v6a1 1 0 0 0 1 1h8v4a1 1 0 0 0 1 1h2a1 1 0 0 0 1-1v-4h6a1 1 0 0 0 1-1V8a5 5 0 0 0-2.582-4.377ZM6 12H4a1 1 0 0 1 0-2h2a1 1 0 0 1 0 2Z"/>
                         </svg>
-                        <span class="ms-3">Help Desk Reviews</span>
+                        <span class="ms-3">Requests</span>
                     </div>
                     <?php if ($pendingCount > 0): ?>
                         <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-bold text-white bg-red-500 rounded-full">
@@ -92,18 +92,6 @@ try {
                     <span class="ms-3">User Management</span>
                 </a>
             </li>
-
-            <!-- Settings -->
-            <li>
-                <a href="settings.php" 
-                   class="flex items-center p-2 rounded-lg group <?php echo $current_page == 'settings.php' ? 'text-white bg-blue-700' : 'text-gray-900 hover:bg-gray-100'; ?>">
-                    <svg class="w-8 h-8 transition duration-75 <?php echo $current_page == 'settings.php' ? 'text-white' : 'text-gray-500 group-hover:text-gray-900'; ?>" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M18 7.5h-.423l-.452-1.09.3-.3a1.5 1.5 0 0 0 0-2.121L16.01 2.575a1.5 1.5 0 0 0-2.121 0l-.3.3-1.089-.452V2A1.5 1.5 0 0 0 11 .5H9A1.5 1.5 0 0 0 7.5 2v.423l-1.09.452-.3-.3a1.5 1.5 0 0 0-2.121 0L2.576 3.99a1.5 1.5 0 0 0 0 2.121l.3.3L2.423 7.5H2A1.5 1.5 0 0 0 .5 9v2A1.5 1.5 0 0 0 2 12.5h.423l.452 1.09-.3.3a1.5 1.5 0 0 0 0 2.121l1.415 1.413a1.5 1.5 0 0 0 2.121 0l.3-.3 1.09.452V18A1.5 1.5 0 0 0 9 19.5h2a1.5 1.5 0 0 0 1.5-1.5v-.423l1.09-.452.3.3a1.5 1.5 0 0 0 2.121 0l1.415-1.414a1.5 1.5 0 0 0 0-2.121l-.3-.3.452-1.09H18a1.5 1.5 0 0 0 1.5-1.5V9A1.5 1.5 0 0 0 18 7.5Zm-8 6a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/>
-                    </svg>
-                    <span class="ms-3">Settings</span>
-                </a>
-            </li>
-        </ul>
 
         <!-- Logout Button -->
         <div class="pt-4 mt-4 space-y-2 font-medium border-t border-gray-200">

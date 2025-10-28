@@ -95,7 +95,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UAR Dashboard</title>
+    <title>Dashboard</title>
 
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -337,6 +337,7 @@ try {
                                 <p class="text-sm text-gray-500 truncate">Pending Requests</p>
                                 <h4 class="text-2xl font-bold text-gray-900"><?php echo $pendingRequests; ?></h4>
                             </div>
+
                         </div>
                     </div>
 
@@ -544,5 +545,5 @@ try {
         });
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

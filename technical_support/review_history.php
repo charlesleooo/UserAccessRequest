@@ -21,91 +21,90 @@ try {
     ]);
     $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
     $technical_id = $adminRecord ? $adminRecord['id'] : $admin_id; // Fallback to session ID if not found
+    
+    // Debug: Log the technical_id being used
+    error_log("Review History - Using technical_id: " . $technical_id . " for user: " . $admin_username);
 
     // Get requests reviewed by this technical support
-    // Use ROW_NUMBER() to get only the most recent entry per access_request_number
-    $stmt = $pdo->prepare("
+    // First get from access_requests table
+    $stmt1 = $pdo->prepare("
         SELECT 
-            access_request_number,
-            requestor_name,
-            department,
-            business_unit,
-            access_type,
-            system_type,
-            review_date,
-            review_notes,
-            status,
-            justification,
-            employee_id,
-            email,
-            role_access_type,
-            duration_type,
-            start_date,
-            end_date,
-            action
-        FROM (
-            SELECT 
-                ar.access_request_number,
-                ar.requestor_name,
-                ar.department,
-                ar.business_unit,
-                ar.access_level as access_type,
-                ar.system_type,
-                ar.technical_review_date as review_date,
-                ar.technical_notes as review_notes,
-                ar.status,
-                '' as justification,
-                ar.employee_id,
-                ar.employee_email as email,
-                '' as role_access_type,
-                '' as duration_type,
-                '' as start_date,
-                '' as end_date,
-                CASE 
-                    WHEN ar.status = 'rejected' AND ar.technical_id = :technical_id THEN 'Rejected'
-                    ELSE 'Approved/Forwarded'
-                END as action,
-                ROW_NUMBER() OVER (PARTITION BY ar.access_request_number ORDER BY ar.technical_review_date DESC) as rn
-            FROM 
-                access_requests ar
-            WHERE 
-                ar.technical_id = :technical_id AND ar.technical_review_date IS NOT NULL
-            UNION
-            SELECT 
-                ah.access_request_number,
-                ah.requestor_name,
-                ah.department,
-                ah.business_unit,
-                ah.access_type,
-                ah.system_type,
-                ah.created_at as review_date,
-                ah.technical_notes as review_notes,
-                ah.action as status,
-                ah.justification,
-                ah.employee_id,
-                ah.email,
-                '',
-                ah.duration_type,
-                ah.start_date,
-                ah.end_date,
-                CASE 
-                    WHEN ah.action = 'rejected' AND ah.technical_id = :technical_id THEN 'Rejected'
-                    ELSE 'Approved/Forwarded'
-                END as action,
-                ROW_NUMBER() OVER (PARTITION BY ah.access_request_number ORDER BY ah.created_at DESC) as rn
-            FROM 
-                approval_history ah
-            WHERE 
-                ah.technical_id = :technical_id
-        ) combined
-        WHERE rn = 1
-        ORDER BY 
-            review_date DESC
+            ar.access_request_number,
+            ar.requestor_name,
+            ar.department,
+            ar.business_unit,
+            ar.access_level as access_type,
+            ar.system_type,
+            ar.technical_review_date as review_date,
+            ar.technical_notes as review_notes,
+            ar.status,
+            '' as justification,
+            ar.employee_id,
+            ar.employee_email as email,
+            '' as role_access_type,
+            '' as duration_type,
+            '' as start_date,
+            '' as end_date,
+            CASE 
+                WHEN ar.status = 'rejected' THEN 'Rejected'
+                ELSE 'Approved/Forwarded'
+            END as action
+        FROM 
+            uar.access_requests ar
+        WHERE 
+            ar.technical_id = :technical_id AND ar.technical_review_date IS NOT NULL
     ");
+    
+    $stmt1->execute(['technical_id' => $technical_id]);
+    $access_requests = $stmt1->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Then get from approval_history table
+    $stmt2 = $pdo->prepare("
+        SELECT 
+            ah.access_request_number,
+            ah.requestor_name,
+            ah.department,
+            ah.business_unit,
+            ah.access_type,
+            ah.system_type,
+            ah.created_at as review_date,
+            ah.technical_notes as review_notes,
+            ah.action as status,
+            ah.justification,
+            ah.employee_id,
+            ah.email,
+            '' as role_access_type,
+            ah.duration_type,
+            ah.start_date,
+            ah.end_date,
+            CASE 
+                WHEN ah.action = 'rejected' THEN 'Rejected'
+                ELSE 'Approved/Forwarded'
+            END as action
+        FROM 
+            uar.approval_history ah
+        WHERE 
+            ah.technical_id = :technical_id
+    ");
+    
+    $stmt2->execute(['technical_id' => $technical_id]);
+    $approval_requests = $stmt2->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Combine the results
+    $reviewed_requests = array_merge($access_requests, $approval_requests);
+    
+    // Sort by review_date descending
+    usort($reviewed_requests, function($a, $b) {
+        $dateA = strtotime($a['review_date'] ?? '1970-01-01');
+        $dateB = strtotime($b['review_date'] ?? '1970-01-01');
+        return $dateB - $dateA;
+    });
 
-    $stmt->execute(['technical_id' => $technical_id]);
-    $reviewed_requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Debug: Log the number of results
+    error_log("Review History - Found " . count($reviewed_requests) . " reviewed requests for technical_id: " . $technical_id);
+    
 } catch (PDOException $e) {
+    error_log("Review History - Database error: " . $e->getMessage());
     $_SESSION['error_message'] = "Error fetching review history: " . $e->getMessage();
     $reviewed_requests = [];
 }
@@ -117,7 +116,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Technical Support - Review History</title>
+    <title>Review History</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -196,29 +195,29 @@ try {
                                 <?php if (!empty($reviewed_requests)): ?>
                                     <?php foreach ($reviewed_requests as $index => $request): ?>
                                         <tr class="hover:bg-gray-50 cursor-pointer"
-                                            onclick="window.location='view_request.php?access_request_number=<?php echo urlencode($request['access_request_number']); ?>&from_history=true'">
+                                            onclick="window.location='view_request.php?access_request_number=<?php echo urlencode($request['access_request_number'] ?? ''); ?>&from_history=true'">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                <?php echo htmlspecialchars($request['access_request_number']); ?>
+                                                <?php echo htmlspecialchars($request['access_request_number'] ?? ''); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['requestor_name']); ?>
+                                                <?php echo htmlspecialchars($request['requestor_name'] ?? ''); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['department']); ?>
+                                                <?php echo htmlspecialchars($request['department'] ?? ''); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($request['access_type']); ?>
+                                                <?php echo htmlspecialchars($request['access_type'] ?? ''); ?>
                                                 <?php if (!empty($request['system_type'])): ?>
-                                                    <span class="text-xs text-gray-400">(<?php echo htmlspecialchars($request['system_type']); ?>)</span>
+                                                    <span class="text-xs text-gray-400">(<?php echo htmlspecialchars($request['system_type'] ?? ''); ?>)</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo date('M d, Y H:i', strtotime($request['review_date'])); ?>
+                                                <?php echo date('M d, Y H:i', strtotime($request['review_date'] ?? '1970-01-01')); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm">
                                                 <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
                                                     <?php echo ($request['action'] === 'Rejected') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'; ?>">
-                                                    <?php echo htmlspecialchars($request['action']); ?>
+                                                    <?php echo htmlspecialchars($request['action'] ?? ''); ?>
                                                 </span>
                                             </td>
                                         </tr>
@@ -239,5 +238,5 @@ try {
     </div>
 
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

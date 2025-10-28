@@ -79,7 +79,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Help Desk - Pending Reviews</title>
+    <title>Pending Requests</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -117,10 +117,9 @@ try {
         <!-- Main Content -->
         <div class="flex-1 lg:ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-4 md:px-8 py-4">
-                    <h1 class="text-xl md:text-2xl font-bold text-gray-800">Help Desk Reviews</h1>
-                    <p class="text-gray-600 mt-1 text-sm md:text-base">Review and process access requests from superiors</p>
+                    <h1 class="text-xl md:text-2xl font-bold text-white">Requests</h1>
                 </div>
             </div>
 
@@ -133,7 +132,7 @@ try {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit Entity</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
@@ -168,8 +167,10 @@ try {
                                                 <?php
                                                 $submission_date = new DateTime($request['submission_date']);
                                                 $today = new DateTime();
-                                                $interval = $submission_date->diff($today);
-                                                echo $interval->days . ' days';
+                                                $submission_date->setTime(0, 0, 0);
+                                                $today->setTime(0, 0, 0);
+                                                $days_diff = $today->diff($submission_date)->days;
+                                                echo $days_diff . ' days';
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
@@ -814,5 +815,5 @@ try {
         }
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

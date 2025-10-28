@@ -93,9 +93,22 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Superior - Review History</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Boxicons -->
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <!-- Alpine.js for interactions -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.13.1/dist/cdn.min.js"></script>
+    <!-- Flowbite CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.css" rel="stylesheet" />
+    <!-- Flowbite JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
+    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Include Design System -->
+    <?php require_once '../includes/design_system.php'; ?>
 
     <!-- Tailwind Configuration -->
     <script>
@@ -104,18 +117,21 @@ try {
                 extend: {
                     colors: {
                         primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                            950: '#082f49',
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            950: '#172554',
                         }
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
                     }
                 }
             }
@@ -123,23 +139,27 @@ try {
     </script>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-100" x-data="{ sidebarOpen: true }">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         <?php include 'sidebar.php'; ?>
 
         <!-- Main Content -->
-        <div class="flex-1 ml-72">
+        <div class="flex-1 transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
             <!-- Header -->
-            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
-                <div class="px-8 py-4">
-                    <h1 class="text-4xl font-bold text-white">Review History</h1>
+            <div class="<?php echo getComponentClass('header'); ?>">
+                <div class="<?php echo getComponentClass('header', 'container'); ?>">
+                    <div class="flex items-center">
+                        <?php renderHamburgerButton(); ?>
+                        <h1 class="<?php echo getComponentClass('header', 'title'); ?>">Review History</h1>
+                    </div>
+                    <?php renderPrivacyNotice(); ?>
                 </div>
             </div>
 
             <!-- Content -->
-            <div class="p-8">
-                <div class="bg-white rounded-xl shadow overflow-hidden">
+            <div class="p-4 md:p-8">
+                <div class="<?php echo getComponentClass('card'); ?>">
                     <?php if (isset($_SESSION['success_message'])): ?>
                         <div class="bg-green-50 p-4 border-l-4 border-green-500">
                             <div class="flex items-center">
@@ -158,16 +178,10 @@ try {
 
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Date</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-                                </tr>
-                            </thead>
+                            <?php 
+                            $columns = ['UAR REF NO.', 'Requestor', 'Business Unit', 'Department', 'Review Date', 'Action'];
+                            renderTableHeader($columns);
+                            ?>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($reviewed_requests)): ?>
                                     <?php foreach ($reviewed_requests as $index => $request): ?>
@@ -220,5 +234,5 @@ try {
         }
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

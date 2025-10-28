@@ -195,6 +195,22 @@ try {
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
+        const currentRequestId = <?php echo $requestId ? intval($requestId) : 'null'; ?>;
+        <?php
+            $superiorNotes = $request['superior_notes'] ?? $request['superior_review_notes'] ?? null;
+            $helpDeskNotes = $request['help_desk_notes'] ?? null;
+            $technicalNotes = $request['technical_notes'] ?? null;
+            $processOwnerNotes = $request['process_owner_notes'] ?? null;
+            $adminNotes = $request['admin_notes'] ?? null;
+
+            $initialHistory = [];
+            if (!empty($superiorNotes)) { $initialHistory[] = ['role' => 'Superior', 'notes' => $superiorNotes]; }
+            if (!empty($helpDeskNotes)) { $initialHistory[] = ['role' => 'Help Desk', 'notes' => $helpDeskNotes]; }
+            if (!empty($technicalNotes)) { $initialHistory[] = ['role' => 'Technical Support', 'notes' => $technicalNotes]; }
+            if (!empty($processOwnerNotes)) { $initialHistory[] = ['role' => 'Process Owner', 'notes' => $processOwnerNotes]; }
+            if (!empty($adminNotes)) { $initialHistory[] = ['role' => 'Admin', 'notes' => $adminNotes]; }
+        ?>
+        const reviewHistory = <?php echo json_encode($initialHistory); ?>;
         tailwind.config = {
             theme: {
                 extend: {
@@ -268,14 +284,8 @@ try {
                             <i class='bx bx-arrow-back mr-2'></i> Back to Requests
                         </a>
                         <?php if ($request['status'] === 'pending_process_owner'): ?>
-                            <button onclick="scrollToReviewSection()" class="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
-                                <i class='bx bx-edit mr-2'></i> Add Comments
-                            </button>
-                            <button onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                <i class='bx bx-x-circle mr-2'></i> Decline
-                            </button>
-                            <button onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                <i class='bx bx-check-circle mr-2'></i> Approve
+                            <button id="openApprovalModalBtn" onclick="showApprovalModal()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                                <i class='bx bx-check-circle mr-2'></i> Review & Approve
                             </button>
                         <?php endif; ?>
                     <?php endif; ?>
@@ -480,71 +490,48 @@ try {
                 </div>
             </div>
 
-            <!-- Superior's Comments -->
-            <?php if (!empty($request['superior_notes'])): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                        Superior's Comments
-                    </h3>
-                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?>
+            <?php if ($fromHistory): ?>
+                <!-- Superior's Comments (history view only) -->
+                <?php if (!empty($request['superior_notes'])): ?>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                            Superior's Comments
+                        </h3>
+                        <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                            <?php echo nl2br(htmlspecialchars($request['superior_notes'])); ?>
+                        </div>
                     </div>
-                </div>
+                <?php endif; ?>
+
+                <!-- Help Desk Comments (history view only) -->
+                <?php if (!empty($request['help_desk_notes'])): ?>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                            Help Desk Comments
+                        </h3>
+                        <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                            <?php echo nl2br(htmlspecialchars($request['help_desk_notes'])); ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Technical Comments (history view only) -->
+                <?php if (!empty($request['technical_notes'])): ?>
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
+                            Technical Support Comments
+                        </h3>
+                        <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
+                            <?php echo nl2br(htmlspecialchars($request['technical_notes'])); ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
 
-            <!-- Help Desk Comments -->
-            <?php if (!empty($request['help_desk_notes'])): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                        Help Desk Comments
-                    </h3>
-                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['help_desk_notes'])); ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <!-- Technical Comments -->
-            <?php if (!empty($request['technical_notes'])): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800" data-aos-delay="350">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
-                        Technical Support Comments
-                    </h3>
-                    <div class="bg-gray-50 p-4 rounded-lg text-gray-700">
-                        <?php echo nl2br(htmlspecialchars($request['technical_notes'])); ?>
-                    </div>
-                </div>
-            <?php endif; ?>
-
-            <!-- Actions -->
-            <?php if (!$fromHistory && $request['status'] === 'pending_process_owner'): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos="fade-up" data-aos-duration="800">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-check-circle text-primary-500 text-xl mr-2'></i>
-                        Process Owner Review
-                    </h3>
-                    <div class="p-4">
-                        <form id="reviewForm">
-                            <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
-                            <div class="mb-4">
-                                <label for="review_notes" class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
-                                <textarea id="review_notes" name="review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
-                            </div>
-                            <div class="flex justify-end space-x-4">
-                                <button type="button" onclick="handleRequest('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                    <i class='bx bx-x-circle mr-2'></i> Decline
-                                </button>
-                                <button type="button" onclick="handleRequest('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Approve
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            <?php endif; ?>
+            <!-- Actions moved to modal -->
         </div>
     </div>
 
@@ -556,6 +543,8 @@ try {
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize AOS animation library
             AOS.init();
+            // Pre-render history if any
+            renderReviewHistory();
         });
 
         function scrollToReviewSection() {
@@ -570,28 +559,41 @@ try {
             }
         }
 
-        function handleRequest(action) {
-            const notes = document.getElementById('review_notes').value;
+        // --- Modal implementation ---
+        function showApprovalModal() {
+            const modal = document.getElementById('approvalModal');
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.style.display = 'block';
+            setTimeout(() => { const ta = document.getElementById('modal_review_notes'); if (ta) ta.focus(); }, 100);
+            // Fetch latest details to render history like in help desk
+            if (currentRequestId) {
+                fetch(`../admin/get_request_details.php?id=${currentRequestId}`)
+                    .then(r => r.json())
+                    .then(resp => { if (resp && resp.success && resp.data) populateFromApi(resp.data); })
+                    .catch(() => {});
+            }
+        }
+
+        function hideApprovalModal() {
+            const modal = document.getElementById('approvalModal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+            const ta = document.getElementById('modal_review_notes');
+            if (ta) ta.value = '';
+        }
+
+        function handleApproval(action) {
+            const notes = (document.getElementById('modal_review_notes') || {}).value || '';
             const requestId = <?php echo $requestId ? $requestId : 'null'; ?>;
 
             if (!requestId) {
-                Swal.fire({
-                    title: 'Error',
-                    text: 'Cannot process request from history view.',
-                    icon: 'error',
-                    confirmButtonColor: '#0ea5e9'
-                });
+                Swal.fire({ title: 'Error', text: 'Cannot process request from history view.', icon: 'error', confirmButtonColor: '#0ea5e9' });
                 return;
             }
-
-            if (!notes) {
-                Swal.fire({
-                    title: 'Review Notes Required',
-                    text: 'Please provide review notes before submitting your decision.',
-                    icon: 'warning',
-                    confirmButtonColor: '#0ea5e9'
-                });
-                scrollToReviewSection();
+            if (!notes.trim()) {
+                Swal.fire({ title: 'Review Notes Required', text: 'Please provide review notes before submitting your decision.', icon: 'warning', confirmButtonColor: '#0ea5e9' });
                 return;
             }
 
@@ -606,57 +608,134 @@ try {
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Show loading state
-                    Swal.fire({
-                        title: 'Processing...',
-                        html: 'Please wait while we process your request.',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+                    hideApprovalModal();
+                    Swal.fire({ title: 'Processing...', html: 'Please wait while we process your request.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
 
-                    // Submit the form via AJAX
                     fetch('../admin/process_request.php', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/x-www-form-urlencoded',
-                            },
-                            body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire({
-                                    title: 'Success!',
-                                    text: data.message,
-                                    icon: 'success',
-                                    confirmButtonColor: '#0ea5e9'
-                                }).then(() => {
-                                    window.location.href = 'requests.php';
-                                });
-                            } else {
-                                Swal.fire({
-                                    title: 'Error',
-                                    text: data.message || 'An error occurred while processing your request.',
-                                    icon: 'error',
-                                    confirmButtonColor: '#0ea5e9'
-                                });
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            Swal.fire({
-                                title: 'Error',
-                                text: 'An error occurred while processing your request.',
-                                icon: 'error',
-                                confirmButtonColor: '#0ea5e9'
-                            });
-                        });
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `request_id=${requestId}&action=${action}&review_notes=${encodeURIComponent(notes)}`
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ title: 'Success!', text: data.message, icon: 'success', confirmButtonColor: '#0ea5e9' })
+                                .then(() => { window.location.href = 'requests.php'; });
+                        } else {
+                            Swal.fire({ title: 'Error', text: data.message || 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' });
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire({ title: 'Error', text: 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' });
+                    });
                 }
             });
         }
-    </script>
-</body>
 
+        // --- Review history (same approach as help desk) ---
+        function renderReviewHistory() {
+            const wrap = document.getElementById('modalReviewHistory');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (!reviewHistory || reviewHistory.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'text-sm text-gray-500';
+                p.textContent = 'No prior reviews.';
+                wrap.appendChild(p);
+                return;
+            }
+            reviewHistory.forEach(item => {
+                const box = document.createElement('div');
+                box.className = 'bg-gray-50 rounded-lg p-3 max-h-36 overflow-auto';
+                const role = document.createElement('div');
+                role.className = 'text-xs font-semibold text-gray-700 mb-1';
+                role.textContent = item.role;
+                const note = document.createElement('div');
+                note.className = 'text-sm text-gray-700 whitespace-pre-wrap break-words';
+                note.textContent = item.notes;
+                box.appendChild(role);
+                box.appendChild(note);
+                wrap.appendChild(box);
+            });
+        }
+
+        function populateFromApi(data) {
+            const historyMap = new Map();
+            if (data.superior_review_notes && data.superior_review_notes.trim() !== '') historyMap.set('Superior', { role: 'Superior', notes: data.superior_review_notes });
+            if (data.help_desk_review_notes && data.help_desk_review_notes.trim() !== '') historyMap.set('Help Desk', { role: 'Help Desk', notes: data.help_desk_review_notes });
+            if (data.technical_review_notes && data.technical_review_notes.trim() !== '') historyMap.set('Technical Support', { role: 'Technical Support', notes: data.technical_review_notes });
+            if (data.process_owner_review_notes && data.process_owner_review_notes.trim() !== '') historyMap.set('Process Owner', { role: 'Process Owner', notes: data.process_owner_review_notes });
+            if (data.admin_review_notes && data.admin_review_notes.trim() !== '') historyMap.set('Admin', { role: 'Admin', notes: data.admin_review_notes });
+            if (Array.isArray(data.review_history)) {
+                data.review_history.forEach(r => { if (r && r.role && r.note) historyMap.set(r.role, { role: r.role, notes: r.note }); });
+            }
+
+            const merged = Array.from(historyMap.values());
+            const wrap = document.getElementById('modalReviewHistory');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+            if (merged.length === 0) {
+                const p = document.createElement('p');
+                p.className = 'text-sm text-gray-500';
+                p.textContent = 'No prior reviews.';
+                wrap.appendChild(p);
+                return;
+            }
+            merged.forEach(item => {
+                const box = document.createElement('div');
+                box.className = 'bg-gray-50 rounded-lg p-3 max-h-36 overflow-auto';
+                const role = document.createElement('div');
+                role.className = 'text-xs font-semibold text-gray-700 mb-1';
+                role.textContent = item.role;
+                const note = document.createElement('div');
+                note.className = 'text-sm text-gray-700 whitespace-pre-wrap break-words';
+                note.textContent = item.notes;
+                box.appendChild(role);
+                box.appendChild(note);
+                wrap.appendChild(box);
+            });
+        }
+    </script>
+
+    <!-- Approval Modal (always rendered) -->
+    <?php if (!$fromHistory && $request['status'] === 'pending_process_owner'): ?>
+    <div id="approvalModal" class="fixed inset-0 bg-gray-500 bg-opacity-75 hidden z-50">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="bg-white rounded-xl w-full max-w-lg mx-auto shadow-xl">
+                <div class="flex items-center px-6 py-4 border-b border-gray-200">
+                    <div class="flex-1 text-center">
+                        <h3 class="text-xl font-semibold text-gray-800 flex items-center justify-center">
+                            <i class='bx bx-check-circle text-green-600 text-2xl mr-2'></i>
+                            Process Owner Review
+                        </h3>
+                    </div>
+                    <button onclick="hideApprovalModal()" class="text-gray-500 hover:text-gray-700">
+                        <i class='bx bx-x text-2xl'></i>
+                    </button>
+                </div>
+                <div class="p-6 space-y-4">
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 mb-2">Review history</h4>
+                        <div id="modalReviewHistory" class="space-y-3"></div>
+                    </div>
+                    <div>
+                        <label for="modal_review_notes" class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
+                        <textarea id="modal_review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" onclick="hideApprovalModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
+                        <button type="button" onclick="handleApproval('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
+                            <i class='bx bx-x-circle mr-2'></i> Decline
+                        </button>
+                        <button type="button" onclick="handleApproval('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
+                            <i class='bx bx-check-circle mr-2'></i> Approve
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+</body>
+<?php include '../footer.php'; ?>
 </html>

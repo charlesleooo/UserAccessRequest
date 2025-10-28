@@ -215,14 +215,34 @@ try {
                         $statusText = '';
 
                         switch ($currentStatus) {
-                            case 'pending':
                             case 'pending_superior':
+                                $statusClass = 'status-pending';
+                                $statusText = 'Pending Superior Review';
+                                break;
                             case 'pending_technical':
+                            case 'pending_technical_support':
+                                $statusClass = 'status-pending';
+                                $statusText = 'Pending Technical Review';
+                                break;
                             case 'pending_process_owner':
+                                $statusClass = 'status-pending';
+                                $statusText = 'Pending Process Owner Review';
+                                break;
                             case 'pending_admin':
+                                $statusClass = 'status-pending';
+                                $statusText = 'Pending Admin Review';
+                                break;
                             case 'pending_testing':
                             case 'pending_testing_setup':
                             case 'pending_testing_review':
+                                $statusClass = 'status-pending';
+                                $statusText = 'Pending Testing';
+                                break;
+                            case 'pending_help_desk':
+                                $statusClass = 'status-pending';
+                                $statusText = 'Pending Help Desk Review';
+                                break;
+                            case 'pending':
                                 $statusClass = 'status-pending';
                                 $statusText = 'Pending';
                                 break;
@@ -240,7 +260,7 @@ try {
                                 break;
                             default:
                                 $statusClass = 'status-pending';
-                                $statusText = ucfirst($currentStatus);
+                                $statusText = ucfirst(str_replace('_', ' ', $currentStatus));
                         }
                         ?>
                         <span class="status-badge <?php echo $statusClass; ?>">
@@ -920,5 +940,5 @@ try {
         }
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

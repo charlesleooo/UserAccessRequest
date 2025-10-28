@@ -135,7 +135,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                     <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px;'>
                         <h2 style='color: #2563eb; text-align: center;'>Admin Portal Access</h2>
                         <p>Hello <strong>{$user['employee_name']}</strong>,</p>
-                        <p>Your One Time Password (OTP) for admin login is:</p>
+                        <p>Your One Time Password (OTP) for login is:</p>
                         <div style='text-align: center; margin: 30px 0;'>
                             <span style='font-size: 32px; font-weight: bold; color: #2563eb; background: #f3f4f6; padding: 15px 30px; border-radius: 8px; letter-spacing: 5px;'>{$otp}</span>
                         </div>
@@ -261,7 +261,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
+    <title>Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -752,5 +752,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         }
     </script>
 </body>
-
 </html>

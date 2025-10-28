@@ -65,7 +65,7 @@ try {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Technical Support Dashboard - UAR System</title>
+    <title>Dashboard</title>
 
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -106,7 +106,7 @@ try {
             <!-- Header -->
             <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
                 <div class="px-8 py-4">
-                    <h1 class="text-2xl font-bold text-white">Technical Support Dashboard</h1>
+                    <h1 class="text-2xl font-bold text-white">Dashboard</h1>
                 </div>
             </div>
 
@@ -231,5 +231,5 @@ try {
         }
     </script>
 </body>
-
+<?php include '../footer.php'; ?>
 </html>

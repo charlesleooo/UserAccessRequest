@@ -323,7 +323,7 @@ try {
                 </div>
 
                 <!-- Request Details -->
-                <div class="flex items-center justify-between p-4 mb-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-lg shadow-md border-b-4 border-blue-950">
+                <div class="flex items-center gap-4 p-4 mb-6 bg-gradient-to-r from-blue-700 to-blue-900 rounded-lg shadow-md border-b-4 border-blue-950">
                     <div class="flex items-center">
                         <svg class="w-5 h-5 text-white mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
@@ -331,56 +331,34 @@ try {
                         </svg>
                         <h3 class="text-lg font-semibold text-white">Request Details</h3>
                     </div>
-                    <div class="h-6 w-px bg-white opacity-30"></div>
-                </div>
-
-                <!-- Access Type Selector - Flowbite Radio Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                    <label class="relative flex items-center p-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-md transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 has-[:checked]:bg-blue-50">
+                    
+                    <!-- Access Type Selector - Compact inline buttons -->
+                    <div class="flex gap-2 items-center">
+                    <label class="relative flex items-center px-3 py-1.5 bg-white border-2 border-gray-200 rounded cursor-pointer hover:border-blue-500 transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-1 has-[:checked]:ring-blue-300 has-[:checked]:bg-blue-50">
                         <input type="radio" name="access_type" value="individual" checked class="sr-only peer">
-                        <div class="flex items-center w-full">
-                            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 peer-checked:bg-blue-600 peer-checked:text-white mr-3">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">Individual Access</p>
-                                <p class="text-xs text-gray-500">Single user request</p>
-                            </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-600 peer-checked:text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-xs font-semibold text-gray-900">Individual</span>
                         </div>
                     </label>
-                    <label class="relative flex items-center p-4 bg-white border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-md transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-2 has-[:checked]:ring-blue-200 has-[:checked]:bg-blue-50">
+                    <label class="relative flex items-center px-3 py-1.5 bg-white border-2 border-gray-200 rounded cursor-pointer hover:border-blue-500 transition-all has-[:checked]:border-blue-600 has-[:checked]:ring-1 has-[:checked]:ring-blue-300 has-[:checked]:bg-blue-50">
                         <input type="radio" name="access_type" value="group" class="sr-only peer">
-                        <div class="flex items-center w-full">
-                            <div class="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 peer-checked:bg-blue-600 peer-checked:text-white mr-3">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">Group Access</p>
-                                <p class="text-xs text-gray-500">Multiple users request</p>
-                            </div>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-blue-600 peer-checked:text-blue-700" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+                            </svg>
+                            <span class="text-xs font-semibold text-gray-900">Group</span>
                         </div>
                     </label>
+                    </div>
                 </div>
 
                 <!-- Individual Access -->
                 <div id="individualAccess" class="mb-0">
-                    <h3 class="mb-4 text-blue-700 text-base font-semibold flex items-center">
-                        <span class="bg-blue-100 text-blue-700 rounded-full w-6 h-6 flex items-center justify-center mr-2 text-sm">I</span>
-                        For Individual Access
-                    </h3>
-                    <!-- Flowbite Alert -->
-                    <div class="flex items-center p-4 mb-5 text-sm text-blue-800 rounded-lg bg-blue-50 border border-blue-200" role="alert">
-                        <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
-                        </svg>
-                        <span class="sr-only">Info</span>
-                        <div>
-                            <span class="font-medium">Information:</span> Add additional access requests for the same user below.
-                        </div>
+                    <div class="flex items-center gap-4 mb-5">
+                
                     </div>
                     <!-- Flowbite Button -->
                     <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-5 inline-flex items-center transition-all shadow-sm hover:shadow-md" onclick="addRow('individualTable')">
@@ -459,20 +437,8 @@ try {
 
                 <!-- Group Access -->
                 <div id="groupAccess" class="mb-0 hidden">
-                    <h3 class="mb-4 text-blue-700 text-base font-semibold flex items-center">
-                        <span class="bg-blue-100 text-blue-700 rounded-full w-7 h-7 flex items-center justify-center mr-2 text-sm">II</span>
-                        For Group Access
-                    </h3>
-                    <!-- Flowbite Alert -->
-                    <div class="flex items-center p-4 mb-5 text-sm text-blue-800 rounded-lg bg-blue-50 border border-blue-200" role="alert">
-                        <svg class="flex-shrink-0 inline w-4 h-4 mr-3" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M10 .5a9.5 9.5 0 1 0 9.5 9.5A9.51 9.51 0 0 0 10 .5ZM9.5 4a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM12 15H8a1 1 0 0 1 0-2h1v-3H8a1 1 0 0 1 0-2h2a1 1 0 0 1 1 1v4h1a1 1 0 0 1 0 2Z"/>
-                        </svg>
-                        <span class="sr-only">Info</span>
-                        <div>
-                            <span class="font-medium">Information:</span> Add group access requests below. For multiple applications, add additional rows.
+                    <div class="flex items-center gap-4 mb-5">
                         </div>
-                    </div>
                     <!-- Flowbite Button -->
                     <button type="button" class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mb-5 inline-flex items-center transition-all shadow-sm hover:shadow-md" onclick="addRow('groupTable')">
                         <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -1447,16 +1413,24 @@ try {
             // Store the current access type selection
             const currentAccessType = $('input[name="access_type"]:checked').val();
 
-            // Reset all form elements except radio buttons
-            this.querySelectorAll('input:not([type="radio"]), select, textarea').forEach(element => {
+            // Get the original values of requestor info fields that should never be cleared
+            const originalName = $('input[name="name"]').val();
+            const originalDate = $('input[name="date"]').val();
+            const originalBusinessUnit = $('input[name="business_unit"]').val();
+            const originalDepartment = $('input[name="department"]').val();
+
+            // Reset all form elements except radio buttons and readonly fields
+            this.querySelectorAll('input:not([type="radio"]):not([readonly]), select:not([readonly]), textarea:not([readonly])').forEach(element => {
                 if (element.type === 'text' || element.type === 'date' || element.tagName === 'SELECT' || element.tagName === 'TEXTAREA') {
                     element.value = '';
                 }
             });
 
-            // Reset business unit and department
-            $('#business_unit').val('').trigger('change');
-            $('#department').val('').prop('disabled', true);
+            // Restore the requestor information fields to their original values
+            $('input[name="name"]').val(originalName);
+            $('input[name="date"]').val(originalDate);
+            $('input[name="business_unit"]').val(originalBusinessUnit);
+            $('input[name="department"]').val(originalDepartment);
 
             // Reset all date fields to disabled state
             $('.start-date, .end-date').prop('disabled', true);
@@ -1547,7 +1521,7 @@ try {
     <!-- Flowbite JS -->
     <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
     
-    <?php include 'footer.php'; ?>
+    <?php include '../footer.php'; ?>
 
 </body>
 

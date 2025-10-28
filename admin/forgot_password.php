@@ -8,6 +8,30 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Check if database connection is available
+if (!isset($pdo) || $pdo === null) {
+    error_log("Database connection not available in forgot_password.php");
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Database connection failed. Please try again later.']);
+        exit;
+    } else {
+        die("Database connection failed. Please try again later.");
+    }
+}
+
+// Check if PHPMailer is available
+if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
+    error_log("PHPMailer class not found in forgot_password.php");
+    if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Email service not available. Please contact administrator.']);
+        exit;
+    } else {
+        die("Email service not available. Please contact administrator.");
+    }
+}
+
 // Handle AJAX requests
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
     header('Content-Type: application/json');
@@ -18,18 +42,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
     error_log("Admin password reset attempt for: " . $employee_email);
 
     // Check if email exists with admin privileges
-    $stmt = $pdo->prepare("SELECT * FROM employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
-    $stmt->execute([$employee_email]);
-    $user = $stmt->fetch();
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM uar.employees WHERE employee_email = ? AND role IN ('admin', 'superior', 'technical_support', 'process_owner')");
+        $stmt->execute([$employee_email]);
+        $user = $stmt->fetch();
 
-    if (!$user) {
-        echo json_encode(['status' => 'error', 'message' => 'No admin account found with that email address']);
+        if (!$user) {
+            echo json_encode(['status' => 'error', 'message' => 'No admin account found with that email address']);
+            exit;
+        }
+    } catch (PDOException $e) {
+        error_log("Database query error: " . $e->getMessage());
+        echo json_encode(['status' => 'error', 'message' => 'Database error occurred. Please try again later.']);
         exit;
     }
 
     // Generate a unique token
     $token = bin2hex(random_bytes(16)); // 32 characters
-    $expires = date('Y-m-d H:i:s', strtotime('+24 hours'));
+    $expires = date('Y-m-d H:i:s', strtotime('+10 minutes'));
 
     error_log("==== ADMIN PASSWORD RESET REQUESTED ====");
     error_log("Admin Email: " . $employee_email);
@@ -38,11 +68,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
 
     try {
         // Delete any existing tokens for this email
-        $stmt = $pdo->prepare("DELETE FROM password_resets WHERE employee_email = ?");
+        $stmt = $pdo->prepare("DELETE FROM uar.password_resets WHERE employee_email = ?");
         $stmt->execute([$employee_email]);
 
         // Insert new token
-        $stmt = $pdo->prepare("INSERT INTO password_resets (employee_email, token, expires_at) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO uar.password_resets (employee_email, token, expires_at) VALUES (?, ?, ?)");
         $stmt->execute([$employee_email, $token, $expires]);
 
         // Create reset URL with proper encoding and path construction
@@ -59,15 +89,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         try {
             // Server settings
             $mail->isSMTP();
-            $mail->Host = 'smtp.gmail.com';
+            $mail->Host = SMTP_HOST;
             $mail->SMTPAuth = true;
-            $mail->Username = 'charlesondota@gmail.com';  // Your email
-            $mail->Password = 'crpf bbcb vodv xbjk';     // Your app password
+            $mail->Username = SMTP_USERNAME;
+            $mail->Password = SMTP_PASSWORD;
             $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
+            $mail->Port = SMTP_PORT;
+            $mail->SMTPDebug = 0; // Set to 2 for debugging
+            $mail->Debugoutput = 'error_log';
+            
+            // Set timeout for SMTP operations
+            $mail->Timeout = 30;
+            $mail->SMTPKeepAlive = true;
 
             // Recipients
-            $mail->setFrom('charlesondota@gmail.com', 'Alsons Agribusiness');
+            $mail->setFrom(SMTP_FROM_EMAIL, SMTP_FROM_NAME);
             $mail->addAddress($employee_email, $user['employee_name']);
 
             // Content
@@ -85,7 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
                     </div>
                     <p style='margin-bottom: 15px;'>If the button above doesn't work, copy and paste this link into your browser:</p>
                     <p style='background-color: #f3f4f6; padding: 10px; word-break: break-all; margin-bottom: 20px; font-size: 14px;'>{$resetUrl}</p>
-                    <p style='margin-bottom: 10px;'><strong>Important:</strong> This link will expire in 24 hours.</p>
+                    <p style='margin-bottom: 10px;'><strong>Important:</strong> This link will expire in 10 minutes.</p>
                     <p style='color: #6b7280; font-size: 14px;'>If you did not request a password reset, please ignore this email.</p>
                     <hr style='margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;'>
                     <p style='color: #6b7280; font-size: 14px; margin-bottom: 0;'>Regards,<br>Alsons Agribusiness</p>
@@ -102,7 +138,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
 
                 {$resetUrl}
 
-                This link will expire in 24 hours.
+                This link will expire in 10 minutes.
 
                 If you did not request a password reset, please ignore this email.
 
@@ -114,8 +150,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
             error_log("Reset email sent successfully to {$employee_email}");
             echo json_encode(['status' => 'success', 'message' => 'Password reset link has been sent to your email']);
         } catch (Exception $e) {
-            error_log("Failed to send reset email: " . $mail->ErrorInfo);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to send reset email. Please try again later.']);
+            error_log("Failed to send reset email to {$employee_email}: " . $e->getMessage());
+            error_log("PHPMailer Error Info: " . $mail->ErrorInfo);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to send reset email. Please check your email settings or try again later.']);
         }
     } catch (PDOException $e) {
         error_log("Database error: " . $e->getMessage());
@@ -243,5 +280,4 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_SERVER['HTTP_X_REQUESTED_WIT
         }
     </script>
 </body>
-
 </html>
