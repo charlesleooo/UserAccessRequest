@@ -13,15 +13,35 @@ function formatStatus($status)
     return ucwords(str_replace('_', ' ', $status));
 }
 
+// Resolve current admin_users.id for scoping queries
+$admin_users_id = null;
+try {
+    $stmt = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
+    $stmt->execute([
+        'username' => $_SESSION['admin_username'] ?? '',
+        'employee_id' => $_SESSION['admin_id'] ?? ''
+    ]);
+    $admin_users_id = $stmt->fetchColumn();
+} catch (PDOException $e) {
+    $admin_users_id = null;
+}
+
 // Get quick stats for the dashboard
 try {
-    // Get total requests
-    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests");
-    $totalRequests = $stmt->fetchColumn();
+    // Count of requests relevant to this admin (pending_admin and assigned to me or unassigned)
+    $pendingWhere = "uar.enum2str\$access_requests\$status(ar.status) = 'pending_admin'";
+    $assignmentFilter = $admin_users_id ? " AND (ar.admin_id IS NULL OR ar.admin_id = :admin_user_id)" : "";
 
-    // Get approved requests
+    // Total relevant requests (show only those I can act on)
+    $sql = "SELECT COUNT(*) FROM uar.access_requests ar WHERE $pendingWhere" . $assignmentFilter;
+    $stmt = $pdo->prepare($sql);
+    if ($admin_users_id) { $stmt->bindValue(':admin_user_id', $admin_users_id, PDO::PARAM_INT); }
+    $stmt->execute();
+    $totalRequests = (int)$stmt->fetchColumn();
+
+    // Approved requests overall (for rate cards)
     $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE uar.enum2str\$access_requests\$status(status) = 'approved'");
-    $approvedRequests = $stmt->fetchColumn();
+    $approvedRequests = (int)$stmt->fetchColumn();
 
     // Calculate approval rate
     $approvalRate = $totalRequests > 0 ? round(($approvedRequests / $totalRequests) * 100, 1) : 0;
@@ -34,23 +54,26 @@ try {
         'decline_rate' => $declineRate
     ];
 
-    // Get pending requests count
-    $stmt = $pdo->query("SELECT COUNT(*) FROM uar.access_requests WHERE uar.enum2str\$access_requests\$status(status) = 'pending'");
-    $pendingRequests = $stmt->fetchColumn();
+    // Pending requests count (scoped)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.access_requests ar WHERE $pendingWhere" . $assignmentFilter);
+    if ($admin_users_id) { $stmt->bindValue(':admin_user_id', $admin_users_id, PDO::PARAM_INT); }
+    $stmt->execute();
+    $pendingRequests = (int)$stmt->fetchColumn();
 
-    // Get today's approvals count (action: 1=approved, 2=rejected)
+    // Today's approvals/rejections (by me)
     $todayDate = date('Y-m-d');
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 1 AND CAST(created_at AS DATE) = :today");
-    $stmt->execute([':today' => $todayDate]);
-    $approvedToday = $stmt->fetchColumn();
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 1 AND CAST(created_at AS DATE) = :today" . ($admin_users_id ? " AND admin_id = :admin_user_id" : ""));
+    $params = [':today' => $todayDate];
+    if ($admin_users_id) { $params[':admin_user_id'] = $admin_users_id; }
+    $stmt->execute($params);
+    $approvedToday = (int)$stmt->fetchColumn();
 
-    // Get today's rejections count
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 2 AND CAST(created_at AS DATE) = :today");
-    $stmt->execute([':today' => $todayDate]);
-    $rejectedToday = $stmt->fetchColumn();
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM uar.approval_history WHERE action = 2 AND CAST(created_at AS DATE) = :today" . ($admin_users_id ? " AND admin_id = :admin_user_id" : ""));
+    $stmt->execute($params);
+    $rejectedToday = (int)$stmt->fetchColumn();
 
-    // Get recent requests with access_type from child tables
-    $stmt = $pdo->query("
+    // Recent requests relevant to me (pending_admin only)
+    $sqlRecent = "
         SELECT TOP 5 
             ar.access_request_number,
             ar.requestor_name,
@@ -61,15 +84,21 @@ try {
         FROM uar.access_requests ar
         LEFT JOIN uar.individual_requests ir ON ar.access_request_number = ir.access_request_number
         LEFT JOIN uar.group_requests gr ON ar.access_request_number = gr.access_request_number
-        ORDER BY ar.submission_date DESC
-    ");
+        WHERE $pendingWhere" . $assignmentFilter . "
+        ORDER BY ar.submission_date DESC";
+    $stmt = $pdo->prepare($sqlRecent);
+    if ($admin_users_id) { $stmt->bindValue(':admin_user_id', $admin_users_id, PDO::PARAM_INT); }
+    $stmt->execute();
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Get recent approval history
-    $stmt = $pdo->query("SELECT TOP 5 h.*, a.username as admin_username 
-                        FROM uar.approval_history h 
-                        LEFT JOIN uar.admin_users a ON h.admin_id = a.id 
-                        ORDER BY h.created_at DESC");
+    // Recent approval history by me
+    $stmt = $pdo->prepare("SELECT TOP 5 h.*, a.username as admin_username 
+                           FROM uar.approval_history h 
+                           LEFT JOIN uar.admin_users a ON h.admin_id = a.id 
+                           " . ($admin_users_id ? "WHERE h.admin_id = :admin_user_id " : "") .
+                           "ORDER BY h.created_at DESC");
+    if ($admin_users_id) { $stmt->bindValue(':admin_user_id', $admin_users_id, PDO::PARAM_INT); }
+    $stmt->execute();
     $recentApprovals = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     // Handle database errors gracefully
@@ -86,7 +115,6 @@ try {
     $recentRequests = [];
     $recentApprovals = [];
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -254,7 +282,7 @@ try {
                                         </span>
                                     <?php endif; ?>
                                 </div>
-                                <p class="text-gray-600 text-sm">Manage pending access requests</p>
+                                <p class="text-gray-600 text-sm">Manage pending admin reviews assigned to you</p>
                             </div>
                             <div class="text-primary bg-primary-50 p-3 rounded-lg group-hover:scale-110 transition-transform">
                                 <i class='bx bxs-message-square-detail text-2xl'></i>
@@ -328,54 +356,53 @@ try {
                 <h3 class="text-lg font-semibold text-gray-800 mb-6">Quick Statistics</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     <!-- Pending Requests -->
-                    <div class="bg-white rounded-xl border border-gray-200 p-6 card-hover">
+                    <div class="rounded-xl p-6 card-hover bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md">
                         <div class="flex items-center">
-                            <div class="bg-yellow-50 p-3 rounded-lg flex-shrink-0">
-                                <i class='bx bx-time text-2xl text-yellow-500'></i>
+                            <div class="p-3 rounded-lg flex-shrink-0 bg-white/20">
+                                <i class='bx bx-time text-2xl'></i>
                             </div>
                             <div class="ml-4 min-w-0">
-                                <p class="text-sm text-gray-500 truncate">Pending Requests</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $pendingRequests; ?></h4>
+                                <p class="text-sm/none opacity-90 truncate">Pending Requests</p>
+                                <h4 class="text-3xl font-extrabold tracking-tight"><?php echo $pendingRequests; ?></h4>
                             </div>
-
                         </div>
                     </div>
 
                     <!-- Approved Today -->
-                    <div class="bg-white rounded-xl border border-gray-200 p-6 card-hover">
+                    <div class="rounded-xl p-6 card-hover bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-md">
                         <div class="flex items-center">
-                            <div class="bg-green-50 p-3 rounded-lg flex-shrink-0">
-                                <i class='bx bx-check-circle text-2xl text-green-500'></i>
+                            <div class="p-3 rounded-lg flex-shrink-0 bg-white/20">
+                                <i class='bx bx-check-circle text-2xl'></i>
                             </div>
                             <div class="ml-4 min-w-0">
-                                <p class="text-sm text-gray-500 truncate">Approved Today</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $approvedToday; ?></h4>
+                                <p class="text-sm/none opacity-90 truncate">Approved Today</p>
+                                <h4 class="text-3xl font-extrabold tracking-tight"><?php echo $approvedToday; ?></h4>
                             </div>
                         </div>
                     </div>
 
                     <!-- Rejected Today -->
-                    <div class="bg-white rounded-xl border border-gray-200 p-6 card-hover">
+                    <div class="rounded-xl p-6 card-hover bg-gradient-to-r from-rose-500 to-red-600 text-white shadow-md">
                         <div class="flex items-center">
-                            <div class="bg-red-50 p-3 rounded-lg flex-shrink-0">
-                                <i class='bx bx-x-circle text-2xl text-red-500'></i>
+                            <div class="p-3 rounded-lg flex-shrink-0 bg-white/20">
+                                <i class='bx bx-x-circle text-2xl'></i>
                             </div>
                             <div class="ml-4 min-w-0">
-                                <p class="text-sm text-gray-500 truncate">Rejected Today</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo $rejectedToday; ?></h4>
+                                <p class="text-sm/none opacity-90 truncate">Rejected Today</p>
+                                <h4 class="text-3xl font-extrabold tracking-tight"><?php echo $rejectedToday; ?></h4>
                             </div>
                         </div>
                     </div>
 
                     <!-- Total Requests -->
-                    <div class="bg-white rounded-xl border border-gray-200 p-6 card-hover">
+                    <div class="rounded-xl p-6 card-hover bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md">
                         <div class="flex items-center">
-                            <div class="bg-blue-50 p-3 rounded-lg flex-shrink-0">
-                                <i class='bx bx-folder text-2xl text-blue-500'></i>
+                            <div class="p-3 rounded-lg flex-shrink-0 bg-white/20">
+                                <i class='bx bx-folder text-2xl'></i>
                             </div>
                             <div class="ml-4 min-w-0">
-                                <p class="text-sm text-gray-500 truncate">Total Requests</p>
-                                <h4 class="text-2xl font-bold text-gray-900"><?php echo number_format($statsData['total']); ?></h4>
+                                <p class="text-sm/none opacity-90 truncate">Total Requests</p>
+                                <h4 class="text-3xl font-extrabold tracking-tight"><?php echo number_format($statsData['total']); ?></h4>
                             </div>
                         </div>
                     </div>

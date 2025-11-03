@@ -109,34 +109,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
         // If approved, move to approval history
         if ($next_status === 'approved') {
             // Get the current request data for history
+            // Pull access_type from child tables to ensure only full/read/admin are stored
             $requestDataQuery = $pdo->prepare("
                 SELECT 
-                    access_request_number,
-                    requestor_name, 
-                    employee_id, 
-                    employee_email as email, 
-                    department, 
-                    business_unit, 
-                    'System Application' as access_type, 
-                    system_type,
+                    ar.access_request_number,
+                    ar.requestor_name, 
+                    ar.employee_id, 
+                    ar.employee_email as email, 
+                    ar.department, 
+                    ar.business_unit, 
+                    (SELECT TOP 1 access_type FROM uar.individual_requests WHERE access_request_number = ar.access_request_number) AS access_type_ir,
+                    (SELECT TOP 1 access_type FROM uar.group_requests WHERE access_request_number = ar.access_request_number) AS access_type_gr,
+                    ar.system_type,
                     '' as justification, 
                     'permanent' as duration_type, 
                     NULL as start_date, 
                     NULL as end_date,
-                    superior_id, 
-                    superior_notes,
-                    help_desk_id,
-                    help_desk_notes, 
-                    process_owner_id,
-                    process_owner_notes, 
-                    technical_id,
-                    technical_notes,
-                    admin_id,
-                    testing_status
+                    ar.superior_id, 
+                    ar.superior_notes,
+                    ar.help_desk_id,
+                    ar.help_desk_notes, 
+                    ar.process_owner_id,
+                    ar.process_owner_notes, 
+                    ar.technical_id,
+                    ar.technical_notes,
+                    ar.admin_id,
+                    ar.testing_status
                 FROM 
-                    uar.access_requests 
+                    uar.access_requests ar
                 WHERE 
-                    id = :request_id
+                    ar.id = :request_id
             ");
 
             $requestDataQuery->execute(['request_id' => $request_id]);
@@ -216,6 +218,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                         )
                     ");
 
+                    // Prefer access type from individual_requests; if empty, use group_requests
+                    $resolvedAccessType = !empty($requestData['access_type_ir']) ? $requestData['access_type_ir'] : (!empty($requestData['access_type_gr']) ? $requestData['access_type_gr'] : null);
+
                     $historyParams = [
                         'access_request_number' => $requestData['access_request_number'],
                         'requestor_name' => $requestData['requestor_name'],
@@ -224,7 +229,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_id']) && isse
                         'contact_number' => $requestData['contact_number'] ?? 'Not provided',
                         'department' => $requestData['department'],
                         'business_unit' => $requestData['business_unit'],
-                        'access_type' => $requestData['access_type'],
+                        'access_type' => $resolvedAccessType,
                         'system_type' => $requestData['system_type'],
                         'justification' => $requestData['justification'],
                         'duration_type' => $requestData['duration_type'],

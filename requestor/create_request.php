@@ -179,6 +179,33 @@ try {
             transform: translateY(-1px);
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
+
+        /* Ensure SweetAlert is always on top and not clipped */
+        .swal2-container {
+            z-index: 100000 !important;
+        }
+
+        /* Force visible SweetAlert buttons (prevent transparent/white-on-white styles) */
+        .swal2-styled.swal2-confirm {
+            background-color: #0084FF !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+        .swal2-styled.swal2-confirm:hover,
+        .swal2-styled.swal2-confirm:focus {
+            background-color: #1d4ed8 !important;
+            color: #ffffff !important;
+        }
+        .swal2-styled.swal2-cancel {
+            background-color: #6B7280 !important;
+            color: #ffffff !important;
+            border: none !important;
+        }
+        .swal2-styled.swal2-cancel:hover,
+        .swal2-styled.swal2-cancel:focus {
+            background-color: #4b5563 !important;
+            color: #ffffff !important;
+        }
     </style>
     <script>
         tailwind.config = {
@@ -655,6 +682,8 @@ try {
                         },
                         confirmButtonText: 'Save & Close',
                         confirmButtonColor: '#0084FF',
+                            heightAuto: false,
+                            buttonsStyling: true,
                         showCancelButton: true,
                         cancelButtonText: 'Cancel',
                         cancelButtonColor: '#6B7280',
@@ -1355,6 +1384,7 @@ try {
                                               <p class="text-sm text-blue-800 font-medium">Request Number: <span class="font-bold">${requestNumber}</span></p>
                                           </div>
                         `,
+                            heightAuto: false,
                             confirmButtonColor: '#0084FF',
                             confirmButtonText: 'Close',
                             allowOutsideClick: false

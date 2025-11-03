@@ -13,7 +13,8 @@ if (
     !isset($_SESSION['requests_verified']) || !$_SESSION['requests_verified'] ||
     (time() - $_SESSION['requests_verified_time'] > 1800)
 ) { // Expire after 30 minutes
-    header('Location: requests_auth.php');
+    $returnUrl = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : 'requests.php';
+    header('Location: requests_auth.php?return=' . urlencode($returnUrl));
     exit();
 }
 
@@ -288,6 +289,11 @@ try {
                         <a href="review_history.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                             <i class='bx bx-arrow-back mr-2'></i> Back to Review History
                         </a>
+                        <?php if (!empty($request['access_request_number'])): ?>
+                        <a href="<?php echo 'tcpdf_print_record.php?access_request_number=' . urlencode($request['access_request_number']); ?>" target="_blank" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class='bx bx-printer mr-2'></i> Print
+                        </a>
+                        <?php endif; ?>
                     <?php else: ?>
                         <a href="requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                             <i class='bx bx-arrow-back mr-2'></i> Back to Requests

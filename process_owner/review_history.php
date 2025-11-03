@@ -113,6 +113,36 @@ try {
             <!-- Content -->
             <div class="p-8">
                 <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <!-- Filter Section -->
+                    <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class='bx bx-history text-2xl text-gray-600'></i>
+                            <h2 class="text-lg font-semibold text-gray-800">Request History</h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button onclick="filterRequests('all')" 
+                                    id="filter-all" 
+                                    class="filter-btn active px-4 py-2 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors">
+                                All
+                            </button>
+                            <button onclick="filterRequests('pending')" 
+                                    id="filter-pending" 
+                                    class="filter-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                                Pending
+                            </button>
+                            <button onclick="filterRequests('approved')" 
+                                    id="filter-approved" 
+                                    class="filter-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                                Approved
+                            </button>
+                            <button onclick="filterRequests('rejected')" 
+                                    id="filter-rejected" 
+                                    class="filter-btn px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">
+                                Rejected
+                            </button>
+                        </div>
+                    </div>
+
                     <?php if (isset($_SESSION['success_message'])): ?>
                         <div class="bg-green-50 p-4 border-l-4 border-green-500">
                             <div class="flex items-center">
@@ -145,7 +175,23 @@ try {
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($reviewed_requests)): ?>
                                     <?php foreach ($reviewed_requests as $index => $request): ?>
-                                        <tr class="hover:bg-gray-50 cursor-pointer"
+                                        <?php 
+                                        $actionFilter = strtolower($request['action']);
+                                        $statusFilter = strtolower($request['status'] ?? '');
+                                        $filterClass = '';
+                                        
+                                        if ($actionFilter === 'rejected' || $statusFilter === 'rejected') {
+                                            $filterClass = 'filter-rejected';
+                                        } elseif ($actionFilter === 'approved/forwarded' || $statusFilter === 'approved') {
+                                            $filterClass = 'filter-approved';
+                                        } elseif (strpos($statusFilter, 'pending') !== false) {
+                                            $filterClass = 'filter-pending';
+                                        } else {
+                                            $filterClass = 'filter-approved';
+                                        }
+                                        ?>
+                                        <tr class="request-row hover:bg-gray-50 cursor-pointer <?php echo $filterClass; ?>" 
+                                            data-filter="<?php echo $filterClass; ?>"
                                             onclick="window.location='view_request.php?access_request_number=<?php echo urlencode($request['access_request_number']); ?>&from_history=true'">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
@@ -191,6 +237,55 @@ try {
         </div>
     </div>
 
+    <script>
+        function filterRequests(filterType) {
+            // Remove active class from all filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active', 'bg-blue-100', 'text-blue-700');
+                btn.classList.add('text-gray-600');
+            });
+
+            // Add active class to clicked filter button
+            const clickedBtn = document.getElementById('filter-' + filterType);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active', 'bg-blue-100', 'text-blue-700');
+                clickedBtn.classList.remove('text-gray-600');
+            }
+
+            // Filter table rows
+            const rows = document.querySelectorAll('.request-row');
+            rows.forEach(row => {
+                if (filterType === 'all') {
+                    row.style.display = '';
+                } else {
+                    const rowFilter = row.getAttribute('data-filter');
+                    if (rowFilter === 'filter-' + filterType) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                }
+            });
+
+            // Show/hide empty state
+            const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+            const emptyRow = document.querySelector('tbody tr:not(.request-row)');
+            if (emptyRow && visibleRows.length === 0 && filterType !== 'all') {
+                if (!document.querySelector('.no-results-message')) {
+                    const tbody = document.querySelector('tbody');
+                    const newEmptyRow = document.createElement('tr');
+                    newEmptyRow.className = 'no-results-message';
+                    newEmptyRow.innerHTML = '<td colspan="7" class="px-6 py-12 text-center"><i class=\'bx bx-folder-open text-6xl text-gray-300\'></i><p class="mt-4 text-lg text-gray-500 font-medium">No ' + filterType + ' requests found</p></td>';
+                    tbody.appendChild(newEmptyRow);
+                }
+            } else if (emptyRow && visibleRows.length > 0) {
+                const noResultsMsg = document.querySelector('.no-results-message');
+                if (noResultsMsg) {
+                    noResultsMsg.remove();
+                }
+            }
+        }
+    </script>
 </body>
 <?php include '../footer.php'; ?>
 </html>

@@ -1094,17 +1094,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && isset($_
 
 try {
 
+    // Resolve current admin_users.id for scoping the queue
+    $admin_users_id = null;
+    try {
+        $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
+        $adminQuery->execute([
+            'username' => $_SESSION['admin_username'] ?? '',
+            'employee_id' => $_SESSION['admin_id'] ?? ''
+        ]);
+        $admin_users_id = $adminQuery->fetchColumn();
+    } catch (Exception $e) {
+        $admin_users_id = null;
+    }
+
     $sql = "SELECT r.*, a.username as reviewed_by_name 
 
             FROM uar.access_requests r 
 
             LEFT JOIN uar.admin_users a ON r.reviewed_by = a.id 
 
-            WHERE r.status != 'approved' 
+            WHERE r.status = 'pending_admin' " . ($admin_users_id ? "AND (r.admin_id IS NULL OR r.admin_id = :admin_user_id)" : "") . " 
 
             ORDER BY r.submission_date DESC";
 
     $stmt = $pdo->prepare($sql);
+    if ($admin_users_id) { $stmt->bindValue(':admin_user_id', $admin_users_id, PDO::PARAM_INT); }
 
     $stmt->execute();
 
