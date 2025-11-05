@@ -760,13 +760,21 @@ try {
                 let scrolled = (winScroll / height) * 100;
                 document.getElementById("progressBar").style.width = scrolled + "%";
             };
+            
+            // Initialize filter state based on URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const statusParam = urlParams.get('status');
+            if (statusParam && statusParam !== 'all') {
+                filterRequests(statusParam);
+            }
         });
 
         // Filter function to match admin design
         function filterRequests(status) {
             const buttons = document.querySelectorAll('.flex.gap-2 button, .flex.flex-wrap.gap-2 button');
             buttons.forEach(button => {
-                if (button.textContent.toLowerCase().trim() === status || (status === 'all' && button.textContent.trim() === 'All')) {
+                const buttonText = button.textContent.toLowerCase().trim();
+                if (buttonText === status || (status === 'all' && button.textContent.trim() === 'All')) {
                     button.classList.add('bg-blue-50', 'text-blue-700');
                     button.classList.remove('text-gray-600', 'bg-gray-50');
                 } else {
@@ -786,11 +794,20 @@ try {
                 if (!statusCell) return;
 
                 const rowStatus = statusCell.textContent.trim().toLowerCase();
-                if (status === 'all' || rowStatus === status) {
-                    row.style.display = '';
+                
+                // Handle filtering logic
+                let shouldShow = false;
+                if (status === 'all') {
+                    shouldShow = true;
+                } else if (status === 'pending') {
+                    // Show all pending statuses (pending, pending_superior, pending_technical, etc.)
+                    shouldShow = rowStatus.startsWith('pending');
                 } else {
-                    row.style.display = 'none';
+                    // Exact match for approved, rejected, cancelled
+                    shouldShow = rowStatus === status;
                 }
+                
+                row.style.display = shouldShow ? '' : 'none';
             });
         }
     </script>
