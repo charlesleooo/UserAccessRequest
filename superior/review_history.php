@@ -11,6 +11,12 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'superior') {
 $admin_id = $_SESSION['admin_id'];
 $admin_username = $_SESSION['admin_username'] ?? '';
 
+// Pagination parameters
+$recordsPerPage = 10;
+$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$currentPage = max(1, $currentPage); // Ensure page is at least 1
+$offset = ($currentPage - 1) * $recordsPerPage;
+
 try {
     // First, get the admin_users.id from the database (same logic as helpdesk)
     $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
@@ -21,8 +27,8 @@ try {
     $adminRecord = $adminQuery->fetch(PDO::FETCH_ASSOC);
     $admin_users_id = $adminRecord ? $adminRecord['id'] : $admin_id;
 
-    // Get requests reviewed by this superior from both active requests and approval history
-    $stmt = $pdo->prepare("
+    // Base query for getting requests reviewed by this superior
+    $baseQuery = "
         SELECT * FROM (
             SELECT 
                 ar.access_request_number,
@@ -72,9 +78,32 @@ try {
                 ah.superior_id = :superior_id2
         ) combined
         WHERE rn = 1
-        ORDER BY review_date DESC
-    ");
+    ";
 
+    // First, get total count for pagination
+    $countQuery = "SELECT COUNT(*) as total FROM ($baseQuery) as count_query";
+    $countStmt = $pdo->prepare($countQuery);
+    $countStmt->execute([
+        'superior_id1' => $admin_users_id,
+        'superior_id2' => $admin_users_id
+    ]);
+    $totalRecords = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    $totalPages = ceil($totalRecords / $recordsPerPage);
+    
+    // Ensure current page doesn't exceed total pages
+    if ($currentPage > $totalPages && $totalPages > 0) {
+        $currentPage = $totalPages;
+        $offset = ($currentPage - 1) * $recordsPerPage;
+    }
+    
+    // SQL Server requires literal integers for OFFSET and FETCH NEXT
+    $offset = (int)$offset;
+    $recordsPerPage = (int)$recordsPerPage;
+    
+    // Get requests reviewed by this superior with pagination
+    $query = $baseQuery . " ORDER BY review_date DESC OFFSET $offset ROWS FETCH NEXT $recordsPerPage ROWS ONLY";
+    
+    $stmt = $pdo->prepare($query);
     $stmt->execute([
         'superior_id1' => $admin_users_id,
         'superior_id2' => $admin_users_id
@@ -83,6 +112,9 @@ try {
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching review history: " . $e->getMessage();
     $reviewed_requests = [];
+    $totalRecords = 0;
+    $totalPages = 0;
+    $currentPage = 1;
 }
 ?>
 
@@ -268,6 +300,67 @@ try {
                             </tbody>
                         </table>
                     </div>
+                    
+                    <!-- Pagination Controls -->
+                    <?php if ($totalPages > 1): ?>
+                    <div class="bg-gray-50 px-4 md:px-6 py-4 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="text-sm text-gray-700">
+                            Showing <span class="font-medium"><?php echo count($reviewed_requests) > 0 ? $offset + 1 : 0; ?></span> to 
+                            <span class="font-medium"><?php echo min($offset + count($reviewed_requests), $totalRecords); ?></span> of 
+                            <span class="font-medium"><?php echo $totalRecords; ?></span> results
+                        </div>
+                        <div class="flex items-center flex-wrap justify-center gap-2">
+                            <?php
+                            // Build URL with current filters
+                            $queryParams = $_GET;
+                            ?>
+                            
+                            <!-- Previous Button -->
+                            <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => max(1, $currentPage - 1)])); ?>" 
+                               class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 <?php echo $currentPage <= 1 ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''; ?>">
+                                <i class='bx bx-chevron-left'></i> Previous
+                            </a>
+                            
+                            <!-- Page Numbers -->
+                            <div class="flex items-center space-x-1">
+                                <?php
+                                $startPage = max(1, $currentPage - 2);
+                                $endPage = min($totalPages, $currentPage + 2);
+                                
+                                // Show first page if not in range
+                                if ($startPage > 1): ?>
+                                    <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => 1])); ?>" 
+                                       class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">1</a>
+                                    <?php if ($startPage > 2): ?>
+                                        <span class="px-2 text-gray-500">...</span>
+                                    <?php endif; ?>
+                                <?php endif; ?>
+                                
+                                <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                    <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => $i])); ?>" 
+                                       class="px-3 py-2 text-sm font-medium rounded-lg <?php echo $i == $currentPage ? 'bg-blue-600 text-white' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'; ?>">
+                                        <?php echo $i; ?>
+                                    </a>
+                                <?php endfor; ?>
+                                
+                                <!-- Show last page if not in range -->
+                                <?php if ($endPage < $totalPages): ?>
+                                    <?php if ($endPage < $totalPages - 1): ?>
+                                        <span class="px-2 text-gray-500">...</span>
+                                    <?php endif; ?>
+                                    <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => $totalPages])); ?>" 
+                                       class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"><?php echo $totalPages; ?></a>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <!-- Next Button -->
+                            <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => min($totalPages, $currentPage + 1)])); ?>" 
+                               class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 <?php echo $currentPage >= $totalPages ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''; ?>">
+                                Next <i class='bx bx-chevron-right'></i>
+                            </a>
+                        </div>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

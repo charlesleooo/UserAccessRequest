@@ -111,6 +111,53 @@ try {
             exit();
         }
     }
+
+    // Build rejection details only (Approval Flow removed)
+    $approvalFlow = [];
+    $rejectionInfo = null;
+    $accessRequestNumber = $request['access_request_number'] ?? null;
+    if ($accessRequestNumber) {
+        // Always try to get live review dates and reviewer ids for consistent flow
+        $liveStmt = $pdo->prepare("SELECT TOP 1 superior_id, superior_review_date, superior_notes,
+                                          help_desk_id, help_desk_review_date, help_desk_notes,
+                                          technical_id, technical_review_date, technical_notes,
+                                          process_owner_id, process_owner_review_date, process_owner_notes,
+                                          admin_id, admin_review_date, admin_notes,
+                                          status
+                                   FROM uar.access_requests WHERE access_request_number = :arn");
+        $liveStmt->execute([':arn' => $accessRequestNumber]);
+        $live = $liveStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        // Determine current status for pending
+        $statusVal = $isPending ? strtolower($live['status'] ?? ($request['status'] ?? '')) : strtolower($request['action'] ?? '');
+
+        // Rejection details if rejected
+        if ($statusVal === 'rejected') {
+            try {
+                $rejStmt = $pdo->prepare("SELECT TOP 1 * FROM uar.approval_history WHERE access_request_number = :arn AND action = 'rejected' ORDER BY created_at DESC");
+                $rejStmt->execute([':arn' => $accessRequestNumber]);
+                if ($rej = $rejStmt->fetch(PDO::FETCH_ASSOC)) {
+                    $actorId = $rej['admin_id'] ?? $rej['technical_id'] ?? $rej['process_owner_id'] ?? $rej['help_desk_id'] ?? $rej['superior_id'] ?? null;
+                    $actor = null;
+                    if ($actorId) {
+                        $actorStmt = $pdo->prepare("SELECT e.employee_name, e.role FROM uar.admin_users a INNER JOIN uar.employees e ON a.username = e.employee_id WHERE a.id = :id");
+                        $actorStmt->execute([':id' => $actorId]);
+                        $actor = $actorStmt->fetch(PDO::FETCH_ASSOC);
+                    }
+                    $rejectionInfo = [
+                        'name' => $actor['employee_name'] ?? 'Unknown Reviewer',
+                        'role' => $actor['role'] ?? null,
+                        'notes' => $rej['comments'] ?? ($rej['help_desk_notes'] ?? $rej['admin_notes'] ?? $rej['technical_notes'] ?? $rej['process_owner_notes'] ?? $rej['superior_notes'] ?? ''),
+                        'date' => $rej['created_at'] ?? null,
+                        'actor_id' => $actorId,
+                    ];
+                }
+            } catch (PDOException $e) { /* ignore */
+            }
+        }
+
+        // Approval Flow computation intentionally removed
+    }
 } catch (PDOException $e) {
     error_log("Error fetching request details: " . $e->getMessage());
     header("Location: request_history.php?error=db");
@@ -169,6 +216,16 @@ try {
             background-position: center;
             background-attachment: fixed;
             font-family: 'Inter', sans-serif;
+        }
+
+        /* Hide scrollbars helper */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
 
         /* Status Badge Styles */
@@ -274,6 +331,36 @@ try {
                     </a>
                 </div>
             </div>
+        </div>
+
+        <!-- Rejection Details -->
+        <div class="p-6">
+            <?php if (!empty($rejectionInfo)): ?>
+                <div class="bg-white rounded-xl shadow-sm border border-red-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                        <i class='bx bx-block text-red-600 text-xl mr-2'></i>
+                        Rejection Details
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="space-y-2">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700">Rejected By:</span>
+                                    <span class="font-medium text-red-700"><?php echo htmlspecialchars($rejectionInfo['name']); ?></span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-gray-700">Rejected On:</span>
+                                    <span class="font-medium text-gray-900"><?php echo !empty($rejectionInfo['date']) ? date('M d, Y H:i', strtotime($rejectionInfo['date'])) : 'N/A'; ?></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <span class="text-gray-700 block mb-2">Rejection Notes:</span>
+                            <div class="text-gray-800"><?php echo $rejectionInfo['notes'] !== '' ? nl2br(htmlspecialchars($rejectionInfo['notes'])) : '<span class="text-gray-500">No notes provided.</span>'; ?></div>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
 
         <!-- Requestor Information -->
@@ -547,192 +634,9 @@ try {
                 }
                 ?>
             </div>
-        </div> <!-- Add approval timeline -->
-        <div class="p-6">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800">
-                <h3 class="text-lg font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100 flex items-center">
-                    <i class='bx bx-history text-primary-500 text-xl mr-2'></i>
-                    Approval Timeline
-                </h3>
-
-                <div class="relative">
-                    <!-- Vertical Line - will end at the last item -->
-                    <div class="absolute left-5 top-0 h-[calc(98%-4rem)] w-0.5 bg-gray-200"></div>
-
-                    <div class="space-y-8">
-                        <!-- Superior Review -->
-                        <div class="relative flex items-start group">
-                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
-                                <?php
-                                // Check if superior review is completed
-                                $superiorCompleted = false;
-                                if ($isPending) {
-                                    $superiorCompleted = !empty($request['superior_review_date']);
-                                } else {
-                                    // For completed requests, check if superior notes exist OR superior_id exists
-                                    $superiorCompleted = !empty($request['superior_notes']) || !empty($request['superior_id']);
-                                }
-                                ?>
-                                <div class="w-10 h-10 rounded-full <?php echo $superiorCompleted ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
-                                    <i class='bx bxs-user-check text-xl text-white'></i>
-                                </div>
-                            </div>
-                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                    <h4 class="text-base font-semibold text-gray-900">Superior Review</h4>
-                                    <?php if ($isPending && !empty($request['superior_review_date'])): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            <?php echo date('M j, Y h:i A', strtotime($request['superior_review_date'])); ?>
-                                        </span>
-                                    <?php elseif (!$isPending && $superiorCompleted): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            Completed
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                                    <?php
-                                    if (!empty($request['superior_notes'])) {
-                                        echo nl2br(htmlspecialchars($request['superior_notes']));
-                                    } else {
-                                        echo '<span class="text-gray-500 italic">Pending review</span>';
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Technical Review -->
-                        <div class="relative flex items-start group">
-                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
-                                <?php
-                                // Check if technical review is completed
-                                $technicalCompleted = false;
-                                if ($isPending) {
-                                    $technicalCompleted = !empty($request['technical_review_date']);
-                                } else {
-                                    // For completed requests, check if technical notes exist OR technical_id exists
-                                    $technicalCompleted = !empty($request['technical_notes']) || !empty($request['technical_id']);
-                                }
-                                ?>
-                                <div class="w-10 h-10 rounded-full <?php echo $technicalCompleted ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
-                                    <i class='bx bx-code-alt text-xl text-white'></i>
-                                </div>
-                            </div>
-                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                    <h4 class="text-base font-semibold text-gray-900">Technical Support Review</h4>
-                                    <?php if ($isPending && !empty($request['technical_review_date'])): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            <?php echo date('M j, Y h:i A', strtotime($request['technical_review_date'])); ?>
-                                        </span>
-                                    <?php elseif (!$isPending && $technicalCompleted): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            Completed
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                                    <?php
-                                    if (!empty($request['technical_notes'])) {
-                                        echo nl2br(htmlspecialchars($request['technical_notes']));
-                                    } else {
-                                        echo '<span class="text-gray-500 italic">Awaiting technical review</span>';
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Process Owner Review -->
-                        <div class="relative flex items-start group">
-                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
-                                <?php
-                                // Check if process owner review is completed
-                                $processOwnerCompleted = false;
-                                if ($isPending) {
-                                    $processOwnerCompleted = !empty($request['process_owner_review_date']);
-                                } else {
-                                    // For completed requests, check if process owner notes exist OR process_owner_id exists
-                                    $processOwnerCompleted = !empty($request['process_owner_notes']) || !empty($request['process_owner_id']);
-                                }
-                                ?>
-                                <div class="w-10 h-10 rounded-full <?php echo $processOwnerCompleted ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
-                                    <i class='bx bx-user-voice text-xl text-white'></i>
-                                </div>
-                            </div>
-                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                    <h4 class="text-base font-semibold text-gray-900">Process Owner Review</h4>
-                                    <?php if ($isPending && !empty($request['process_owner_review_date'])): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            <?php echo date('M j, Y h:i A', strtotime($request['process_owner_review_date'])); ?>
-                                        </span>
-                                    <?php elseif (!$isPending && $processOwnerCompleted): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            Completed
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                                    <?php
-                                    if (!empty($request['process_owner_notes'])) {
-                                        echo nl2br(htmlspecialchars($request['process_owner_notes']));
-                                    } else {
-                                        echo '<span class="text-gray-500 italic">Awaiting process owner review</span>';
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Admin Review -->
-                        <div class="relative flex items-start group">
-                            <div class="absolute left-0 w-10 h-10 flex items-center justify-center z-10">
-                                <?php
-                                // Check if admin review is completed
-                                $adminCompleted = false;
-                                if ($isPending) {
-                                    $adminCompleted = !empty($request['admin_review_date']);
-                                } else {
-                                    // For completed requests, check if admin_id exists (indicating admin review was done)
-                                    $adminCompleted = !empty($request['admin_id']);
-                                }
-                                ?>
-                                <div class="w-10 h-10 rounded-full <?php echo $adminCompleted ? 'bg-green-500' : 'bg-gray-300'; ?> flex items-center justify-center shadow-sm transform transition-transform group-hover:scale-110">
-                                    <i class='bx bx-shield-quarter text-xl text-white'></i>
-                                </div>
-                            </div>
-                            <div class="ml-16 bg-white rounded-lg border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-4 w-full">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                                    <h4 class="text-base font-semibold text-gray-900">Admin Review</h4>
-                                    <?php if ($isPending && !empty($request['admin_review_date'])): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            <?php echo date('M j, Y h:i A', strtotime($request['admin_review_date'])); ?>
-                                        </span>
-                                    <?php elseif (!$isPending && $adminCompleted): ?>
-                                        <span class="text-sm text-gray-600 font-medium bg-gray-50 px-3 py-1 rounded-full">
-                                            Completed
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="mt-2 bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                                    <?php
-                                    if (!empty($request['comments'])) {
-                                        echo nl2br(htmlspecialchars($request['comments']));
-                                    } elseif (!empty($request['admin_notes'])) {
-                                        echo nl2br(htmlspecialchars($request['admin_notes']));
-                                    } else {
-                                        echo '<span class="text-gray-500 italic">Awaiting admin review</span>';
-                                    }
-                                    ?>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- Add testing status section if applicable -->
+        </div>
+        <!-- Approval Timeline removed per latest requirements -->
+        <!-- Add testing status section if applicable -->
         <?php if (!empty($request['status']) && $request['status'] === 'pending_testing'): ?>
             <div class="p-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6" data-aos="fade-up" data-aos-duration="800">
@@ -839,6 +743,17 @@ try {
             <?php endif; ?>
         });
 
+        // Horizontal scroll controls for Approval Flow
+        function scrollFlow(direction) {
+            const scroller = document.getElementById('approvalFlowScroller');
+            if (!scroller) return;
+            const delta = Math.max(240, Math.floor(scroller.clientWidth * 0.8));
+            scroller.scrollBy({
+                left: direction * delta,
+                behavior: 'smooth'
+            });
+        }
+
         function updateTestingStatus(requestId, status) {
             Swal.fire({
                 title: 'Update Testing Status',
@@ -941,4 +856,5 @@ try {
     </script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

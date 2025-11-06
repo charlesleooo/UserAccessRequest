@@ -19,6 +19,12 @@ $statusFilter = $_GET['status'] ?? 'all';
 $dateFilter = $_GET['date'] ?? 'all';
 $searchQuery = $_GET['search'] ?? '';
 
+// Pagination parameters
+$recordsPerPage = 10;
+$currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$currentPage = max(1, $currentPage); // Ensure page is at least 1
+$offset = ($currentPage - 1) * $recordsPerPage;
+
 // Prepare base query for all requests (both pending and processed)
 // Prioritize access_requests table status over approval_history to avoid inconsistencies
 $query = "SELECT 
@@ -148,6 +154,9 @@ if (!empty($whereConditions)) {
     $query = "SELECT * FROM ($query) as combined_results WHERE " . implode(' AND ', $whereConditions);
 }
 
+// Base query for counting (without ORDER BY)
+$countQuery = $query;
+
 // Sort by status priority: pending (any type), approved, rejected, then by UAR reference number in descending order
 $query .= " ORDER BY 
     CASE 
@@ -159,7 +168,28 @@ $query .= " ORDER BY
     access_request_number DESC";
 
 try {
-    // Prepare and execute the query
+    // First, get total count for pagination (without ORDER BY and pagination)
+    $countQuery = "SELECT COUNT(*) as total FROM ($countQuery) as count_query";
+    $countStmt = $pdo->prepare($countQuery);
+    $countStmt->execute($params);
+    $totalRecords = $countStmt->fetch(PDO::FETCH_ASSOC)['total'] ?? 0;
+    $totalPages = ceil($totalRecords / $recordsPerPage);
+    
+    // Ensure current page doesn't exceed total pages
+    if ($currentPage > $totalPages && $totalPages > 0) {
+        $currentPage = $totalPages;
+        $offset = ($currentPage - 1) * $recordsPerPage;
+    }
+    
+    // SQL Server requires literal integers for OFFSET and FETCH NEXT, not parameters
+    // Safely cast to integers to prevent SQL injection
+    $offset = (int)$offset;
+    $recordsPerPage = (int)$recordsPerPage;
+    
+    // Now add pagination to the main query (SQL Server uses OFFSET/FETCH)
+    $query .= " OFFSET $offset ROWS FETCH NEXT $recordsPerPage ROWS ONLY";
+    
+    // Prepare and execute the query with pagination
     $stmt = $pdo->prepare($query);
     $stmt->execute($params);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -198,6 +228,9 @@ try {
     error_log("Error fetching request history: " . $e->getMessage());
     $requests = [];
     $total = $approved = $rejected = $cancelled = $pending = 0;
+    $totalRecords = 0;
+    $totalPages = 0;
+    $currentPage = 1;
     $errorMessage = "Database Error: " . $e->getMessage();
 }
 ?>
@@ -368,10 +401,6 @@ try {
 <body class="bg-gray-100" x-data="{ sidebarOpen: true }" x-init="$store.app = { sidebarOpen: true }">
 
     <!-- Progress bar at the top of the page -->
-    <div class="progress-container">
-        <div class="progress-bar" id="progressBar"></div>
-    </div>
-    <!-- Progress bar -->
     <div class="progress-container">
         <div class="progress-bar" id="progressBar"></div>
     </div>
@@ -593,30 +622,52 @@ try {
                                     <tbody class="bg-white divide-y divide-gray-200">
                                         <?php if (count($requests) > 0): ?>
                                             <?php foreach ($requests as $request): ?>
-                                                <tr class="cursor-pointer hover:bg-gray-50" onclick="window.location.href='view_request.php?id=<?php echo $request['request_id']; ?>'">
+                                                <?php
+                                                $date = new DateTime($request['created_at'] ?? 'now');
+                                                $dateFormatted = $date->format('M d, Y');
+                                                $today = new DateTime('now');
+                                                $dateObj = new DateTime($request['created_at'] ?? 'now');
+                                                $interval = $today->diff($dateObj);
+                                                $daysSince = $interval->days;
+                                                
+                                                $statusClass = '';
+                                                $status = strtolower($request['status']);   
+                                                $displayStatus = '';
+                                                
+                                                // Prepare searchable text
+                                                $searchableText = strtolower(
+                                                    $request['access_request_number'] . ' ' .
+                                                    ($request['business_unit'] ?? '') . ' ' .
+                                                    ($request['department'] ?? '') . ' ' .
+                                                    ($request['access_type'] ?? '') . ' ' .
+                                                    ($request['system_type'] ?? '')
+                                                );
+                                                
+                                                // Prepare date info for filtering
+                                                $requestDate = new DateTime($request['created_at'] ?? 'now');
+                                                $dateTimestamp = $requestDate->getTimestamp();
+                                                $todayStart = new DateTime('today');
+                                                $weekStart = new DateTime('today');
+                                                $weekStart->modify('-7 days');
+                                                $monthStart = new DateTime('today');
+                                                $monthStart->modify('-30 days');
+                                                ?>
+                                                <tr class="cursor-pointer hover:bg-gray-50 data-row" 
+                                                    data-status="<?php echo htmlspecialchars($status); ?>"
+                                                    data-date-timestamp="<?php echo $dateTimestamp; ?>"
+                                                    data-search-text="<?php echo htmlspecialchars($searchableText); ?>"
+                                                    onclick="window.location.href='view_request.php?id=<?php echo $request['request_id']; ?>'">
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                         <?php echo htmlspecialchars($request['access_request_number']); ?>
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <?php
-                                                        $date = new DateTime($request['created_at'] ?? 'now');
-                                                        echo $date->format('M d, Y');
-                                                        ?>
+                                                        <?php echo $dateFormatted; ?>
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <?php
-                                                        $today = new DateTime('now');
-                                                        $date = new DateTime($request['created_at'] ?? 'now');
-                                                        $interval = $today->diff($date);
-                                                        $daysSince = $interval->days;
-                                                        echo $daysSince . ' day/s';
-                                                        ?>
+                                                        <?php echo $daysSince . ' day/s'; ?>
                                                     </td>
                                                     <td class="px-6 py-4 whitespace-nowrap">
                                                         <?php
-                                                        $statusClass = '';
-                                                        $status = strtolower($request['status']);   
-                                                        $displayStatus = '';
 
                                                         switch ($status) {
                                                             case 'pending_superior':
@@ -675,7 +726,7 @@ try {
                                             <?php endforeach; ?>
                                         <?php else: ?>
                                             <tr>
-                                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                                <td colspan="4" class="px-6 py-12 text-center text-gray-500">
                                                     <div class="flex flex-col items-center">
                                                         <i class="bx bx-folder-open text-5xl text-gray-300 mb-2"></i>
                                                         <p class="text-lg font-medium">No request history found</p>
@@ -690,8 +741,72 @@ try {
                         </div>
                     </div>
                 </div>
+                
+                <!-- Pagination Controls -->
+                <?php if ($totalPages > 1): ?>
+                <div class="bg-gray-50 px-4 md:px-6 py-4 border-t border-gray-200 flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="text-sm text-gray-700">
+                        Showing <span class="font-medium"><?php echo count($requests) > 0 ? $offset + 1 : 0; ?></span> to 
+                        <span class="font-medium"><?php echo min($offset + count($requests), $totalRecords); ?></span> of 
+                        <span class="font-medium"><?php echo $totalRecords; ?></span> results
+            </div>
+                    <div class="flex items-center flex-wrap justify-center gap-2">
+                        <?php
+                        // Build URL with current filters
+                        $queryParams = $_GET;
+                        ?>
+                        
+                        <!-- Previous Button -->
+                        <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => max(1, $currentPage - 1)])); ?>" 
+                           class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 <?php echo $currentPage <= 1 ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''; ?>">
+                            <i class='bx bx-chevron-left'></i> Previous
+                        </a>
+                        
+                        <!-- Page Numbers -->
+                        <div class="flex items-center space-x-1">
+                            <?php
+                            $startPage = max(1, $currentPage - 2);
+                            $endPage = min($totalPages, $currentPage + 2);
+                            
+                            // Show first page if not in range
+                            if ($startPage > 1): ?>
+                                <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => 1])); ?>" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">1</a>
+                                <?php if ($startPage > 2): ?>
+                                    <span class="px-2 text-gray-500">...</span>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                            
+                            <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                                <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => $i])); ?>" 
+                                   class="px-3 py-2 text-sm font-medium rounded-lg <?php echo $i == $currentPage ? 'bg-blue-600 text-white' : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'; ?>">
+                                    <?php echo $i; ?>
+                                </a>
+                            <?php endfor; ?>
+                            
+                            <!-- Show last page if not in range -->
+                            <?php if ($endPage < $totalPages): ?>
+                                <?php if ($endPage < $totalPages - 1): ?>
+                                    <span class="px-2 text-gray-500">...</span>
+                                <?php endif; ?>
+                                <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => $totalPages])); ?>" 
+                                   class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"><?php echo $totalPages; ?></a>
+                            <?php endif; ?>
+        </div>
+                        
+                        <!-- Next Button -->
+                        <a href="?<?php echo http_build_query(array_merge($queryParams, ['page' => min($totalPages, $currentPage + 1)])); ?>" 
+                           class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 <?php echo $currentPage >= $totalPages ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''; ?>">
+                            Next <i class='bx bx-chevron-right'></i>
+                        </a>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
+        
+        <!-- Footer -->
+        <?php include '../footer.php'; ?>
     </div>
 
     <script>
@@ -767,10 +882,137 @@ try {
             if (statusParam && statusParam !== 'all') {
                 filterRequests(statusParam);
             }
+            
+            // Client-side filtering (no page refresh)
+            const filterForm = document.getElementById('filter-form');
+            const searchInput = document.getElementById('search');
+            const statusSelect = document.getElementById('status');
+            const dateSelect = document.getElementById('date');
+            
+            // Debounce function for search input
+            let searchTimeout;
+            function debounceSearch(func, delay) {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(func, delay);
+            }
+            
+            // Client-side filter function (global so filterRequests can use it)
+            window.applyFilters = function() {
+                const allRows = document.querySelectorAll('tbody tr.data-row');
+                const searchValue = (searchInput?.value || '').toLowerCase().trim();
+                const statusValue = statusSelect?.value || 'all';
+                const dateValue = dateSelect?.value || 'all';
+                
+                let visibleCount = 0;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayTimestamp = Math.floor(today.getTime() / 1000);
+                
+                const weekAgo = new Date(today);
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const weekAgoTimestamp = Math.floor(weekAgo.getTime() / 1000);
+                
+                const monthAgo = new Date(today);
+                monthAgo.setDate(monthAgo.getDate() - 30);
+                const monthAgoTimestamp = Math.floor(monthAgo.getTime() / 1000);
+                
+                allRows.forEach(row => {
+                    let shouldShow = true;
+                    
+                    // Status filter
+                    if (statusValue !== 'all') {
+                        const rowStatus = row.getAttribute('data-status') || '';
+                        if (statusValue === 'pending') {
+                            shouldShow = shouldShow && rowStatus.startsWith('pending');
+                        } else if (statusValue === 'history') {
+                            shouldShow = shouldShow && !rowStatus.startsWith('pending');
+                        } else {
+                            shouldShow = shouldShow && rowStatus === statusValue;
+                        }
+                    }
+                    
+                    // Date filter
+                    if (dateValue !== 'all' && shouldShow) {
+                        const rowDateTimestamp = parseInt(row.getAttribute('data-date-timestamp') || '0');
+                        if (dateValue === 'today') {
+                            shouldShow = rowDateTimestamp >= todayTimestamp;
+                        } else if (dateValue === 'week') {
+                            shouldShow = rowDateTimestamp >= weekAgoTimestamp;
+                        } else if (dateValue === 'month') {
+                            shouldShow = rowDateTimestamp >= monthAgoTimestamp;
+                        }
+                    }
+                    
+                    // Search filter
+                    if (searchValue && shouldShow) {
+                        const searchText = (row.getAttribute('data-search-text') || '').toLowerCase();
+                        shouldShow = searchText.includes(searchValue);
+                    }
+                    
+                    // Show/hide row
+                    if (shouldShow) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Show/hide empty state
+                const emptyRow = document.querySelector('tbody tr td[colspan]')?.closest('tr');
+                if (emptyRow) {
+                    if (visibleCount === 0 && allRows.length > 0) {
+                        emptyRow.style.display = '';
+                    } else {
+                        emptyRow.style.display = 'none';
+                    }
+                }
+                
+                // Hide pagination when filtering (since we're filtering client-side)
+                // Find pagination div by looking for the div with border-t that contains pagination content
+                const paginationContainer = Array.from(document.querySelectorAll('.bg-gray-50.border-t')).find(el => 
+                    el.textContent.includes('Showing') && el.textContent.includes('results')
+                );
+                if (paginationContainer) {
+                    if (searchValue || statusValue !== 'all' || dateValue !== 'all') {
+                        paginationContainer.style.display = 'none';
+                    } else {
+                        paginationContainer.style.display = '';
+                    }
+                }
+            }
+            
+            // Prevent form submission
+            if (filterForm) {
+                filterForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    applyFilters();
+                });
+            }
+            
+            // Auto-filter on search input (with debounce)
+            if (searchInput) {
+                searchInput.addEventListener('input', function() {
+                    debounceSearch(applyFilters, 300); // Wait 300ms after user stops typing
+                });
+            }
+            
+            // Auto-filter immediately on status or date change
+            if (statusSelect) {
+                statusSelect.addEventListener('change', applyFilters);
+            }
+            
+            if (dateSelect) {
+                dateSelect.addEventListener('change', applyFilters);
+            }
+            
+            // Initial filter application
+            applyFilters();
         });
 
-        // Filter function to match admin design
+        // Filter function for status buttons (works with client-side filtering)
         function filterRequests(status) {
+            // Update button styles
             const buttons = document.querySelectorAll('.flex.gap-2 button, .flex.flex-wrap.gap-2 button');
             buttons.forEach(button => {
                 const buttonText = button.textContent.toLowerCase().trim();
@@ -783,34 +1025,17 @@ try {
                 }
             });
 
-            const rows = document.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                // Skip the empty state row
-                if (row.querySelector('td[colspan]')) {
-                    return;
-                }
-
-                const statusCell = row.querySelector('td:last-child span');
-                if (!statusCell) return;
-
-                const rowStatus = statusCell.textContent.trim().toLowerCase();
-                
-                // Handle filtering logic
-                let shouldShow = false;
-                if (status === 'all') {
-                    shouldShow = true;
-                } else if (status === 'pending') {
-                    // Show all pending statuses (pending, pending_superior, pending_technical, etc.)
-                    shouldShow = rowStatus.startsWith('pending');
-                } else {
-                    // Exact match for approved, rejected, cancelled
-                    shouldShow = rowStatus === status;
-                }
-                
-                row.style.display = shouldShow ? '' : 'none';
-            });
+            // Update status dropdown to match
+            const statusSelect = document.getElementById('status');
+            if (statusSelect) {
+                statusSelect.value = status;
+            }
+            
+            // Apply filters using the main filter function
+            if (typeof window.applyFilters === 'function') {
+                window.applyFilters();
+            }
         }
     </script>
 </body>
-<?php include '../footer.php'; ?>
 </html>

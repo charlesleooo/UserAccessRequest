@@ -57,7 +57,7 @@ try {
                              LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
                              WHERE ar.access_request_number = :access_request_number
                              AND ar.help_desk_id IS NOT NULL";
-            
+
             $stmt = $pdo->prepare($fallbackQuery);
             $stmt->execute([':access_request_number' => $accessRequestNumber]);
             $historyRequest = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -67,6 +67,65 @@ try {
             header("Location: review_history.php");
             exit();
         }
+
+        // Find rejection details (who rejected + notes), if any
+        $rejectionInfo = null;
+        try {
+            $rejStmt = $pdo->prepare("SELECT TOP 1 * FROM uar.approval_history WHERE access_request_number = :arn AND action = 'rejected' ORDER BY created_at DESC");
+            $rejStmt->execute([':arn' => $accessRequestNumber]);
+            $rejRow = $rejStmt->fetch(PDO::FETCH_ASSOC);
+            if ($rejRow) {
+                // Determine the acting admin_users.id based on which notes field matches comments
+                $actorId = null;
+                $comments = $rejRow['comments'] ?? '';
+                if (!empty($comments)) {
+                    if (!empty($rejRow['admin_id']) && $comments === ($rejRow['admin_notes'] ?? null)) {
+                        $actorId = $rejRow['admin_id'];
+                    } elseif (!empty($rejRow['technical_id']) && $comments === ($rejRow['technical_notes'] ?? null)) {
+                        $actorId = $rejRow['technical_id'];
+                    } elseif (!empty($rejRow['process_owner_id']) && $comments === ($rejRow['process_owner_notes'] ?? null)) {
+                        $actorId = $rejRow['process_owner_id'];
+                    } elseif (!empty($rejRow['help_desk_id']) && $comments === ($rejRow['help_desk_notes'] ?? null)) {
+                        $actorId = $rejRow['help_desk_id'];
+                    } elseif (!empty($rejRow['superior_id']) && $comments === ($rejRow['superior_notes'] ?? null)) {
+                        $actorId = $rejRow['superior_id'];
+                    }
+                }
+                // Fallback if no exact note match found
+                if (!$actorId) {
+                    $actorId = $rejRow['admin_id']
+                        ?? $rejRow['technical_id']
+                        ?? $rejRow['process_owner_id']
+                        ?? $rejRow['help_desk_id']
+                        ?? $rejRow['superior_id']
+                        ?? null;
+                }
+
+                $actorName = null;
+                $actorRole = null;
+                if ($actorId) {
+                    $actorStmt = $pdo->prepare("SELECT e.employee_name, e.role, a.username FROM uar.admin_users a INNER JOIN uar.employees e ON a.username = e.employee_id WHERE a.id = :id");
+                    $actorStmt->execute([':id' => $actorId]);
+                    $actor = $actorStmt->fetch(PDO::FETCH_ASSOC);
+                    if ($actor) {
+                        $actorName = $actor['employee_name'];
+                        $actorRole = $actor['role'];
+                    }
+                }
+
+                $rejectionInfo = [
+                    'name' => $actorName ?: 'Unknown Reviewer',
+                    'role' => $actorRole ?: null,
+                    'notes' => $comments ?: ($rejRow['help_desk_notes'] ?? $rejRow['admin_notes'] ?? $rejRow['technical_notes'] ?? $rejRow['process_owner_notes'] ?? $rejRow['superior_notes'] ?? ''),
+                    'date' => $rejRow['created_at'] ?? null,
+                ];
+            }
+        } catch (PDOException $e) {
+            // If this fails, just skip rejection details
+            $rejectionInfo = null;
+        }
+
+        // No approval flow rendering/data needed per latest requirements
 
         // Get all usernames, date_needed, and justification from individual_requests or group_requests
         // Note: SQLSRV PDO does not support reusing the same named parameter twice in a single statement
@@ -270,9 +329,9 @@ try {
 <body class="bg-gray-50 font-sans">
 
     <!-- Sidebar -->
-    <?php 
+    <?php
     $current_page = basename($_SERVER['PHP_SELF']);
-    include 'sidebar.php'; 
+    include 'sidebar.php';
     ?>
 
     <!-- Main Content -->
@@ -290,9 +349,9 @@ try {
                             <i class='bx bx-arrow-back mr-2'></i> Back to Review History
                         </a>
                         <?php if (!empty($request['access_request_number'])): ?>
-                        <a href="<?php echo 'tcpdf_print_record.php?access_request_number=' . urlencode($request['access_request_number']); ?>" target="_blank" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                            <i class='bx bx-printer mr-2'></i> Print
-                        </a>
+                            <a href="<?php echo 'tcpdf_print_record.php?access_request_number=' . urlencode($request['access_request_number']); ?>" target="_blank" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                                <i class='bx bx-printer mr-2'></i> Print
+                            </a>
                         <?php endif; ?>
                     <?php else: ?>
                         <a href="requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
@@ -311,38 +370,38 @@ try {
         <!-- Review Information (for history requests) -->
         <?php if ($fromHistory): ?>
             <div class="p-6">
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
-                        <i class='bx bx-check-shield text-primary-500 text-xl mr-2'></i>
-                        Your Review
-                    </h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-gray-600">Status:</span>
-                                    <span class="font-medium <?php echo ($request['action'] === 'rejected') ? 'text-red-600' : 'text-green-600'; ?>">
-                                        <?php echo htmlspecialchars($request['action'] ?? 'N/A'); ?>
-                                    </span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-gray-600">Review Date:</span>
-                                    <span class="font-medium text-gray-900">
-                                        <?php echo $request['created_at'] ? date('M d, Y H:i', strtotime($request['created_at'])) : 'N/A'; ?>
-                                    </span>
+                <?php if (!empty($rejectionInfo)): ?>
+                    <div class="bg-white rounded-xl shadow-sm border border-red-200 p-6 mb-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
+                            <i class='bx bx-block text-red-500 text-xl mr-2'></i>
+                            Rejection Details
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <div class="space-y-3">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-700">Rejected By:</span>
+                                        <span class="font-medium text-red-700"><?php echo htmlspecialchars($rejectionInfo['name']); ?><?php echo $rejectionInfo['role'] ? ' (' . htmlspecialchars($rejectionInfo['role']) . ')' : ''; ?></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-700">Rejected On:</span>
+                                        <span class="font-medium text-gray-900">
+                                            <?php echo !empty($rejectionInfo['date']) ? date('M d, Y H:i', strtotime($rejectionInfo['date'])) : 'N/A'; ?>
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="bg-gray-50 p-4 rounded-lg">
-                            <div>
-                                <span class="text-gray-600 block mb-2">Review Notes:</span>
-                                <div class="text-gray-700">
-                                    <?php echo nl2br(htmlspecialchars($request['help_desk_notes'] ?? 'No notes provided.')); ?>
+                            <div class="bg-red-50 p-4 rounded-lg">
+                                <div>
+                                    <span class="text-gray-700 block mb-2">Rejection Notes:</span>
+                                    <div class="text-gray-800">
+                                        <?php echo $rejectionInfo['notes'] !== '' ? nl2br(htmlspecialchars($rejectionInfo['notes'])) : '<span class="text-gray-500">No notes provided.</span>'; ?>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 
@@ -399,7 +458,7 @@ try {
             </div>
 
             <!-- Access Details -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" >
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                     <i class='bx bx-lock-open text-primary-500 text-xl mr-2'></i>
                     Access Details
@@ -507,7 +566,7 @@ try {
 
             <!-- Superior's Comments -->
             <?php if (!empty($request['superior_notes'])): ?>
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6"  data-aos-delay="350">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-6" data-aos-delay="350">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
                         <i class='bx bx-message-square-detail text-primary-500 text-xl mr-2'></i>
                         Superior's Comments
@@ -535,8 +594,8 @@ try {
                     <div class="flex-1 text-center">
                         <h3 class="text-xl font-semibold text-gray-800 flex items-center justify-center">
                             <i class='bx bx-share text-green-600 text-2xl mr-2'></i>
-                        Help Desk Review
-                    </h3>
+                            Help Desk Review
+                        </h3>
                     </div>
                     <button onclick="hideApprovalModal()" class="text-gray-500 hover:text-gray-700">
                         <i class='bx bx-x text-2xl'></i>
@@ -552,29 +611,29 @@ try {
                     <div>
                         <label for="modal_forward_to" class="block text-sm font-medium text-gray-700 mb-1">Forward To</label>
                         <select id="modal_forward_to" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
-                                    <option value="technical_support">Technical Support</option>
-                                    <option value="process_owner">Process Owner</option>
-                                </select>
-                            </div>
+                            <option value="technical_support">Technical Support</option>
+                            <option value="process_owner">Process Owner</option>
+                        </select>
+                    </div>
 
                     <div>
                         <label for="modal_user_id" class="block text-sm font-medium text-gray-700 mb-1">Select User</label>
                         <select id="modal_user_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"></select>
-                            </div>
+                    </div>
 
                     <div>
                         <label for="modal_review_notes" class="block text-sm font-medium text-gray-700 mb-1">Review Notes</label>
                         <textarea id="modal_review_notes" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter your review notes..."></textarea>
-                            </div>
+                    </div>
 
                     <div class="flex justify-end gap-3 pt-2">
                         <button type="button" onclick="hideApprovalModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">Cancel</button>
                         <button type="button" onclick="handleApproval('decline')" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                    <i class='bx bx-x-circle mr-2'></i> Decline
-                                </button>
+                            <i class='bx bx-x-circle mr-2'></i> Decline
+                        </button>
                         <button type="button" onclick="handleApproval('approve')" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Forward
-                                </button>
+                            <i class='bx bx-check-circle mr-2'></i> Forward
+                        </button>
                     </div>
                 </div>
             </div>
@@ -587,22 +646,37 @@ try {
         const currentRequestId = <?php echo $requestId ? intval($requestId) : 'null'; ?>;
         const reviewers = [];
         <?php
-            // Normalize possible column names coming from different views
-            $superiorNotes = $request['superior_notes']
-                ?? $request['superior_review_notes']
-                ?? null;
-            $technicalNotes = $request['technical_notes'] ?? null;
-            $processOwnerNotes = $request['process_owner_notes'] ?? null;
-            $helpDeskNotes = $request['help_desk_notes'] ?? null;
-            $adminNotes = $request['admin_notes'] ?? null;
+        // Normalize possible column names coming from different views
+        $superiorNotes = $request['superior_notes']
+            ?? $request['superior_review_notes']
+            ?? null;
+        $technicalNotes = $request['technical_notes'] ?? null;
+        $processOwnerNotes = $request['process_owner_notes'] ?? null;
+        $helpDeskNotes = $request['help_desk_notes'] ?? null;
+        $adminNotes = $request['admin_notes'] ?? null;
 
-            $roleBadges = [];
-            $history = [];
-            if (!empty($superiorNotes)) { $roleBadges[] = 'Superior'; $history[] = ['role' => 'Superior', 'notes' => $superiorNotes]; }
-            if (!empty($helpDeskNotes)) { $roleBadges[] = 'Help Desk'; $history[] = ['role' => 'Help Desk', 'notes' => $helpDeskNotes]; }
-            if (!empty($technicalNotes)) { $roleBadges[] = 'Technical Support'; $history[] = ['role' => 'Technical Support', 'notes' => $technicalNotes]; }
-            if (!empty($processOwnerNotes)) { $roleBadges[] = 'Process Owner'; $history[] = ['role' => 'Process Owner', 'notes' => $processOwnerNotes]; }
-            if (!empty($adminNotes)) { $roleBadges[] = 'Admin'; $history[] = ['role' => 'Admin', 'notes' => $adminNotes]; }
+        $roleBadges = [];
+        $history = [];
+        if (!empty($superiorNotes)) {
+            $roleBadges[] = 'Superior';
+            $history[] = ['role' => 'Superior', 'notes' => $superiorNotes];
+        }
+        if (!empty($helpDeskNotes)) {
+            $roleBadges[] = 'Help Desk';
+            $history[] = ['role' => 'Help Desk', 'notes' => $helpDeskNotes];
+        }
+        if (!empty($technicalNotes)) {
+            $roleBadges[] = 'Technical Support';
+            $history[] = ['role' => 'Technical Support', 'notes' => $technicalNotes];
+        }
+        if (!empty($processOwnerNotes)) {
+            $roleBadges[] = 'Process Owner';
+            $history[] = ['role' => 'Process Owner', 'notes' => $processOwnerNotes];
+        }
+        if (!empty($adminNotes)) {
+            $roleBadges[] = 'Admin';
+            $history[] = ['role' => 'Admin', 'notes' => $adminNotes];
+        }
         ?>
         const reviewedBy = <?php echo json_encode($roleBadges); ?>;
         const reviewHistory = <?php echo json_encode($history); ?>;
@@ -664,7 +738,10 @@ try {
             if (document.getElementById('modal_forward_to')) {
                 updateModalUserOptions();
             }
-            setTimeout(() => { const ta = document.getElementById('modal_review_notes'); if (ta) ta.focus(); }, 100);
+            setTimeout(() => {
+                const ta = document.getElementById('modal_review_notes');
+                if (ta) ta.focus();
+            }, 100);
             // Load latest review history and notes from API to ensure accuracy
             if (currentRequestId) {
                 fetch(`../admin/get_request_details.php?id=${currentRequestId}`)
@@ -740,18 +817,33 @@ try {
             const requestId = <?php echo $requestId ? $requestId : 'null'; ?>;
 
             if (!requestId) {
-                Swal.fire({ title: 'Error', text: 'Cannot process request from history view.', icon: 'error', confirmButtonColor: '#0ea5e9' });
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Cannot process request from history view.',
+                    icon: 'error',
+                    confirmButtonColor: '#0ea5e9'
+                });
                 return;
             }
 
             if (!notes || !notes.trim()) {
-                Swal.fire({ title: 'Review Notes Required', text: 'Please provide review notes before submitting your decision.', icon: 'warning', confirmButtonColor: '#0ea5e9' });
+                Swal.fire({
+                    title: 'Review Notes Required',
+                    text: 'Please provide review notes before submitting your decision.',
+                    icon: 'warning',
+                    confirmButtonColor: '#0ea5e9'
+                });
                 return;
             }
 
             if (action === 'approve') {
                 if (!userId) {
-                    Swal.fire({ title: 'User Selection Required', text: 'Please select a user to forward the request to.', icon: 'warning', confirmButtonColor: '#0ea5e9' });
+                    Swal.fire({
+                        title: 'User Selection Required',
+                        text: 'Please select a user to forward the request to.',
+                        icon: 'warning',
+                        confirmButtonColor: '#0ea5e9'
+                    });
                     return;
                 }
             }
@@ -768,7 +860,14 @@ try {
             }).then((result) => {
                 if (result.isConfirmed) {
                     hideApprovalModal();
-                    Swal.fire({ title: 'Processing...', html: 'Please wait while we process your request.', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+                    Swal.fire({
+                        title: 'Processing...',
+                        html: 'Please wait while we process your request.',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
 
                     const params = new URLSearchParams();
                     params.append('request_id', requestId);
@@ -779,16 +878,36 @@ try {
                         params.append('user_id', userId);
                     }
 
-                    fetch('../admin/process_request.php', { method: 'POST', body: params })
+                    fetch('../admin/process_request.php', {
+                            method: 'POST',
+                            body: params
+                        })
                         .then(r => r.json())
                         .then(data => {
                             if (data.success) {
-                                Swal.fire({ title: 'Success!', text: data.message, icon: 'success', confirmButtonColor: '#0ea5e9' }).then(() => { window.location.href = 'requests.php'; });
+                                Swal.fire({
+                                    title: 'Success!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    confirmButtonColor: '#0ea5e9'
+                                }).then(() => {
+                                    window.location.href = 'requests.php';
+                                });
                             } else {
-                                Swal.fire({ title: 'Error', text: data.message || 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' });
+                                Swal.fire({
+                                    title: 'Error',
+                                    text: data.message || 'An error occurred while processing your request.',
+                                    icon: 'error',
+                                    confirmButtonColor: '#0ea5e9'
+                                });
                             }
                         })
-                        .catch(() => Swal.fire({ title: 'Error', text: 'An error occurred while processing your request.', icon: 'error', confirmButtonColor: '#0ea5e9' }));
+                        .catch(() => Swal.fire({
+                            title: 'Error',
+                            text: 'An error occurred while processing your request.',
+                            icon: 'error',
+                            confirmButtonColor: '#0ea5e9'
+                        }));
                 }
             });
         }
@@ -822,36 +941,54 @@ try {
         function populateFromApi(data) {
             // Build history array and deduplicate by role
             const historyMap = new Map();
-            
+
             // Add notes from individual fields
-            if (data.superior_review_notes && data.superior_review_notes.trim() !== '') { 
-                historyMap.set('Superior', { role: 'Superior', notes: data.superior_review_notes }); 
+            if (data.superior_review_notes && data.superior_review_notes.trim() !== '') {
+                historyMap.set('Superior', {
+                    role: 'Superior',
+                    notes: data.superior_review_notes
+                });
             }
-            if (data.help_desk_review_notes && data.help_desk_review_notes.trim() !== '') { 
-                historyMap.set('Help Desk', { role: 'Help Desk', notes: data.help_desk_review_notes }); 
+            if (data.help_desk_review_notes && data.help_desk_review_notes.trim() !== '') {
+                historyMap.set('Help Desk', {
+                    role: 'Help Desk',
+                    notes: data.help_desk_review_notes
+                });
             }
-            if (data.technical_review_notes && data.technical_review_notes.trim() !== '') { 
-                historyMap.set('Technical Support', { role: 'Technical Support', notes: data.technical_review_notes }); 
+            if (data.technical_review_notes && data.technical_review_notes.trim() !== '') {
+                historyMap.set('Technical Support', {
+                    role: 'Technical Support',
+                    notes: data.technical_review_notes
+                });
             }
-            if (data.process_owner_review_notes && data.process_owner_review_notes.trim() !== '') { 
-                historyMap.set('Process Owner', { role: 'Process Owner', notes: data.process_owner_review_notes }); 
+            if (data.process_owner_review_notes && data.process_owner_review_notes.trim() !== '') {
+                historyMap.set('Process Owner', {
+                    role: 'Process Owner',
+                    notes: data.process_owner_review_notes
+                });
             }
-            if (data.admin_review_notes && data.admin_review_notes.trim() !== '') { 
-                historyMap.set('Admin', { role: 'Admin', notes: data.admin_review_notes }); 
+            if (data.admin_review_notes && data.admin_review_notes.trim() !== '') {
+                historyMap.set('Admin', {
+                    role: 'Admin',
+                    notes: data.admin_review_notes
+                });
             }
-            
+
             // Also merge API-provided review_history list if present (this will override duplicates)
             if (Array.isArray(data.review_history)) {
                 data.review_history.forEach(r => {
                     if (r && r.role && r.note) {
-                        historyMap.set(r.role, { role: r.role, notes: r.note });
+                        historyMap.set(r.role, {
+                            role: r.role,
+                            notes: r.note
+                        });
                     }
                 });
             }
-            
+
             // Convert map to array for rendering
             const history = Array.from(historyMap.values());
-            
+
             // Render only the review history
             try {
                 const wrap = document.getElementById('modalReviewHistory');
@@ -892,12 +1029,23 @@ try {
                 });
             }
             // Close on Escape
-            document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { window.hideApprovalModal && window.hideApprovalModal(); } });
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    window.hideApprovalModal && window.hideApprovalModal();
+                }
+            });
             // Close when clicking backdrop
             const m = document.getElementById('approvalModal');
-            if (m) { m.addEventListener('click', function(e){ if (e.target === m) { window.hideApprovalModal && window.hideApprovalModal(); } }); }
+            if (m) {
+                m.addEventListener('click', function(e) {
+                    if (e.target === m) {
+                        window.hideApprovalModal && window.hideApprovalModal();
+                    }
+                });
+            }
         });
     </script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

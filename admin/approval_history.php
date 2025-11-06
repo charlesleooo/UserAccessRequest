@@ -11,7 +11,7 @@ if (!isset($_SESSION['admin_id'])) {
 // Get approval history
 try {
     // Show only the latest history entry per access_request_number to avoid duplicates
-    $sql = "SELECT h.*, a.username as admin_username, e.employee_name as admin_name
+    $sql = "SELECT h.*, a.username as admin_username, e.employee_name as admin_name, ar.id as request_id
             FROM uar.approval_history h
             INNER JOIN (
                 SELECT access_request_number, MAX(history_id) AS latest_id
@@ -20,6 +20,7 @@ try {
             ) latest ON latest.latest_id = h.history_id
             LEFT JOIN uar.admin_users a ON h.admin_id = a.id
             LEFT JOIN uar.employees e ON a.username = e.employee_id
+            LEFT JOIN uar.access_requests ar ON h.access_request_number = ar.access_request_number
             ORDER BY h.created_at DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
@@ -128,14 +129,12 @@ try {
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Access Type</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Testing</th>
                                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Review Date</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php foreach ($history as $entry): ?>
-                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location.href='view_history.php?id=<?php echo $entry['history_id']; ?>'">
+                                    <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location.href='view_request.php?id=<?php echo $entry['request_id']; ?>&from_history=true'">
                                         <td class="px-4 py-4 whitespace-nowrap">
                                             <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($entry['access_request_number']); ?></div>
                                         </td>
@@ -160,29 +159,8 @@ try {
                                             </span>
                                         </td>
                                         <td class="px-4 py-4 whitespace-nowrap">
-                                            <?php if (!empty($entry['testing_status'])): ?>
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                                <?php echo $entry['testing_status'] === 'success' ? 'bg-blue-100 text-blue-800' : ($entry['testing_status'] === 'failed' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'); ?>">
-                                                    <?php echo $entry['testing_status'] === 'success' ? 'Successful' : ($entry['testing_status'] === 'failed' ? 'Failed' : ($entry['testing_status'] === 'not_required' ? 'Not Required' : ucfirst($entry['testing_status']))); ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-sm text-gray-500">-</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="px-4 py-4 whitespace-nowrap">
                                             <div class="text-sm text-gray-500">
                                                 <?php echo date('M d, Y', strtotime($entry['created_at'])); ?>
-                                            </div>
-                                        </td>
-                                        <td class="px-4 py-4 whitespace-nowrap">
-                                            <div class="flex space-x-2">
-                                                <a href="tcpdf_print_record.php?id=<?php echo $entry['history_id']; ?>"
-                                                    class="flex items-center px-3 py-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors"
-                                                    target="_blank"
-                                                    onclick="event.stopPropagation();">
-                                                    <i class='bx bx-printer text-lg'></i>
-                                                    <span class="ml-1 text-sm">Print</span>
-                                                </a>
                                             </div>
                                         </td>
                                     </tr>
