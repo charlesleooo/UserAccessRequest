@@ -37,7 +37,7 @@ if (isset($_GET['id'])) {
 try {
     if ($fromHistory && $accessRequestNumber) {
         // When coming from history, we have access_request_number already set
-        
+
         // Get the request details from approval_history first, then access_requests as fallback
         $mainQuery = "SELECT TOP 1 ah.history_id as id, ah.access_request_number,
                             ah.requestor_name, ah.business_unit, ah.department,
@@ -74,7 +74,7 @@ try {
                              LEFT JOIN uar.employees e ON ar.employee_id = e.employee_id
                              WHERE ar.access_request_number = :access_request_number
                              AND ar.superior_id IS NOT NULL";
-            
+
             $stmt = $pdo->prepare($fallbackQuery);
             $stmt->execute([':access_request_number' => $accessRequestNumber]);
             $historyRequest = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -122,7 +122,7 @@ try {
     } else {
         // When coming from pending requests, we have ID
         $requestIdInt = intval($requestId);
-        
+
         // First check if it's an individual or group request
         $checkQuery = "SELECT COUNT(*) as count FROM uar.individual_requests WHERE access_request_number = (
                         SELECT access_request_number FROM uar.access_requests WHERE id = :request_id
@@ -247,9 +247,9 @@ try {
 <body class="bg-gray-50 font-sans">
 
     <!-- Sidebar -->
-    <?php 
+    <?php
     $current_page = basename($_SERVER['PHP_SELF']);
-    include 'sidebar.php'; 
+    include 'sidebar.php';
     ?>
 
     <!-- Main Content -->
@@ -262,8 +262,8 @@ try {
                     <p class="text-white text-lg mt-1">Request #<?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></p>
                 </div>
                 <div data-aos="fade-left" data-aos-duration="800" class="flex space-x-2">
-                    <a href="<?php echo $fromHistory ? 'review_history.php' : 'requests.php'; ?>" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
-                        <i class='bx bx-arrow-back mr-2'></i> Back to <?php echo $fromHistory ? 'Review History' : 'Requests'; ?>
+                    <a href="<?php echo $fromHistory ? 'request_history.php' : 'requests.php'; ?>" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        <i class='bx bx-arrow-back mr-2'></i> Back to <?php echo $fromHistory ? 'Request History' : 'Requests'; ?>
                     </a>
                     <?php if ($request['status'] === 'pending_superior'): ?>
                         <button onclick="showApprovalModal()" class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
@@ -275,7 +275,18 @@ try {
         </div>
 
         <!-- Your Review Section (for approved/rejected requests from history) -->
-        <?php if ($fromHistory && !empty($request['superior_notes'])): ?>
+        <?php if ($fromHistory && !empty($request['superior_notes'])):
+            // Determine the superior's actual action
+            // If request was rejected AND no help_desk review happened, then superior rejected it
+            // Otherwise, superior approved/forwarded it
+            $superiorRejected = false;
+            if ($request['status'] === 'rejected') {
+                // Check if help_desk reviewed after superior
+                $superiorRejected = empty($request['help_desk_review_date']) || empty($request['help_desk_notes']);
+            }
+            $superiorAction = $superiorRejected ? 'Rejected' : 'Approved/Forwarded';
+            $actionClass = $superiorRejected ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800';
+        ?>
             <div class="p-6">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100 flex items-center">
@@ -287,9 +298,8 @@ try {
                             <div class="space-y-3">
                                 <div class="flex justify-between items-center">
                                     <span class="text-gray-600">Action:</span>
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                        <?php echo ($request['status'] === 'rejected') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'; ?>">
-                                        <?php echo ($request['status'] === 'rejected') ? 'Rejected' : 'Approved/Forwarded'; ?>
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $actionClass; ?>">
+                                        <?php echo $superiorAction; ?>
                                     </span>
                                 </div>
                                 <div class="flex justify-between">
@@ -345,7 +355,7 @@ try {
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <div class="space-y-3">
                             <div class="flex justify-between">
-                                <span class="text-gray-600">Business Unit:</span>
+                                <span class="text-gray-600">Company:</span>
                                 <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
                             </div>
                             <div class="flex justify-between">
@@ -603,8 +613,8 @@ try {
                     <div class="flex-1 text-center">
                         <h3 class="text-xl font-semibold text-gray-800 flex items-center justify-center">
                             <i class='bx bx-check-circle text-green-600 text-2xl mr-2'></i>
-                        Your Review
-                    </h3>
+                            Your Review
+                        </h3>
                     </div>
                     <button onclick="hideApprovalModal()" class="text-gray-500 hover:text-gray-700">
                         <i class='bx bx-x text-2xl'></i>
@@ -612,30 +622,30 @@ try {
                 </div>
                 <div class="p-6">
                     <form id="approvalForm">
-                            <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
-                            <div class="mb-4">
+                        <input type="hidden" name="request_id" value="<?php echo $requestId; ?>">
+                        <div class="mb-4">
                             <label for="modal_review_notes" class="block text-sm font-medium text-gray-700 mb-2">Review Notes</label>
-                            <textarea id="modal_review_notes" name="review_notes" rows="4" 
-                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" 
+                            <textarea id="modal_review_notes" name="review_notes" rows="4"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 placeholder="Enter your review notes..."></textarea>
-                            </div>
+                        </div>
                         <div class="flex justify-end space-x-3">
-                            <button type="button" onclick="hideApprovalModal()" 
+                            <button type="button" onclick="hideApprovalModal()"
                                 class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                                 Cancel
                             </button>
-                            <button type="button" onclick="handleApproval('decline')" 
+                            <button type="button" onclick="handleApproval('decline')"
                                 class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors">
-                                    <i class='bx bx-x-circle mr-2'></i> Reject
-                                </button>
-                            <button type="button" onclick="handleApproval('approve')" 
+                                <i class='bx bx-x-circle mr-2'></i> Reject
+                            </button>
+                            <button type="button" onclick="handleApproval('approve')"
                                 class="px-4 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors">
-                                    <i class='bx bx-check-circle mr-2'></i> Recommend
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                                <i class='bx bx-check-circle mr-2'></i> Recommend
+                            </button>
+                        </div>
+                    </form>
                 </div>
+            </div>
         </div>
     </div>
 
@@ -693,7 +703,7 @@ try {
                 if (result.isConfirmed) {
                     // Hide the modal first
                     hideApprovalModal();
-                    
+
                     // Show loading state
                     Swal.fire({
                         title: 'Processing...',
@@ -754,4 +764,5 @@ try {
     </script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

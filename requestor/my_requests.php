@@ -600,11 +600,6 @@ try {
                                                     <i class='bx bx-test-tube mr-1'></i> Test
                                                 </a>
                                             <?php endif; ?>
-                                            <?php if ($status === 'pending' || ($status !== 'approved' && $status !== 'rejected' && !$adminReviewDate)): ?>
-                                                <button class="cancel-request inline-flex items-center px-3 py-1.5 text-red-600 hover:text-red-800 transition-colors" data-id="<?php echo $request['id']; ?>">
-
-                                                </button>
-                                            <?php endif; ?>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -657,13 +652,12 @@ try {
             document.querySelectorAll('#requestsTable tbody tr').forEach(row => {
                 row.style.cursor = 'pointer';
                 row.addEventListener('click', function(e) {
-                    // Don't navigate if clicking on action buttons
-                    if (e.target.closest('.cancel-request') || e.target.closest('a')) {
+                    // Don't navigate if clicking on action links
+                    if (e.target.closest('a')) {
                         return;
                     }
 
-                    const requestId = this.querySelector('.cancel-request')?.getAttribute('data-id') ||
-                        this.querySelector('a')?.href.split('=').pop();
+                    const requestId = this.querySelector('a')?.href.split('=').pop();
 
                     if (requestId) {
                         window.location.href = 'view_request.php?id=' + requestId;
@@ -672,16 +666,6 @@ try {
             });
 
             // Show success/error messages
-            <?php if (isset($_GET['success']) && $_GET['success'] === 'cancelled'): ?>
-                Swal.fire({
-                    title: 'Success!',
-                    text: 'Your request has been cancelled successfully.',
-                    icon: 'success',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-            <?php endif; ?>
-
             <?php if (isset($_GET['error'])): ?>
                 Swal.fire({
                     title: 'Error!',
@@ -689,8 +673,6 @@ try {
                             $errorMsg = 'An error occurred. Please try again.';
                             if ($_GET['error'] === 'not_found') {
                                 $errorMsg = 'Request not found.';
-                            } elseif ($_GET['error'] === 'cannot_cancel') {
-                                $errorMsg = 'This request cannot be cancelled.';
                             } elseif ($_GET['error'] === 'invalid_request') {
                                 $errorMsg = 'Invalid request.';
                             }
@@ -699,15 +681,6 @@ try {
                     icon: 'error'
                 });
             <?php endif; ?>
-
-            // Setup cancel request buttons
-            document.querySelectorAll('.cancel-request').forEach(button => {
-                button.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const requestId = this.getAttribute('data-id');
-                    cancelRequest(requestId);
-                });
-            });
 
             // Setup DataTable if there's data
             if (document.getElementById('requestsTable')) {
@@ -779,67 +752,6 @@ try {
             // updateTime();
             // setInterval(updateTime, 1000);
         });
-
-        // Unified cancel request function that works with both onclick and event listeners
-        function cancelRequest(requestId) {
-            Swal.fire({
-                title: 'Cancel Request',
-                html: `
-                <div class="mb-4">
-                    <label for="reason" class="block text-sm font-medium text-gray-700 mb-2 text-left">
-                        Please provide a reason for cancellation
-                    </label>
-                    <textarea id="reason" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        rows="4" placeholder="Enter your reason for cancellation..."></textarea>
-                </div>
-            `,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Yes, cancel it!',
-                cancelButtonText: 'No, keep it',
-                preConfirm: () => {
-                    const reason = document.getElementById('reason').value;
-                    if (!reason) {
-                        Swal.showValidationMessage('Please provide a cancellation reason');
-                        return false;
-                    }
-                    return reason;
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Show loading modal
-                    Swal.fire({
-                        title: 'Processing Cancellation',
-                        html: `
-                        <div class="text-center">
-                            <div class="mb-4">
-                                <i class="bx bx-loader-alt bx-spin text-4xl text-primary-600"></i>
-                            </div>
-                            <p class="text-gray-600">Please wait while your request is being cancelled...</p>
-                        </div>
-                    `,
-                        allowOutsideClick: false,
-                        showConfirmButton: false
-                    });
-
-                    // Create a form and submit it
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = 'cancel_request.php?id=' + requestId;
-
-                    const reasonInput = document.createElement('input');
-                    reasonInput.type = 'hidden';
-                    reasonInput.name = 'reason';
-                    reasonInput.value = result.value;
-
-                    form.appendChild(reasonInput);
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
-        }
     </script>
     <?php include '../footer.php'; ?>
 

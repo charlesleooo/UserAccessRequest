@@ -23,7 +23,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!empty($_POST['start_date'])) $filters['start_date'] = $_POST['start_date'];
     if (!empty($_POST['end_date'])) $filters['end_date'] = $_POST['end_date'];
-    if (!empty($_POST['business_unit'])) $filters['business_unit'] = $_POST['business_unit'];
+    if (!empty($_POST['company'])) $filters['business_unit'] = $_POST['company'];
     if (!empty($_POST['department'])) $filters['department'] = $_POST['department'];
     if (!empty($_POST['system_type'])) $filters['system_type'] = $_POST['system_type'];
 }
@@ -43,13 +43,13 @@ $isFiltersOpen = !empty($filters);
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <!-- Flowbite CSS -->
     <link href="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.css" rel="stylesheet" />
-    
+
     <!-- Boxicons -->
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
-    
+
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -72,7 +72,7 @@ $isFiltersOpen = !empty($filters);
                             900: '#0c4a6e',
                             950: '#082f49',
                         },
-                        }
+                    }
                 }
             }
         }
@@ -94,16 +94,16 @@ $isFiltersOpen = !empty($filters);
         <!-- Main Content -->
         <div class="flex-1 lg:ml-72">
             <!-- Header -->
-            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
                 <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-4">
                     <div>
-                        <h2 class="text-xl md:text-2xl font-bold text-white">Analytics</h2>
+                        <h2 class="text-2xl md:text-3xl font-bold text-white">Analytics</h2>
                     </div>
                     <div class="flex items-center gap-4">
                         <form id="downloadForm" action="generate_report.php" method="POST" target="_blank" style="display: inline;">
                             <input type="hidden" name="start_date" value="<?php echo $_POST['start_date'] ?? ''; ?>">
                             <input type="hidden" name="end_date" value="<?php echo $_POST['end_date'] ?? ''; ?>">
-                            <input type="hidden" name="business_unit" value="<?php echo $_POST['business_unit'] ?? ''; ?>">
+                            <input type="hidden" name="company" value="<?php echo $_POST['company'] ?? ''; ?>">
                             <input type="hidden" name="department" value="<?php echo $_POST['department'] ?? ''; ?>">
                             <input type="hidden" name="system_type" value="<?php echo $_POST['system_type'] ?? ''; ?>">
                             <button type="submit" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
@@ -125,7 +125,7 @@ $isFiltersOpen = !empty($filters);
                                 <span class="text-lg">Filters & Options</span>
                             </span>
                             <svg data-accordion-icon class="w-3 h-3 rotate-180 shrink-0" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 10 6">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5 5 1 1 5"/>
+                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5 5 1 1 5" />
                             </svg>
                         </button>
                     </h2>
@@ -140,82 +140,82 @@ $isFiltersOpen = !empty($filters);
                                         </label>
                                         <div class="flex gap-2">
                                             <div date-rangepicker class="flex items-center gap-2 w-full">
-                                                <input type="date" name="start_date" 
-                                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                                                       placeholder="Start date"
-                                                       value="<?php echo $_POST['start_date'] ?? ''; ?>">
+                                                <input type="date" name="start_date"
+                                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                                    placeholder="Start date"
+                                                    value="<?php echo $_POST['start_date'] ?? ''; ?>">
                                                 <span class="text-gray-500">to</span>
-                                                <input type="date" name="end_date" 
-                                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-                                                       placeholder="End date"
-                                                       value="<?php echo $_POST['end_date'] ?? ''; ?>">
+                                                <input type="date" name="end_date"
+                                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                                                    placeholder="End date"
+                                                    value="<?php echo $_POST['end_date'] ?? ''; ?>">
                                             </div>
-                            </div>
-                        </div>
+                                        </div>
+                                    </div>
 
-                                    <!-- Business Unit -->
-                                    <div>
-                                        <label for="business_unit" class="block mb-2 text-sm font-medium text-gray-900">
-                                            <i class='bx bx-buildings mr-1'></i>Business Unit
+                                    <!-- Company -->
+                                    <div class="mb-4">
+                                        <label for="company" class="block mb-2 text-sm font-medium text-gray-900">
+                                            <i class='bx bx-buildings mr-1'></i>Company
                                         </label>
-                                        <select id="business_unit" name="business_unit" 
-                                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                                <option value="">All Business Units</option>
-                                <?php foreach ($analyticsData['businessUnits'] as $unit): ?>
-                                    <option value="<?php echo htmlspecialchars($unit); ?>" <?php echo (isset($_POST['business_unit']) && $_POST['business_unit'] === $unit) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($unit); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                                        <select id="company" name="company"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                            <option value="">All Companies</option>
+                                            <?php foreach ($analyticsData['businessUnits'] as $unit): ?>
+                                                <option value="<?php echo htmlspecialchars($unit); ?>" <?php echo (isset($_POST['company']) && $_POST['company'] === $unit) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($unit); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
 
                                     <!-- Department -->
                                     <div>
                                         <label for="department" class="block mb-2 text-sm font-medium text-gray-900">
                                             <i class='bx bx-group mr-1'></i>Department
                                         </label>
-                                        <select id="department" name="department" 
-                                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                                <option value="">All Departments</option>
-                                <?php foreach ($analyticsData['departments'] as $dept): ?>
-                                    <option value="<?php echo htmlspecialchars($dept); ?>" <?php echo (isset($_POST['department']) && $_POST['department'] === $dept) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($dept); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                                        <select id="department" name="department"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                            <option value="">All Departments</option>
+                                            <?php foreach ($analyticsData['departments'] as $dept): ?>
+                                                <option value="<?php echo htmlspecialchars($dept); ?>" <?php echo (isset($_POST['department']) && $_POST['department'] === $dept) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($dept); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
 
                                     <!-- System Type -->
                                     <div>
                                         <label for="system_type" class="block mb-2 text-sm font-medium text-gray-900">
                                             <i class='bx bx-server mr-1'></i>System Type
                                         </label>
-                                        <select id="system_type" name="system_type" 
-                                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                                <option value="">All System Types</option>
-                                <?php foreach ($analyticsData['systemTypes'] as $type): ?>
-                                    <option value="<?php echo htmlspecialchars($type); ?>" <?php echo (isset($_POST['system_type']) && $_POST['system_type'] === $type) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($type); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                                        <select id="system_type" name="system_type"
+                                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                                            <option value="">All System Types</option>
+                                            <?php foreach ($analyticsData['systemTypes'] as $type): ?>
+                                                <option value="<?php echo htmlspecialchars($type); ?>" <?php echo (isset($_POST['system_type']) && $_POST['system_type'] === $type) ? 'selected' : ''; ?>>
+                                                    <?php echo htmlspecialchars($type); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
                                 </div>
 
                                 <!-- Action Buttons -->
                                 <div class="flex items-center justify-end gap-3">
-                                    <button type="reset" 
-                                            class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 inline-flex items-center gap-2">
+                                    <button type="reset"
+                                        class="text-gray-900 bg-white border border-gray-300 focus:outline-none hover:bg-gray-100 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 inline-flex items-center gap-2">
                                         <i class='bx bx-reset'></i>
-                                Reset Filters
-                            </button>
-                                    <button type="submit" 
-                                            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 inline-flex items-center gap-2">
+                                        Reset Filters
+                                    </button>
+                                    <button type="submit"
+                                        class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 inline-flex items-center gap-2">
                                         <i class='bx bx-search-alt'></i>
-                                Apply Filters
-                            </button>
-                        </div>
-                    </form>
+                                        Apply Filters
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -299,16 +299,16 @@ $isFiltersOpen = !empty($filters);
                         </div>
                     </div>
 
-                    <!-- Business Unit Performance Chart -->
+                    <!-- Company Performance Chart -->
                     <div class="block p-6 bg-white border border-gray-200 rounded-lg shadow lg:col-span-2">
                         <div class="flex items-center justify-between mb-5">
-                            <h5 class="text-xl font-bold leading-none text-gray-900">Business Unit Performance</h5>
+                            <h5 class="text-xl font-bold leading-none text-gray-900">Company Performance</h5>
                             <span class="text-sm font-medium text-blue-600 hover:underline cursor-pointer">
                                 <i class='bx bx-bar-chart-alt-2'></i>
                             </span>
                         </div>
                         <div class="flow-root">
-                            <canvas id="businessUnitChart" height="200"></canvas>
+                            <canvas id="companyChart" height="200"></canvas>
                         </div>
                     </div>
                 </div>
@@ -336,7 +336,7 @@ $isFiltersOpen = !empty($filters);
                                         <div class="flex items-center">
                                             Approved
                                             <svg class="w-3 h-3 ms-1.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24">
-                                                <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"/>
+                                                <path d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z" />
                                             </svg>
                                         </div>
                                     </th>
@@ -456,26 +456,32 @@ $isFiltersOpen = !empty($filters);
             options: {
                 ...commonOptions,
                 scales: {
-                    x: { grid: { display: false } },
-                    y: { beginAtZero: true }
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true
+                    }
                 }
             }
         });
 
         // System Type Distribution Chart - Doughnut style like dashboard
         const systemTypeColors = [
-            'rgba(59, 130, 246, 0.9)',   // Blue
-            'rgba(16, 185, 129, 0.9)',   // Green
-            'rgba(249, 115, 22, 0.9)',   // Orange
-            'rgba(139, 92, 246, 0.9)',   // Purple
-            'rgba(236, 72, 153, 0.9)',   // Pink
-            'rgba(14, 165, 233, 0.9)',   // Sky Blue
-            'rgba(245, 158, 11, 0.9)',   // Amber
-            'rgba(239, 68, 68, 0.9)',    // Red
-            'rgba(168, 85, 247, 0.9)',   // Violet
-            'rgba(34, 197, 94, 0.9)'     // Emerald
+            'rgba(59, 130, 246, 0.9)', // Blue
+            'rgba(16, 185, 129, 0.9)', // Green
+            'rgba(249, 115, 22, 0.9)', // Orange
+            'rgba(139, 92, 246, 0.9)', // Purple
+            'rgba(236, 72, 153, 0.9)', // Pink
+            'rgba(14, 165, 233, 0.9)', // Sky Blue
+            'rgba(245, 158, 11, 0.9)', // Amber
+            'rgba(239, 68, 68, 0.9)', // Red
+            'rgba(168, 85, 247, 0.9)', // Violet
+            'rgba(34, 197, 94, 0.9)' // Emerald
         ];
-        
+
         new Chart(document.getElementById('systemTypeChart').getContext('2d'), {
             type: 'doughnut',
             data: {
@@ -535,8 +541,8 @@ $isFiltersOpen = !empty($filters);
             }
         });
 
-        // Business Unit Performance Chart
-        new Chart(document.getElementById('businessUnitChart').getContext('2d'), {
+        // Company Performance Chart
+        new Chart(document.getElementById('companyChart').getContext('2d'), {
             type: 'bar',
             data: {
                 labels: businessUnitData.map(item => item.business_unit),
@@ -581,7 +587,7 @@ $isFiltersOpen = !empty($filters);
                     ...commonOptions.plugins,
                     title: {
                         display: true,
-                        text: 'Approved vs Rejected Requests by Business Unit',
+                        text: 'Approved vs Rejected Requests by Company',
                         font: {
                             size: 14
                         }
@@ -621,4 +627,5 @@ $isFiltersOpen = !empty($filters);
     <script src="https://cdn.jsdelivr.net/npm/flowbite@2.5.1/dist/flowbite.min.js"></script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

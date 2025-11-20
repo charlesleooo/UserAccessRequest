@@ -17,7 +17,7 @@ if (
     exit();
 }
 
-// Get all requests pending technical review
+// Get only pending requests
 try {
     $sql = "SELECT ar.*, 
             CASE 
@@ -38,35 +38,11 @@ try {
             )) as date_needed
             FROM uar.access_requests ar
             WHERE ar.status IN ('pending_help_desk', 'pending_technical', 'pending_testing_setup', 'pending_testing_review')
-            ORDER BY ar.submission_date DESC";
+            ORDER BY ar.access_request_number DESC";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Check if any approved requests with successful testing should be removed from access_requests
-    foreach ($requests as $index => $request) {
-        if ($request['status'] === 'approved' && $request['testing_status'] === 'success') {
-            // Check if this request has already been moved to approval history
-            $checkSql = "SELECT COUNT(*) FROM uar.approval_history WHERE access_request_number = ?";
-            $checkStmt = $pdo->prepare($checkSql);
-            $checkStmt->execute([$request['access_request_number']]);
-            $exists = $checkStmt->fetchColumn();
-
-            if ($exists > 0) {
-                // Remove from the results array as it's already in approval history
-                unset($requests[$index]);
-
-                // Also remove from access_requests table to ensure consistency
-                $deleteSql = "DELETE FROM uar.access_requests WHERE id = ?";
-                $deleteStmt = $pdo->prepare($deleteSql);
-                $deleteStmt->execute([$request['id']]);
-            }
-        }
-    }
-
-    // Re-index the array after removing elements
-    $requests = array_values($requests);
 } catch (PDOException $e) {
     $_SESSION['error_message'] = "Error fetching requests: " . $e->getMessage();
     $requests = [];
@@ -117,34 +93,49 @@ try {
         <!-- Main Content -->
         <div class="flex-1 lg:ml-72">
             <!-- Header -->
-            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
                 <div class="px-4 md:px-8 py-4">
-                    <h1 class="text-xl md:text-2xl font-bold text-white">Requests</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold text-white">Pending Requests</h1>
                 </div>
             </div>
 
             <!-- Content -->
             <div class="p-4 md:p-8">
+                <!-- Pending Requests -->
                 <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-800">Pending Requests</h2>
+                    </div>
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit Entity</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day/s Since</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 <?php if (!empty($requests)): ?>
                                     <?php foreach ($requests as $request): ?>
-                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='view_request.php?id=<?php echo $request['id']; ?>'">
+                                        <?php
+                                        // Row click URL for pending requests
+                                        $rowUrl = "view_request.php?id=" . urlencode($request['id']);
+                                        // Days since submission
+                                        $submission_date = new DateTime($request['submission_date']);
+                                        $today = new DateTime();
+                                        $submission_date->setTime(0, 0, 0);
+                                        $today->setTime(0, 0, 0);
+                                        $days_diff = $today->diff($submission_date)->days;
+                                        // Badge color for pending requests
+                                        $badgeClass = 'bg-blue-100 text-blue-800';
+                                        ?>
+                                        <tr class="hover:bg-gray-50 cursor-pointer" onclick="window.location='<?= $rowUrl ?>'">
                                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                                 <?php echo htmlspecialchars($request['access_request_number']); ?>
                                             </td>
@@ -161,32 +152,22 @@ try {
                                                 <?php echo date('M d, Y', strtotime($request['submission_date'])); ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo $request['date_needed'] ? date('M d, Y', strtotime($request['date_needed'])) : 'N/A'; ?>
+                                                <?php echo !empty($request['date_needed']) ? date('M d, Y', strtotime($request['date_needed'])) : 'N/A'; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php
-                                                $submission_date = new DateTime($request['submission_date']);
-                                                $today = new DateTime();
-                                                $submission_date->setTime(0, 0, 0);
-                                                $today->setTime(0, 0, 0);
-                                                $days_diff = $today->diff($submission_date)->days;
-                                                echo $days_diff . ' days';
-                                                ?>
+                                                <?php echo $days_diff . ' day/s'; ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap">
-                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full <?php echo $badgeClass; ?>">
                                                     <?php echo htmlspecialchars($request['status_display']); ?>
                                                 </span>
-                                            </td>
-                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                                <!-- Action buttons will be moved to modal -->
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>
                                 <?php else: ?>
                                     <tr>
-                                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">
-                                            No pending reviews found
+                                        <td colspan="8" class="px-6 py-4 text-center text-gray-500">
+                                            No requests found
                                         </td>
                                     </tr>
                                 <?php endif; ?>
@@ -287,7 +268,7 @@ try {
                                 </h3>
                                 <div class="space-y-3">
                                     <div class="flex justify-between"><span class="text-gray-600">Name:</span><span class="font-medium text-gray-900">${data.requestor_name}</span></div>
-                                    <div class="flex justify-between"><span class="text-gray-600">Business Unit:</span><span class="font-medium text-gray-900">${data.business_unit}</span></div>
+                                    <div class="flex justify-between"><span class="text-gray-600">Company:</span><span class="font-medium text-gray-900">${data.business_unit}</span></div>
                                     <div class="flex justify-between"><span class="text-gray-600">Department:</span><span class="font-medium text-gray-900">${data.department}</span></div>
                                     <div class="flex justify-between"><span class="text-gray-600">Email:</span><span class="font-medium text-gray-900">${data.email}</span></div>
                                     <div class="flex justify-between"><span class="text-gray-600">Employee ID:</span><span class="font-medium text-gray-900">${data.employee_id}</span></div>
@@ -816,4 +797,5 @@ try {
     </script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

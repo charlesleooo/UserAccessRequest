@@ -129,9 +129,9 @@ try {
         <!-- Main Content -->
         <div class="flex-1 lg:ml-72">
             <!-- Header -->
-            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
                 <div class="px-4 md:px-8 py-4">
-                    <h1 class="text-xl md:text-2xl font-bold text-white">Dashboard</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold text-white">Dashboard</h1>
                 </div>
             </div>
 
@@ -314,7 +314,7 @@ try {
                                      ORDER BY count DESC";
                         $deptStmt = $pdo->query($deptQuery);
                         $topDepartments = $deptStmt->fetchAll(PDO::FETCH_ASSOC);
-                        
+
                         if (!empty($topDepartments)) {
                             foreach ($topDepartments as $index => $dept) {
                                 $colors = [
@@ -324,20 +324,20 @@ try {
                                 ];
                                 $color = $colors[$index];
                         ?>
-                            <div class="border <?php echo $color['border']; ?> rounded-lg p-4 <?php echo $color['bg']; ?>">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex-1">
-                                        <p class="text-sm font-medium <?php echo $color['text']; ?> truncate"><?php echo htmlspecialchars($dept['department']); ?></p>
-                                        <p class="text-2xl font-bold <?php echo $color['text']; ?> mt-1"><?php echo number_format($dept['count']); ?></p>
-                                        <p class="text-xs text-gray-600 mt-1">Requests</p>
-                                    </div>
-                                    <div class="<?php echo $color['bg']; ?> p-2 rounded-lg">
-                                        <svg class="w-6 h-6 <?php echo $color['text']; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-                                        </svg>
+                                <div class="border <?php echo $color['border']; ?> rounded-lg p-4 <?php echo $color['bg']; ?>">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium <?php echo $color['text']; ?> truncate"><?php echo htmlspecialchars($dept['department']); ?></p>
+                                            <p class="text-2xl font-bold <?php echo $color['text']; ?> mt-1"><?php echo number_format($dept['count']); ?></p>
+                                            <p class="text-xs text-gray-600 mt-1">Requests</p>
+                                        </div>
+                                        <div class="<?php echo $color['bg']; ?> p-2 rounded-lg">
+                                            <svg class="w-6 h-6 <?php echo $color['text']; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                            </svg>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
                         <?php
                             }
                         } else {
@@ -361,7 +361,7 @@ try {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
@@ -435,7 +435,7 @@ try {
                       ORDER BY date";
         $trendStmt = $pdo->query($trendQuery);
         $trendData = $trendStmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $trendLabels = [];
         $trendCounts = [];
         foreach ($trendData as $row) {
@@ -443,7 +443,7 @@ try {
             $trendCounts[] = (int)$row['count'];
         }
         ?>
-        
+
         const trendCtx = document.getElementById('requestTrendsChart').getContext('2d');
         new Chart(trendCtx, {
             type: 'line',
@@ -502,7 +502,7 @@ try {
         $systemQuery = "SELECT system_type FROM uar.access_requests WHERE system_type IS NOT NULL";
         $systemStmt = $pdo->query($systemQuery);
         $allSystemTypes = $systemStmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         $systemCounts = [];
         foreach ($allSystemTypes as $row) {
             // Split by comma and trim each value
@@ -516,15 +516,15 @@ try {
                 }
             }
         }
-        
+
         // Sort by count and get top 5
         arsort($systemCounts);
         $systemCounts = array_slice($systemCounts, 0, 5, true);
-        
+
         $systemLabels = array_keys($systemCounts);
         $systemValues = array_values($systemCounts);
         ?>
-        
+
         const systemCtx = document.getElementById('systemDistributionChart').getContext('2d');
         new Chart(systemCtx, {
             type: 'doughnut',
@@ -533,11 +533,11 @@ try {
                 datasets: [{
                     data: <?php echo json_encode($systemValues); ?>,
                     backgroundColor: [
-                        'rgba(59, 130, 246, 0.8)',   // Blue
-                        'rgba(16, 185, 129, 0.8)',   // Green
-                        'rgba(249, 115, 22, 0.8)',   // Orange
-                        'rgba(139, 92, 246, 0.8)',   // Purple
-                        'rgba(236, 72, 153, 0.8)'    // Pink
+                        'rgba(59, 130, 246, 0.8)', // Blue
+                        'rgba(16, 185, 129, 0.8)', // Green
+                        'rgba(249, 115, 22, 0.8)', // Orange
+                        'rgba(139, 92, 246, 0.8)', // Purple
+                        'rgba(236, 72, 153, 0.8)' // Pink
                     ],
                     borderColor: '#fff',
                     borderWidth: 2
@@ -591,7 +591,8 @@ try {
             }
         });
     </script>
-    
+
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

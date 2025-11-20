@@ -18,7 +18,7 @@ if (
 }
 
 // Get the admin_users.id for this user to ensure correct filtering
-    $adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
+$adminQuery = $pdo->prepare("SELECT id FROM uar.admin_users WHERE username = :username OR username = :employee_id");
 $adminQuery->execute([
     'username' => $_SESSION['admin_username'] ?? '',
     'employee_id' => $_SESSION['admin_id'] ?? ''
@@ -56,7 +56,7 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['current_admin_id' => $current_admin_id]);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
 
     // Check if any approved requests with successful testing should be removed from access_requests
     foreach ($requests as $index => $request) {
@@ -146,7 +146,7 @@ try {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
@@ -343,7 +343,7 @@ try {
                                         <span class="font-medium text-gray-900">${data.requestor_name}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-gray-600">Business Unit:</span>
+                                        <span class="text-gray-600">Company:</span>
                                         <span class="font-medium text-gray-900">${data.business_unit}</span>
                                     </div>
                                     <div class="flex justify-between">
@@ -595,4 +595,5 @@ try {
     </script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

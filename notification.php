@@ -1,11 +1,13 @@
 <?php
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/vendor/autoload.php';
 
-function sendConfirmationEmail($formData) {
+function sendConfirmationEmail($formData)
+{
     $mail = new PHPMailer(true);
 
     try {
@@ -39,7 +41,7 @@ function sendConfirmationEmail($formData) {
                     <td style='border: 1px solid #ddd; padding: 8px;'>{$formData['requestor_name']}</td>
                 </tr>
                 <tr>
-                    <td style='border: 1px solid #ddd; padding: 8px;'><strong>Business Unit:</strong></td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'><strong>Company:</strong></td>
                     <td style='border: 1px solid #ddd; padding: 8px;'>{$formData['business_unit']}</td>
                 </tr>
                 <tr>
@@ -68,10 +70,10 @@ function sendConfirmationEmail($formData) {
                 </tr>
                 <tr>
                     <td style='border: 1px solid #ddd; padding: 8px;'><strong>Access Duration:</strong></td>
-                    <td style='border: 1px solid #ddd; padding: 8px;'>" . 
-                    ($formData['duration_type'] == 'permanent' ? 'Permanent' : 
-                    "Temporary (From {$formData['start_date']} to {$formData['end_date']})") . 
-                    "</td>
+                    <td style='border: 1px solid #ddd; padding: 8px;'>" .
+            ($formData['duration_type'] == 'permanent' ? 'Permanent' :
+                "Temporary (From {$formData['start_date']} to {$formData['end_date']})") .
+            "</td>
                 </tr>
                 <tr>
                     <td style='border: 1px solid #ddd; padding: 8px;'><strong>Justification:</strong></td>
@@ -97,7 +99,8 @@ function sendConfirmationEmail($formData) {
     }
 }
 
-function sendHelpDeskNotification($requestData) {
+function sendHelpDeskNotification($requestData)
+{
     $mail = new PHPMailer(true);
 
     try {
@@ -112,18 +115,18 @@ function sendHelpDeskNotification($requestData) {
 
         // Email content preparation
         $mail->setFrom(SMTP_FROM_EMAIL ?: SMTP_USERNAME, SMTP_FROM_NAME);
-        
+
         // Add help desk recipients
         $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
         $stmt = $pdo->prepare("SELECT username as email, username FROM admin_users WHERE role = 'help_desk'");
         $stmt->execute();
         $helpDeskUsers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
+
         if (empty($helpDeskUsers)) {
             error_log("No help desk users found to notify");
             return false;
         }
-        
+
         foreach ($helpDeskUsers as $user) {
             if (!empty($user['email'])) {
                 $mail->addAddress($user['email'], $user['username']);
@@ -205,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Sanitize and validate input
         $formData = [
             'requestor_name' => filter_input(INPUT_POST, 'requestor_name', FILTER_SANITIZE_STRING),
-            'business_unit' => filter_input(INPUT_POST, 'business_unit', FILTER_SANITIZE_STRING),
+            'business_unit' => filter_input(INPUT_POST, 'company', FILTER_SANITIZE_STRING),
             'access_request_number' => filter_input(INPUT_POST, 'access_request_number', FILTER_SANITIZE_NUMBER_INT),
             'department' => filter_input(INPUT_POST, 'department', FILTER_SANITIZE_STRING),
             'email' => filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL),
@@ -251,4 +254,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 }
-?>

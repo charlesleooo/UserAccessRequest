@@ -337,15 +337,15 @@ try {
     <!-- Main Content -->
     <div class="flex-1 lg:ml-72 transition-all duration-300">
         <!-- Header -->
-        <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10 shadow-sm">
+        <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
             <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-6 py-4 gap-3">
                 <div>
-                    <h2 class="text-2xl md:text-4xl font-bold text-white"><?php echo $fromHistory ? 'Review History Details' : 'View Request Details'; ?></h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-white"><?php echo $fromHistory ? 'Review History Details' : 'View Request Details'; ?></h2>
                     <p class="text-white text-sm md:text-lg mt-1">Request #<?php echo htmlspecialchars($request['access_request_number'] ?? 'N/A'); ?></p>
                 </div>
                 <div class="flex space-x-2">
                     <?php if ($fromHistory): ?>
-                        <a href="review_history.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                        <a href="completed_requests.php" class="inline-flex items-center px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
                             <i class='bx bx-arrow-back mr-2'></i> Back to Review History
                         </a>
                         <?php if (!empty($request['access_request_number'])): ?>
@@ -432,7 +432,7 @@ try {
                     <div class="bg-gray-50 p-4 rounded-lg">
                         <div class="space-y-3">
                             <div class="flex justify-between">
-                                <span class="text-gray-600">Business Unit:</span>
+                                <span class="text-gray-600">Company:</span>
                                 <span class="font-medium text-gray-900"><?php echo htmlspecialchars($request['business_unit'] ?? 'N/A'); ?></span>
                             </div>
                             <div class="flex justify-between">

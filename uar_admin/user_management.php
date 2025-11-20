@@ -13,8 +13,8 @@ header("X-Content-Type-Options: nosniff");
 header("X-Frame-Options: SAMEORIGIN");
 header("Content-Security-Policy: default-src 'self' https:; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https:;");
 
-// Check if user is logged in and is admin
-if (!isset($_SESSION['admin_id'])) {
+// Check if user is logged in and is uar_admin
+if (!isset($_SESSION['admin_id']) || $_SESSION['role'] !== 'uar_admin') {
     header('Location: login.php');
     exit();
 }
@@ -369,24 +369,24 @@ try {
     // Only include active employees if status is empty or 'active'
     if ($status_filter === '' || $status_filter === 'active') {
         $active_query = "SELECT 
-                          employee_id, 
-                          company, 
-                          employee_name, 
-                          department, 
-                          employee_email, 
+                          e.employee_id, 
+                          e.company, 
+                          e.employee_name, 
+                          e.department, 
+                          e.employee_email,
+                          e.role,
                           'active' as status,
                           0 as sort_order
-                        FROM 
-                          uar.employees 
+                        FROM uar.employees e
                         WHERE 1=1";
 
         if (isset($_GET['company']) && $_GET['company'] !== '') {
-            $active_query .= " AND company = ?";
+            $active_query .= " AND e.company = ?";
             $params[] = $_GET['company'];
         }
 
         if (isset($_GET['department']) && $_GET['department'] !== '') {
-            $active_query .= " AND department = ?";
+            $active_query .= " AND e.department = ?";
             $params[] = $_GET['department'];
         }
 
@@ -400,11 +400,11 @@ try {
                             company, 
                             employee_name, 
                             department, 
-                            employee_email, 
+                            employee_email,
+                            NULL as role,
                             'inactive' as status,
                             1 as sort_order
-                          FROM 
-                            uar.employees_archive 
+                          FROM uar.employees_archive 
                           WHERE 1=1";
 
         if (isset($_GET['company']) && $_GET['company'] !== '') {
@@ -445,16 +445,24 @@ try {
     $employees = [];
     $_SESSION['message'] = [
         'type' => 'error',
-        'text' => 'Failed to load employees. Please try again. Error: ' . $e->getMessage()
+        'text' => 'Failed to load employees. Please try again. Error: ' . $e->getMessage(),
+        'title' => 'Database Error'
     ];
 }
 
-// Fetch all admin users
-$stmt = $pdo->query("SELECT * FROM uar.admin_users");
-$admin_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// Debug: Show count
+error_log("Final employee count: " . count($employees));
 
-// Create a lookup of existing admin usernames
-$existing_usernames = array_column($admin_users, 'username');
+// Fetch all admin users
+try {
+    $stmt = $pdo->query("SELECT * FROM uar.admin_users");
+    $admin_users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $existing_usernames = array_column($admin_users, 'username');
+} catch (Exception $e) {
+    error_log("Error fetching admin users: " . $e->getMessage());
+    $admin_users = [];
+    $existing_usernames = [];
+}
 ?>
 
 <!DOCTYPE html>
@@ -463,72 +471,39 @@ $existing_usernames = array_column($admin_users, 'username');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management</title>
+    <title>User Management - UAR Admin</title>
 
     <!-- External CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-
-    <!-- Tailwind Configuration -->
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: {
-                            50: '#f0f9ff',
-                            100: '#e0f2fe',
-                            200: '#bae6fd',
-                            300: '#7dd3fc',
-                            400: '#38bdf8',
-                            500: '#0ea5e9',
-                            600: '#0284c7',
-                            700: '#0369a1',
-                            800: '#075985',
-                            900: '#0c4a6e',
-                            950: '#082f49',
-                        }
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 
-<body class="bg-gray-100">
+<body class="bg-gray-50">
     <div class="flex min-h-screen">
         <!-- Sidebar -->
         <?php include 'sidebar.php'; ?>
 
-        <!-- Mobile menu button (for responsive design) -->
-        <div class="lg:hidden fixed bottom-6 right-6 z-50">
-            <button type="button" class="flex items-center justify-center w-14 h-14 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                <i class='bx bx-menu text-2xl'></i>
-            </button>
-        </div>
-
         <!-- Main Content -->
-        <div class="flex-1 lg:ml-72">
+        <div class="flex-1 ml-72">
             <!-- Header -->
-            <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
+            <div class="bg-gradient-to-r from-indigo-600 to-purple-600 border-b border-gray-200 sticky top-0 z-30 shadow-lg">
                 <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-4">
                     <div>
                         <h2 class="text-2xl md:text-3xl font-bold text-white">User Management</h2>
+                        <p class="text-indigo-100 text-sm mt-1">Manage all system users and roles</p>
                     </div>
                     <div class="flex items-center gap-4 flex-wrap">
-
                         <div class="relative">
                             <input type="text"
                                 id="searchInput"
                                 placeholder="Search employees..."
-                                class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20">
+                                class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                             <i class='bx bx-search absolute left-3 top-2.5 text-gray-400'></i>
                         </div>
                         <button type="button"
-                            class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 flex items-center gap-2"
+                            class="px-4 py-2 bg-white text-indigo-600 rounded-lg hover:bg-indigo-50 flex items-center gap-2 font-medium"
                             data-bs-toggle="modal"
                             data-bs-target="#addEmployeeModal">
                             <i class="fas fa-plus"></i>
@@ -539,7 +514,7 @@ $existing_usernames = array_column($admin_users, 'username');
             </div>
 
             <!-- Content Area -->
-            <div class="p-4 md:p-8">
+            <div class="p-4 md:p-6">
                 <!-- Filters -->
                 <div class="bg-white rounded-xl shadow-sm p-6 mb-8">
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Users</h3>
@@ -591,82 +566,155 @@ $existing_usernames = array_column($admin_users, 'username');
 
                 <!-- Employees Table -->
                 <div class="bg-white rounded-xl shadow-sm">
-                    <div class="px-6 py-4 border-b border-gray-100">
-                        <h3 class="text-lg font-semibold text-gray-800">User List</h3>
+                    <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-800">User List (<?php echo count($employees); ?>)</h3>
+                        <?php if (count($employees) > 0): ?>
+                            <div class="flex items-center gap-2">
+                                <label class="text-sm text-gray-600">Show:</label>
+                                <select id="perPageSelect" class="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                                <span class="text-sm text-gray-600">entries</span>
+                            </div>
+                        <?php endif; ?>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200" id="employeesTable">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Employee ID</th>
-                                    <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                                    <th class="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                                    <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
-                                    <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                                    <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th class="px-3 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <?php if (!empty($employees)): foreach ($employees as $employee): ?>
-                                        <tr class="hover:bg-gray-50">
-                                            <td class="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                <?php echo htmlspecialchars($employee['employee_id']); ?>
-                                            </td>
-                                            <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-                                                <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($employee['employee_name']); ?></div>
-                                            </td>
-                                            <td class="hidden md:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($employee['company']); ?>
-                                            </td>
-                                            <td class="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($employee['department']); ?>
-                                            </td>
-                                            <td class="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <?php echo htmlspecialchars($employee['employee_email']); ?>
-                                            </td>
-                                            <td class="px-3 md:px-6 py-4 whitespace-nowrap">
-                                                <?php if ($employee['status'] === 'active'): ?>
-                                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
-                                                <?php else: ?>
-                                                    <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inactive</span>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="px-3 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                                <div class="flex justify-end gap-1 md:gap-2">
-                                                    <?php if ($employee['status'] === 'active'): ?>
-                                                        <button class="inline-flex items-center px-2 md:px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 edit-employee text-xs md:text-sm"
-                                                            data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
-                                                            data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>"
-                                                            data-company="<?php echo htmlspecialchars($employee['company']); ?>"
-                                                            data-department="<?php echo htmlspecialchars($employee['department']); ?>"
-                                                            data-email="<?php echo htmlspecialchars($employee['employee_email']); ?>"
-                                                            data-role="<?php echo htmlspecialchars($employee['role'] ?? ''); ?>">
-                                                            <i class="fas fa-edit me-1"></i>
-                                                            <span class="hidden md:inline">Edit</span>
-                                                        </button>
-                                                        <button class="inline-flex items-center px-2 md:px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 archive-employee text-xs md:text-sm"
-                                                            data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
-                                                            data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>">
-                                                            <i class="fas fa-archive me-1"></i>
-                                                            <span class="hidden md:inline">Archive</span>
-                                                        </button>
+
+                    <?php if (count($employees) === 0): ?>
+                        <!-- Empty State -->
+                        <div class="px-6 py-12 text-center">
+                            <i class='bx bx-user-x text-6xl text-gray-300 mb-4'></i>
+                            <h3 class="text-xl font-semibold text-gray-700 mb-2">No Users Found</h3>
+                            <p class="text-gray-500 mb-6">There are no employees in the system yet. Click the button below to add your first user.</p>
+                            <button type="button"
+                                class="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center gap-2 font-medium mx-auto"
+                                data-bs-toggle="modal"
+                                data-bs-target="#addEmployeeModal">
+                                <i class="fas fa-plus"></i>
+                                Add First User
+                            </button>
+                        </div>
+                    <?php else: ?>
+                        <!-- Table with data -->
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200" id="employeesTable">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(0)">
+                                            Employee ID <i class='bx bx-chevron-down text-xs'></i>
+                                        </th>
+                                        <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(1)">
+                                            Name <i class='bx bx-chevron-down text-xs'></i>
+                                        </th>
+                                        <th class="hidden md:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(2)">
+                                            Company <i class='bx bx-chevron-down text-xs'></i>
+                                        </th>
+                                        <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(3)">
+                                            Department <i class='bx bx-chevron-down text-xs'></i>
+                                        </th>
+                                        <th class="hidden lg:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(4)">
+                                            Email <i class='bx bx-chevron-down text-xs'></i>
+                                        </th>
+                                        <th class="hidden xl:table-cell px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(5)">
+                                            Role <i class='bx bx-chevron-down text-xs'></i>
+                                        </th>
+                                        <th class="px-3 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" onclick="sortTable(6)">
+                                            Status <i class='bx bx-chevron-down text-xs'></i>
+                                        </th>
+                                        <th class="px-3 md:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="tableBody">
+                                    <?php if (!empty($employees)): foreach ($employees as $employee): ?>
+                                            <tr class="hover:bg-gray-50 transition-colors employee-row">
+                                                <td class="px-3 md:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                    <?php echo htmlspecialchars($employee['employee_id']); ?>
+                                                </td>
+                                                <td class="px-3 md:px-6 py-4 whitespace-nowrap">
+                                                    <div class="text-sm font-medium text-gray-900"><?php echo htmlspecialchars($employee['employee_name']); ?></div>
+                                                </td>
+                                                <td class="hidden md:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <?php echo htmlspecialchars($employee['company']); ?>
+                                                </td>
+                                                <td class="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <?php echo htmlspecialchars($employee['department']); ?>
+                                                </td>
+                                                <td class="hidden lg:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <?php echo htmlspecialchars($employee['employee_email']); ?>
+                                                </td>
+                                                <td class="hidden xl:table-cell px-3 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                    <?php if ($employee['role']): ?>
+                                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                                            <?php echo ucwords(str_replace('_', ' ', htmlspecialchars($employee['role']))); ?>
+                                                        </span>
                                                     <?php else: ?>
-                                                        <button class="inline-flex items-center px-2 md:px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 restore-employee text-xs md:text-sm"
-                                                            data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
-                                                            data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>">
-                                                            <i class="fas fa-undo me-1"></i>
-                                                            <span class="hidden md:inline">Restore</span>
-                                                        </button>
+                                                        <span class="text-gray-400">-</span>
                                                     <?php endif; ?>
-                                                </div>
+                                                </td>
+                                                <td class="px-3 md:px-6 py-4 whitespace-nowrap">
+                                                    <?php if ($employee['status'] === 'active'): ?>
+                                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+                                                    <?php else: ?>
+                                                        <span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Inactive</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="px-3 md:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                    <div class="flex justify-end gap-1 md:gap-2">
+                                                        <?php if ($employee['status'] === 'active'): ?>
+                                                            <button class="inline-flex items-center px-2 md:px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 edit-employee text-xs md:text-sm"
+                                                                data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
+                                                                data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>"
+                                                                data-company="<?php echo htmlspecialchars($employee['company']); ?>"
+                                                                data-department="<?php echo htmlspecialchars($employee['department']); ?>"
+                                                                data-email="<?php echo htmlspecialchars($employee['employee_email']); ?>"
+                                                                data-role="<?php echo htmlspecialchars($employee['role'] ?? ''); ?>">
+                                                                <i class="fas fa-edit me-1"></i>
+                                                                <span class="hidden md:inline">Edit</span>
+                                                            </button>
+                                                            <button class="inline-flex items-center px-2 md:px-3 py-1 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 archive-employee text-xs md:text-sm"
+                                                                data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
+                                                                data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>">
+                                                                <i class="fas fa-archive me-1"></i>
+                                                                <span class="hidden md:inline">Archive</span>
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <button class="inline-flex items-center px-2 md:px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 restore-employee text-xs md:text-sm"
+                                                                data-employee-id="<?php echo htmlspecialchars($employee['employee_id']); ?>"
+                                                                data-employee-name="<?php echo htmlspecialchars($employee['employee_name']); ?>">
+                                                                <i class="fas fa-undo me-1"></i>
+                                                                <span class="hidden md:inline">Restore</span>
+                                                            </button>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach;
+                                    else: ?>
+                                        <tr>
+                                            <td colspan="8" class="px-6 py-12 text-center text-gray-500">
+                                                <i class='bx bx-user-x text-4xl mb-2'></i>
+                                                <p>No employees found</p>
                                             </td>
                                         </tr>
-                                <?php endforeach;
-                                endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="px-6 py-4 border-t border-gray-100">
+                            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                                <div class="text-sm text-gray-600" id="paginationInfo">
+                                    Showing <span id="startEntry">1</span> to <span id="endEntry">10</span> of <span id="totalEntries"><?php echo count($employees); ?></span> entries
+                                </div>
+                                <div class="flex items-center gap-2" id="paginationControls">
+                                    <!-- Pagination buttons will be generated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -974,50 +1022,54 @@ $existing_usernames = array_column($admin_users, 'username');
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // Pagination and table functionality
+        let currentPage = 1;
+        let perPage = 10;
+        let allRows = [];
+        let filteredRows = [];
+
         $(document).ready(function() {
-            // Initialize DataTable with fixed configuration
-            const table = $('#employeesTable').DataTable({
-                columnDefs: [{
-                    targets: 5, // Status column index
-                    type: 'string',
-                    render: function(data, type, row) {
-                        // For sorting purposes
-                        if (type === 'sort') {
-                            return data.includes('Active') ? '0' : '1'; // Active comes before Inactive
-                        }
-                        // Return the original HTML for display
-                        return data;
-                    }
-                }],
-                order: [
-                    [5, 'asc'],
-                    [1, 'asc']
-                ], // First by status (active first), then by name
-                pageLength: 10,
-                searching: true,
-                language: {
-                    lengthMenu: "Show _MENU_ entries per page",
-                    info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                    emptyTable: "No users found",
-                    paginate: {
-                        first: "First",
-                        last: "Last",
-                        next: "Next",
-                        previous: "Previous"
-                    },
-                    search: "Search in table:"
-                },
-                initComplete: function() {
-                    // Move the search box to our custom search input
-                    $('#searchInput').on('keyup', function() {
-                        table.search($(this).val()).draw();
+            // Wait a bit for DOM to be fully ready
+            setTimeout(function() {
+                // Get all table rows
+                allRows = Array.from(document.querySelectorAll('.employee-row'));
+                filteredRows = [...allRows];
+
+                console.log('Total rows found:', allRows.length);
+
+                // Only initialize pagination if we have rows
+                if (allRows.length > 0) {
+                    updatePagination();
+                } else {
+                    console.log('No employee rows found');
+                }
+            }, 100);
+
+            // Per page change
+            $('#perPageSelect').on('change', function() {
+                perPage = parseInt($(this).val());
+                currentPage = 1;
+                updatePagination();
+            });
+
+            // Search functionality
+            $('#searchInput').on('keyup', function() {
+                const searchTerm = $(this).val().toLowerCase();
+
+                if (searchTerm === '') {
+                    filteredRows = [...allRows];
+                } else {
+                    filteredRows = allRows.filter(row => {
+                        const text = row.textContent.toLowerCase();
+                        return text.includes(searchTerm);
                     });
                 }
+
+                currentPage = 1;
+                updatePagination();
             });
 
             // View Employee Details
@@ -1505,8 +1557,161 @@ $existing_usernames = array_column($admin_users, 'username');
 
             return isValid;
         }
+
+        // Update pagination display and controls
+        function updatePagination() {
+            const totalRows = filteredRows.length;
+
+            // If no rows, just return and keep showing the empty state
+            if (totalRows === 0) {
+                document.getElementById('startEntry').textContent = '0';
+                document.getElementById('endEntry').textContent = '0';
+                document.getElementById('totalEntries').textContent = '0';
+                document.getElementById('paginationControls').innerHTML = '';
+
+                // Hide all rows
+                allRows.forEach(row => row.style.display = 'none');
+                return;
+            }
+
+            const totalPages = Math.ceil(totalRows / perPage);
+            const startIndex = (currentPage - 1) * perPage;
+            const endIndex = Math.min(startIndex + perPage, totalRows);
+
+            console.log('Updating pagination:', {
+                totalRows,
+                totalPages,
+                startIndex,
+                endIndex,
+                currentPage,
+                perPage
+            });
+
+            // Hide all rows first
+            allRows.forEach(row => row.style.display = 'none');
+
+            // Show only current page rows
+            for (let i = startIndex; i < endIndex; i++) {
+                if (filteredRows[i]) {
+                    filteredRows[i].style.display = '';
+                }
+            }
+
+            // Update pagination info
+            document.getElementById('startEntry').textContent = startIndex + 1;
+            document.getElementById('endEntry').textContent = endIndex;
+            document.getElementById('totalEntries').textContent = totalRows;
+
+            // Generate pagination buttons
+            const paginationControls = document.getElementById('paginationControls');
+            paginationControls.innerHTML = '';
+
+            if (totalPages > 1) {
+                // Previous button
+                const prevBtn = document.createElement('button');
+                prevBtn.innerHTML = '<i class="bx bx-chevron-left"></i> Previous';
+                prevBtn.className = currentPage === 1 ?
+                    'px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed' :
+                    'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors';
+                prevBtn.disabled = currentPage === 1;
+                prevBtn.onclick = () => {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        updatePagination();
+                    }
+                };
+                paginationControls.appendChild(prevBtn);
+
+                // Page numbers
+                const pageNumsDiv = document.createElement('div');
+                pageNumsDiv.className = 'flex items-center gap-1';
+
+                const startPage = Math.max(1, currentPage - 2);
+                const endPage = Math.min(totalPages, currentPage + 2);
+
+                if (startPage > 1) {
+                    const firstBtn = createPageButton(1);
+                    pageNumsDiv.appendChild(firstBtn);
+                    if (startPage > 2) {
+                        const dots = document.createElement('span');
+                        dots.className = 'px-2 text-gray-500';
+                        dots.textContent = '...';
+                        pageNumsDiv.appendChild(dots);
+                    }
+                }
+
+                for (let i = startPage; i <= endPage; i++) {
+                    pageNumsDiv.appendChild(createPageButton(i));
+                }
+
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        const dots = document.createElement('span');
+                        dots.className = 'px-2 text-gray-500';
+                        dots.textContent = '...';
+                        pageNumsDiv.appendChild(dots);
+                    }
+                    const lastBtn = createPageButton(totalPages);
+                    pageNumsDiv.appendChild(lastBtn);
+                }
+
+                paginationControls.appendChild(pageNumsDiv);
+
+                // Next button
+                const nextBtn = document.createElement('button');
+                nextBtn.innerHTML = 'Next <i class="bx bx-chevron-right"></i>';
+                nextBtn.className = currentPage === totalPages ?
+                    'px-4 py-2 text-sm font-medium text-gray-400 bg-gray-100 border border-gray-200 rounded-lg cursor-not-allowed' :
+                    'px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors';
+                nextBtn.disabled = currentPage === totalPages;
+                nextBtn.onclick = () => {
+                    if (currentPage < totalPages) {
+                        currentPage++;
+                        updatePagination();
+                    }
+                };
+                paginationControls.appendChild(nextBtn);
+            }
+        }
+
+        function createPageButton(pageNum) {
+            const btn = document.createElement('button');
+            btn.textContent = pageNum;
+            btn.className = pageNum === currentPage ?
+                'px-3 py-2 text-sm font-medium text-white bg-indigo-600 border border-indigo-600 rounded-lg' :
+                'px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors';
+            btn.onclick = () => {
+                currentPage = pageNum;
+                updatePagination();
+            };
+            return btn;
+        }
+
+        // Table sorting
+        let sortColumn = -1;
+        let sortAscending = true;
+
+        function sortTable(columnIndex) {
+            if (sortColumn === columnIndex) {
+                sortAscending = !sortAscending;
+            } else {
+                sortColumn = columnIndex;
+                sortAscending = true;
+            }
+
+            filteredRows.sort((a, b) => {
+                const cellA = a.cells[columnIndex].textContent.trim().toLowerCase();
+                const cellB = b.cells[columnIndex].textContent.trim().toLowerCase();
+
+                if (cellA < cellB) return sortAscending ? -1 : 1;
+                if (cellA > cellB) return sortAscending ? 1 : -1;
+                return 0;
+            });
+
+            currentPage = 1;
+            updatePagination();
+        }
     </script>
 </body>
-<?php include '../footer.php'; ?>
 
 </html>

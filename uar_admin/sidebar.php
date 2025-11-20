@@ -1,5 +1,5 @@
 <?php
-// Use unified sidebar with role context; keep file for reference include
+// Use unified sidebar with role context
 $current_page = basename($_SERVER['PHP_SELF']);
-$ROLE = 'admin';
+$ROLE = 'uar_admin';
 include __DIR__ . '/../includes/role_sidebar.php';

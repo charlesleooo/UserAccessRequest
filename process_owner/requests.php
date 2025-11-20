@@ -54,7 +54,7 @@ try {
     $stmt = $pdo->prepare($sql);
     $stmt->execute(['current_admin_id' => $current_admin_id]);
     $requests = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
     // Debug: Log query results (remove in production)
     // error_log("Process Owner Requests - Found " . count($requests) . " requests for admin_id: " . $current_admin_id);
 } catch (PDOException $e) {
@@ -119,7 +119,7 @@ try {
                 <!-- <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
                     <strong>Debug Info:</strong> Admin ID: <?php echo $current_admin_id; ?> | Requests Found: <?php echo count($requests); ?> | Role: <?php echo $_SESSION['role']; ?>
                 </div> -->
-                
+
                 <div class="bg-white rounded-xl shadow overflow-hidden">
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">
@@ -127,7 +127,7 @@ try {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Pending</th>
@@ -164,7 +164,7 @@ try {
                                                 ?>
                                             </td>
                                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500" data-label="Date Needed">
-                                                <?php 
+                                                <?php
                                                 if (!empty($request['date_needed'])) {
                                                     echo date('M d, Y', strtotime($request['date_needed']));
                                                 } else {
@@ -313,7 +313,7 @@ try {
                                         <span class="font-medium text-gray-900">${data.requestor_name}</span>
                                     </div>
                                     <div class="flex justify-between">
-                                        <span class="text-gray-600">Business Unit:</span>
+                                        <span class="text-gray-600">Company:</span>
                                         <span class="font-medium text-gray-900">${data.business_unit}</span>
                                     </div>
                                     <div class="flex justify-between">
@@ -485,4 +485,5 @@ try {
     </script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>

@@ -1,23 +1,27 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once '../config.php';
 
-if (!isset($_SESSION['requestor_id'])) {
-    header("Location: login.php");
+// Ensure a Help Desk user is logged in
+if (!isset($_SESSION['admin_id']) || ($_SESSION['role'] ?? '') !== 'help_desk') {
+    header('Location: ../admin/login.php');
     exit();
 }
 
-// Set verification flag directly
+// Set verification flag directly (reuse existing pattern)
 $_SESSION['requests_verified'] = true;
 $_SESSION['requests_verified_time'] = time();
 
-$requestorId = $_SESSION['requestor_id'];
-$username = $_SESSION['username'] ?? 'User';
+// Use the admin's employee_id as the requestor id
+$requestorId = $_SESSION['admin_id'];
+$username = $_SESSION['admin_username'] ?? 'User';
 
-// Debug session data
-error_log("Session data: " . json_encode($_SESSION));
-error_log("Requestor ID: " . $requestorId);
-error_log("Username: " . $username);
+// Debug session data (kept consistent with original behavior)
+error_log("Help Desk Create Request - Session data: " . json_encode($_SESSION));
+error_log("Help Desk Create Request - Employee ID: " . $requestorId);
+error_log("Help Desk Create Request - Username: " . $username);
 
 // Fetch requestor's complete information
 try {
@@ -28,20 +32,17 @@ try {
     if ($requestorInfo) {
         // Set requestor details
         $fullName = $requestorInfo['employee_name'] ?? $username;
-        $company = $requestorInfo['company'] ?? ''; // Using company field
+        $company = $requestorInfo['company'] ?? '';
         $departmentName = $requestorInfo['department'] ?? '';
-
-        // For debugging
-        error_log("Retrieved user info: " . json_encode($requestorInfo));
+        error_log("Help Desk Create Request - Retrieved user info: " . json_encode($requestorInfo));
     } else {
-        // No employee record found with this ID
-        error_log("No employee record found for ID: " . $requestorId);
+        error_log("Help Desk Create Request - No employee record found for ID: " . $requestorId);
         $fullName = $username;
         $company = '';
         $departmentName = '';
     }
 } catch (PDOException $e) {
-    error_log("Error fetching requestor info: " . $e->getMessage());
+    error_log("Help Desk Create Request - Error fetching requestor info: " . $e->getMessage());
     $fullName = $username;
     $company = '';
     $departmentName = '';
@@ -112,7 +113,7 @@ try {
     $stmt->execute([$requestorId]);
     $recentRequests = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    error_log("Dashboard error: " . $e->getMessage());
+    error_log("Superior Create Request - Dashboard error: " . $e->getMessage());
     $total = $approved = $rejected = $pending = 0;
     $approvalRate = $declineRate = 0;
     $recentRequests = [];
@@ -169,7 +170,6 @@ try {
             font-family: 'Inter', sans-serif;
         }
 
-        /* Flowbite Table Enhancements */
         .flowbite-table input,
         .flowbite-table select {
             transition: all 0.2s ease-in-out;
@@ -181,12 +181,10 @@ try {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
-        /* Ensure SweetAlert is always on top and not clipped */
         .swal2-container {
             z-index: 100000 !important;
         }
 
-        /* Force visible SweetAlert buttons (prevent transparent/white-on-white styles) */
         .swal2-styled.swal2-confirm {
             background-color: #0084FF !important;
             color: #ffffff !important;
@@ -229,11 +227,11 @@ try {
                             900: '#1e3a8a',
                             950: '#172554',
                             DEFAULT: '#3b82f6',
-                            dark: '#1d4ed8',
+                            dark: '#1d4ed8'
                         },
                         danger: {
                             DEFAULT: '#dc3545',
-                            dark: '#c82333',
+                            dark: '#c82333'
                         }
                     }
                 }
@@ -248,27 +246,54 @@ try {
     <?php include 'sidebar.php'; ?>
 
     <!-- Sidebar Overlay for mobile/tablet -->
-    <div
-        x-show="sidebarOpen"
-        @click="sidebarOpen = false"
-        class="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden"
-        x-transition:enter="transition-opacity ease-in-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition-opacity ease-in-out duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        aria-hidden="true">
-    </div>
+    <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black bg-opacity-40 z-40 md:hidden" x-transition:enter="transition-opacity ease-in-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="transition-opacity ease-in-out duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" aria-hidden="true"></div>
 
     <!-- Main Content -->
     <div class="transition-all duration-300" :class="sidebarOpen ? 'md:ml-72' : 'ml-0'">
-        <!-- Header -->
-        <?php
-        $pageTitle = "Create New User Access Request (UAR)";
-        $logoPath = "../logo.png";
-        include '../header.php';
-        ?>
+        <!-- Header - Flowbite Style -->
+        <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center px-4 md:px-8 py-4 gap-3">
+                <div class="flex items-center" data-aos="fade-right" data-aos-duration="800">
+                    <!-- Hamburger button for toggling sidebar -->
+                    <button
+                        @click="sidebarOpen = !sidebarOpen"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-lg p-2 text-white hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-300 mr-3 md:mr-4 transition-all"
+                        aria-label="Toggle sidebar">
+                        <svg class="w-6 h-6" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path clip-rule="evenodd" fill-rule="evenodd" d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 10.5a.75.75 0 01.75-.75h7.5a.75.75 0 010 1.5h-7.5a.75.75 0 01-.75-.75zM2 10a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10z"></path>
+                        </svg>
+                    </button>
+                    <div>
+                        <h2 class="text-2xl md:text-3xl lg:text-4xl font-bold text-white">Create New User Access Request (UAR)</h2>
+                    </div>
+                </div>
+                <div class="relative" x-data="{ privacyNoticeOpen: false }" @mouseover="privacyNoticeOpen = true" @mouseleave="privacyNoticeOpen = false">
+                    <button type="button" class="inline-flex items-center p-2 text-white bg-blue-800 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300 transition-all">
+                        <svg class="w-5 h-5" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="sr-only">Privacy info</span>
+                    </button>
+                    <div x-cloak x-show="privacyNoticeOpen"
+                        class="absolute right-0 mt-2 w-72 p-4 bg-white rounded-lg shadow-xl text-gray-700 text-sm z-50 border border-gray-200"
+                        x-transition:enter="transition ease-out duration-200"
+                        x-transition:enter-start="opacity-0 transform scale-95"
+                        x-transition:enter-end="opacity-100 transform scale-100"
+                        x-transition:leave="transition ease-in duration-75"
+                        x-transition:leave-start="opacity-100 transform scale-100"
+                        x-transition:leave-end="opacity-0 transform scale-95">
+                        <div class="flex items-start mb-2">
+                            <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                            </svg>
+                            <p class="font-semibold text-gray-900">Data Privacy Notice</p>
+                        </div>
+                        <p class="ml-7 text-gray-600">Your data is used solely for processing access requests and is handled according to our internal privacy policy.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
 
         <div class="p-5" data-aos="fade-up" data-aos-duration="800">
@@ -890,52 +915,52 @@ try {
 
                 const newRow = document.createElement('tr');
                 newRow.innerHTML = `
-                <td class="border border-gray-200 p-2">
-                    <input type="hidden" name="ind_username_copy[]" value="${username}">
-                    <div class="invisible">Username</div>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <select name="ind_application[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                        <option value="">Select Application</option>
-                        <?php foreach ($systemApplications as $app): ?>
-                            <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <input type="hidden" name="ind_application_system[]" value="">
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <select name="ind_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                        <option value=""></option>
-                        <option value="full">Full</option>
-                        <option value="read">Read</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <select name="ind_duration_type[]" class="duration-select w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required onchange="toggleDateFields(this)">
-                        <option value=""></option>
-                        <option value="permanent">Permanent</option>
-                        <option value="temporary">Temporary</option>
-                    </select>
-                </td>
-                <td class="border border-gray-200 p-1 hidden">
-                    <input type="date" name="ind_start_date[]" class="start-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
-                </td>
-                <td class="border border-gray-200 p-1 hidden">
-                    <input type="date" name="ind_end_date[]" class="end-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
-                </td>
-                <td class="border border-gray-200 p-1">
-                    <input type="date" name="ind_date_needed[]" class="date-needed w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <input type="text" placeholder="Click to add justification" name="ind_justification[]" class="justification-input w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition bg-gray-50 cursor-pointer" required>
-                </td>
-                <td class="border border-gray-200 p-2 text-center w-16">
-                    <button type="button" class="bg-danger hover:bg-danger-dark text-white p-2 rounded transition" onclick="deleteRow(this)">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </td>
-            `;
+                    <td class="border border-gray-200 p-2">
+                        <input type="hidden" name="ind_username_copy[]" value="${username}">
+                        <div class="invisible">Username</div>
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <select name="ind_application[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                            <option value="">Select Application</option>
+                            <?php foreach ($systemApplications as $app): ?>
+                                <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input type="hidden" name="ind_application_system[]" value="">
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <select name="ind_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                            <option value=""></option>
+                            <option value="full">Full</option>
+                            <option value="read">Read</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <select name="ind_duration_type[]" class="duration-select w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required onchange="toggleDateFields(this)">
+                            <option value=""></option>
+                            <option value="permanent">Permanent</option>
+                            <option value="temporary">Temporary</option>
+                        </select>
+                    </td>
+                    <td class="border border-gray-200 p-1 hidden">
+                        <input type="date" name="ind_start_date[]" class="start-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
+                    </td>
+                    <td class="border border-gray-200 p-1 hidden">
+                        <input type="date" name="ind_end_date[]" class="end-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
+                    </td>
+                    <td class="border border-gray-200 p-1">
+                        <input type="date" name="ind_date_needed[]" class="date-needed w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <input type="text" placeholder="Click to add justification" name="ind_justification[]" class="justification-input w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition bg-gray-50 cursor-pointer" required>
+                    </td>
+                    <td class="border border-gray-200 p-2 text-center w-16">
+                        <button type="button" class="bg-danger hover:bg-danger-dark text-white p-2 rounded transition" onclick="deleteRow(this)">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </td>
+                `;
 
                 tbody.appendChild(newRow);
                 setupJustificationInputs();
@@ -950,25 +975,23 @@ try {
             } else {
                 // Group table row addition
                 const tbody = table.querySelector('tbody');
+                const rows = tbody.querySelectorAll('tr');
+                const lastRow = rows[rows.length - 1];
 
-                // Find the last application-row specifically (not user-row)
-                const applicationRows = tbody.querySelectorAll('tr.application-row');
-                const lastAppRow = applicationRows[applicationRows.length - 1];
+                // Check if the last row is complete
+                const application = lastRow.querySelector('select[name="grp_application[]"]').value;
+                const username = lastRow.querySelector('input[name="grp_user_names[]"]').value;
+                const accessType = lastRow.querySelector('select[name="grp_access_type[]"]').value;
+                const durationType = lastRow.querySelector('select[name="grp_duration_type[]"]').value;
+                const dateNeeded = lastRow.querySelector('input[name="grp_date_needed[]"]').value;
+                const justification = lastRow.querySelector('input[name="grp_justification[]"]').value;
 
-                // Check if the last application row is complete
-                const application = lastAppRow.querySelector('select[name="grp_application[]"]').value;
-                const username = lastAppRow.querySelector('input[name="grp_user_names[]"]').value;
-                const accessType = lastAppRow.querySelector('select[name="grp_access_type[]"]').value;
-                const durationType = lastAppRow.querySelector('select[name="grp_duration_type[]"]').value;
-                const dateNeeded = lastAppRow.querySelector('input[name="grp_date_needed[]"]').value;
-                const justification = lastAppRow.querySelector('input[name="grp_justification[]"]').value;
-
-                // Check if all required fields in the last application row are filled
+                // Check if all required fields in the last row are filled
                 if (!application || !username || !accessType || !durationType || !dateNeeded || !justification) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Complete Current Row',
-                        text: 'Please complete all fields in the current application row before adding a new application.',
+                        text: 'Please complete all fields in the current row before adding a new row.',
                         confirmButtonColor: '#0084FF'
                     });
                     return;
@@ -982,58 +1005,58 @@ try {
                 newRow.setAttribute('data-app-id', newAppId);
 
                 newRow.innerHTML = `
-                <td class="border border-gray-200 p-2">
-                    <div class="flex gap-2 items-center">
-                        <select name="grp_application[]" class="app-select flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                            <option value="">Select Application</option>
-                            <?php foreach ($systemApplications as $app): ?>
-                                <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
-                            <?php endforeach; ?>
+                    <td class="border border-gray-200 p-2">
+                        <div class="flex gap-2 items-center">
+                            <select name="grp_application[]" class="app-select flex-1 p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                                <option value="">Select Application</option>
+                                <?php foreach ($systemApplications as $app): ?>
+                                    <option value="<?php echo $app; ?>"><?php echo $app; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <input type="hidden" name="grp_application_system[]" value="">
+                        </div>
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <div class="flex items-center gap-2">
+                            <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                            <button type="button" class="bg-primary hover:bg-primary-dark text-white p-2 rounded transition flex-shrink-0" onclick="addUserRow(this)" title="Add User">
+                                <i class="fa fa-user-plus"></i>
+                            </button>
+                        </div>
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <select name="grp_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                            <option value=""></option>
+                            <option value="full">Full</option>
+                            <option value="read">Read</option>
+                            <option value="admin">Admin</option>
                         </select>
-                        <input type="hidden" name="grp_application_system[]" value="">
-                    </div>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <div class="flex items-center gap-2">
-                        <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                        <button type="button" class="bg-primary hover:bg-primary-dark text-white p-2 rounded transition flex-shrink-0" onclick="addUserRow(this)" title="Add User">
-                            <i class="fa fa-user-plus"></i>
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <select name="grp_duration_type[]" class="duration-select w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required onchange="toggleDateFields(this)">
+                            <option value=""></option>
+                            <option value="permanent">Permanent</option>
+                            <option value="temporary">Temporary</option>
+                        </select>
+                    </td>
+                    <td class="border border-gray-200 p-1 hidden">
+                        <input type="date" name="grp_start_date[]" class="start-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
+                    </td>
+                    <td class="border border-gray-200 p-1 hidden">
+                        <input type="date" name="grp_end_date[]" class="end-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
+                    </td>
+                    <td class="border border-gray-200 p-1">
+                        <input type="date" name="grp_date_needed[]" class="date-needed w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                    </td>
+                    <td class="border border-gray-200 p-2">
+                        <input type="text" placeholder="Click to add justification" name="grp_justification[]" class="justification-input w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition bg-gray-50 cursor-pointer" required>
+                    </td>
+                    <td class="border border-gray-200 p-2 text-center w-16">
+                        <button type="button" class="bg-danger hover:bg-danger-dark text-white p-2 rounded transition" onclick="deleteRow(this)">
+                            <i class="fa fa-trash"></i>
                         </button>
-                    </div>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <select name="grp_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                        <option value=""></option>
-                        <option value="full">Full</option>
-                        <option value="read">Read</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <select name="grp_duration_type[]" class="duration-select w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required onchange="toggleDateFields(this)">
-                        <option value=""></option>
-                        <option value="permanent">Permanent</option>
-                        <option value="temporary">Temporary</option>
-                    </select>
-                </td>
-                <td class="border border-gray-200 p-1 hidden">
-                    <input type="date" name="grp_start_date[]" class="start-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
-                </td>
-                <td class="border border-gray-200 p-1 hidden">
-                    <input type="date" name="grp_end_date[]" class="end-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
-                </td>
-                <td class="border border-gray-200 p-1">
-                    <input type="date" name="grp_date_needed[]" class="date-needed w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                </td>
-                <td class="border border-gray-200 p-2">
-                    <input type="text" placeholder="Click to add justification" name="grp_justification[]" class="justification-input w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition bg-gray-50 cursor-pointer" required>
-                </td>
-                <td class="border border-gray-200 p-2 text-center w-16">
-                    <button type="button" class="bg-danger hover:bg-danger-dark text-white p-2 rounded transition" onclick="deleteRow(this)">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </td>
-            `;
+                    </td>
+                `;
 
                 tbody.appendChild(newRow);
                 setupJustificationInputs();
@@ -1070,13 +1093,13 @@ try {
                     icon: 'warning',
                     title: 'Missing Information',
                     html: `
-                    <div class="text-left">
-                        <p class="mb-2">Please complete the following fields before adding a new user:</p>
-                        <ul class="list-disc list-inside">
-                            ${missingFields.map(field => `<li>${field}</li>`).join('')}
-                        </ul>
-                    </div>
-                `,
+                        <div class="text-left">
+                            <p class="mb-2">Please complete the following fields before adding a new user:</p>
+                            <ul class="list-disc list-inside">
+                                ${missingFields.map(field => `<li>${field}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `,
                     confirmButtonColor: '#0084FF'
                 });
                 return;
@@ -1131,47 +1154,47 @@ try {
             newRow.setAttribute('data-app-id', appId);
 
             newRow.innerHTML = `
-            <td class="border border-gray-200 p-2 bg-gray-50">
-                ${selectedApp}
-                <input type="hidden" name="grp_application[]" value="${selectedApp}">
-                <input type="hidden" name="grp_application_system[]" value="${selectedApp}">
-            </td>
-            <td class="border border-gray-200 p-2">
-                <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-            </td>
-            <td class="border border-gray-200 p-2">
-                <select name="grp_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-                    <option value="">Select Access Type</option>
-                    <option value="full">Full</option>
-                    <option value="read">Read</option>
-                    <option value="admin">Admin</option>
-                </select>
-            </td>
-            <td class="border border-gray-200 p-2">
-                <select name="grp_duration_type[]" class="duration-select w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required onchange="toggleDateFields(this)">
-                    <option value="">Select Duration</option>
-                    <option value="permanent">Permanent</option>
-                    <option value="temporary">Temporary</option>
-                </select>
-            </td>
-            <td class="border border-gray-200 p-1 hidden">
-                <input type="date" name="grp_start_date[]" class="start-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
-            </td>
-            <td class="border border-gray-200 p-1 hidden">
-                <input type="date" name="grp_end_date[]" class="end-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
-            </td>
-            <td class="border border-gray-200 p-1">
-                <input type="date" name="grp_date_needed[]" class="date-needed w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
-            </td>
-            <td class="border border-gray-200 p-2">
-                <input type="text" placeholder="Click to add justification" name="grp_justification[]" class="justification-input w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition bg-gray-50 cursor-pointer" required>
-            </td>
-            <td class="border border-gray-200 p-2 text-center w-16">
-                <button type="button" class="bg-danger hover:bg-danger-dark text-white p-2 rounded transition" onclick="deleteRow(this)">
-                    <i class="fa fa-trash"></i>
-                </button>
-            </td>
-        `;
+                <td class="border border-gray-200 p-2 bg-gray-50">
+                    ${selectedApp}
+                    <input type="hidden" name="grp_application[]" value="${selectedApp}">
+                    <input type="hidden" name="grp_application_system[]" value="${selectedApp}">
+                </td>
+                <td class="border border-gray-200 p-2">
+                    <input type="text" placeholder="User Name" name="grp_user_names[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                </td>
+                <td class="border border-gray-200 p-2">
+                    <select name="grp_access_type[]" class="w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                        <option value="">Select Access Type</option>
+                        <option value="full">Full</option>
+                        <option value="read">Read</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </td>
+                <td class="border border-gray-200 p-2">
+                    <select name="grp_duration_type[]" class="duration-select w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required onchange="toggleDateFields(this)">
+                        <option value="">Select Duration</option>
+                        <option value="permanent">Permanent</option>
+                        <option value="temporary">Temporary</option>
+                    </select>
+                </td>
+                <td class="border border-gray-200 p-1 hidden">
+                    <input type="date" name="grp_start_date[]" class="start-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
+                </td>
+                <td class="border border-gray-200 p-1 hidden">
+                    <input type="date" name="grp_end_date[]" class="end-date w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" disabled>
+                </td>
+                <td class="border border-gray-200 p-1">
+                    <input type="date" name="grp_date_needed[]" class="date-needed w-full p-1 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition" required>
+                </td>
+                <td class="border border-gray-200 p-2">
+                    <input type="text" placeholder="Click to add justification" name="grp_justification[]" class="justification-input w-full p-2 border border-gray-300 rounded focus:border-primary focus:ring focus:ring-primary focus:ring-opacity-20 transition bg-gray-50 cursor-pointer" required>
+                </td>
+                <td class="border border-gray-200 p-2 text-center w-16">
+                    <button type="button" class="bg-danger hover:bg-danger-dark text-white p-2 rounded transition" onclick="deleteRow(this)">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                </td>
+            `;
 
             appRow.after(newRow);
             setupJustificationInputs();
@@ -1390,10 +1413,10 @@ try {
                             icon: 'success',
                             title: 'Request Submitted Successfully!',
                             html: `
-                            <div class="ml-3">
-                                              <p class="text-sm text-blue-800 font-medium">Request Number: <span class="font-bold">${requestNumber}</span></p>
-                                          </div>
-                        `,
+                                <div class="ml-3">
+                                                  <p class="text-sm text-blue-800 font-medium">Request Number: <span class="font-bold">${requestNumber}</span></p>
+                                              </div>
+                            `,
                             heightAuto: false,
                             confirmButtonColor: '#0084FF',
                             confirmButtonText: 'Close',

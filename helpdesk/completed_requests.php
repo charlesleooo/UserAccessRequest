@@ -125,9 +125,9 @@ try {
         <!-- Main Content -->
         <div class="flex-1 lg:ml-72">
             <!-- Header -->
-            <div class="bg-blue-900 border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
                 <div class="px-4 md:px-8 py-4">
-                    <h1 class="text-xl md:text-2xl font-bold text-white">Request History</h1>
+                    <h1 class="text-2xl md:text-3xl font-bold text-white">Review History</h1>
                 </div>
             </div>
 
@@ -218,7 +218,7 @@ try {
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UAR REF NO.</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requestor</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Business Unit Entity</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Requested</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date Needed</th>

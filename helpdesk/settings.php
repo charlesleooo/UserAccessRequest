@@ -142,12 +142,9 @@ try {
         <!-- Main Content -->
         <div class="flex-1 lg:ml-72">
             <!-- Header -->
-            <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div class="bg-gradient-to-r from-blue-700 to-blue-900 border-b border-blue-800 sticky top-0 z-10 shadow-lg">
                 <div class="px-4 md:px-8 py-4">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-800">Settings</h2>
-                    <p class="text-gray-600 text-sm mt-1">
-                        Manage your account settings and preferences
-                    </p>
+                    <h2 class="text-2xl md:text-3xl font-bold text-white">Settings</h2>
                 </div>
             </div>
 
@@ -333,4 +330,5 @@ try {
     </script>
 </body>
 <?php include '../footer.php'; ?>
+
 </html>
